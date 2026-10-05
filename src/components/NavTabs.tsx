@@ -10,7 +10,6 @@ const ONGLETS = [
   { href: "/villes", cle: "nav.villes" as const },
   { href: "/jumelages", cle: "nav.jumelages" as const },
   { href: "/classement", cle: "nav.classement" as const },
-  { href: "/palmares", cle: "nav.palmares" as const },
   { href: "/pays", cle: "nav.pays" as const },
 ];
 

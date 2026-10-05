@@ -115,7 +115,15 @@ test.describe("Suivi de villes (A-INTEGRER §26 D)", () => {
     await expect(page.getByText("Tu ne suis aucune ville pour l'instant.")).toBeVisible({ timeout: 30_000 });
 
     await page.goto(`/villes?ville=${cible.villeId}`);
-    await page.getByRole("button", { name: /Suivre/ }).click();
+    const suivre = page.getByRole("button", { name: /Suivre/ });
+    await expect(suivre).toBeVisible({ timeout: 30_000 });
+    // Attendre l'hydratation de React : un clic trop précoce (serveur de développement lent) part
+    // sans que la page ne sache ensuite se mettre à jour.
+    await page.waitForFunction(() => {
+      const b = [...document.querySelectorAll("button")].find((x) => /Suivre/.test(x.textContent ?? ""));
+      return !!b && Object.keys(b).some((k) => k.startsWith("__reactProps"));
+    });
+    await suivre.click();
     await expect(page.getByRole("button", { name: /Ne plus suivre/ })).toBeVisible({ timeout: 20_000 });
     expect(await suivis(moi.userId)).toEqual([cible.villeId]);
 

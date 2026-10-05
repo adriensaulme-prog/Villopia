@@ -19,7 +19,7 @@ describe("guide de démarrage", () => {
   });
 
   it("la carte ne s'affiche que sur les écrans du jeu", () => {
-    for (const p of ["/ville", "/villes", "/jumelages", "/classement", "/palmares", "/pays", "/villes/x"]) {
+    for (const p of ["/ville", "/villes", "/jumelages", "/classement", "/pays", "/villes/x"]) {
       expect(pageDuGuide(p), p).toBe(true);
     }
     for (const p of ["/", "/connexion", "/inscription", "/regles", "/ville/creer", "/ville/region", "/ville/noms", "/dev/showroom"]) {

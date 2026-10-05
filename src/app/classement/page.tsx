@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
 import { SincroniserScene } from "@/components/SincroniserScene";
 import { PanneauFlottant } from "@/components/PanneauFlottant";
+import { SectionPalmares } from "./Palmares";
 
 const PAYS_PAR_DEFAUT = { latitude: 46.6, longitude: 2.35, fuseauHoraire: "Europe/Paris" };
 const TAILLE_TOP = 100;
@@ -22,11 +23,14 @@ type LigneClassement = {
 export default async function ClassementPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vue?: string }>;
+  searchParams: Promise<{ vue?: string; section?: string; classement?: string; periode?: string; echelle?: string }>;
 }) {
   const locale = await getLocale();
-  const { vue: vueBrute } = await searchParams;
+  const { vue: vueBrute, section: sectionBrute, classement, periode, echelle } = await searchParams;
   const vue: Vue = vueBrute === "national" || vueBrute === "regional" ? vueBrute : "mondial";
+  // A-INTEGRER §35 : « Classement actuel » (rang en direct par population) ou « Palmarès »
+  // (classements par période, ex-onglet Palmarès).
+  const section: "actuel" | "palmares" = sectionBrute === "palmares" ? "palmares" : "actuel";
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -78,7 +82,7 @@ export default async function ClassementPage({
   let requete = supabase.from("cities").select("id, nom, population, population_max").order("population", { ascending: false });
   if (vue === "national") requete = requete.eq("country_id", maVille.country_id);
   if (vue === "regional") requete = requete.eq("region_id", maVille.region_id);
-  const { data: topBrut } = await requete.limit(TAILLE_TOP);
+  const { data: topBrut } = section === "actuel" ? await requete.limit(TAILLE_TOP) : { data: [] };
   const top = (topBrut ?? []) as LigneClassement[];
 
   // "Ma position" : mon rang exact dans cette échelle, même hors du top 100
@@ -87,7 +91,8 @@ export default async function ClassementPage({
   let requeteDevant = supabase.from("cities").select("id", { count: "exact", head: true });
   if (vue === "national") requeteDevant = requeteDevant.eq("country_id", maVille.country_id);
   if (vue === "regional") requeteDevant = requeteDevant.eq("region_id", maVille.region_id);
-  const { count: nbVillesDevant } = await requeteDevant.gt("population", maVille.population);
+  const { count: nbVillesDevant } =
+    section === "actuel" ? await requeteDevant.gt("population", maVille.population) : { count: 0 };
   const monRang = (nbVillesDevant ?? 0) + 1;
 
   const ONGLETS: { cle: Vue; label: string }[] = [
@@ -103,6 +108,36 @@ export default async function ClassementPage({
         <div className="head-row">
           <h2 className="h2">{traduire(locale, "classement.titre")}</h2>
         </div>
+        <div className="row" role="tablist" aria-label={traduire(locale, "classement.titre")}>
+          <Link
+            href="/classement"
+            className="btn small"
+            style={section === "actuel" ? { borderColor: "var(--accent)", boxShadow: "inset 0 0 0 1px var(--accent)" } : undefined}
+            aria-current={section === "actuel" ? "page" : undefined}
+          >
+            {traduire(locale, "classement.sectionActuel")}
+          </Link>
+          <Link
+            href="/classement?section=palmares"
+            className="btn small"
+            style={section === "palmares" ? { borderColor: "var(--accent)", boxShadow: "inset 0 0 0 1px var(--accent)" } : undefined}
+            aria-current={section === "palmares" ? "page" : undefined}
+          >
+            {traduire(locale, "classement.sectionPalmares")}
+          </Link>
+        </div>
+        {section === "palmares" ? (
+          <SectionPalmares
+            locale={locale}
+            supabase={supabase}
+            userId={user.id}
+            maVilleId={maVilleId}
+            countryId={maVille.country_id}
+            regionId={maVille.region_id}
+            params={{ classement, periode, echelle }}
+          />
+        ) : (
+          <>
         <div className="row" role="tablist">
           {ONGLETS.map((o) => (
             <Link
@@ -156,6 +191,8 @@ export default async function ClassementPage({
               );
             })}
           </ol>
+        )}
+          </>
         )}
       </PanneauFlottant>
     </main>

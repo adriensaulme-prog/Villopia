@@ -4455,6 +4455,49 @@ automatique suspendue au premier geste (horloge simulée). `jalon11` et
 
 ---
 
+### Palmarès fusionné dans Classement (A-INTEGRER §35) — 05/10/2026
+
+**Demande d'Adrien** : « retirer l'onglet historique et ajouter l'historique des
+classements dans l'onglet classement ». Il n'existe pas d'onglet nommé
+« Historique » ; la note du §35 l'identifiait comme **Palmarès** (classements
+par période) et demandait de confirmer. **Confirmé par Adrien**
+(`AskUserQuestion`) : c'est bien Palmarès.
+
+**Fait (aucune migration, calcul des palmarès inchangé).**
+- `/classement` a maintenant un commutateur **« Classement actuel » /
+  « Palmarès »** (`?section=palmares`). « Classement actuel » est la vue par
+  défaut, identique à avant (mondial / national / régional, par population,
+  « ma position »). « Palmarès » affiche les 7 classements × 4 périodes ×
+  3 échelles de l'ancienne page, avec les mêmes filtres.
+- Le contenu de l'ancienne page est devenu une section réutilisable
+  (`src/app/classement/Palmares.tsx`, `SectionPalmares`) : mêmes appels
+  `palmares_*`, mêmes sous-composants ; seule la coquille (page, scène 3D,
+  panneau) change. En vue Palmarès, les requêtes du classement en direct ne
+  sont pas exécutées.
+- **L'onglet Palmarès disparaît de la barre** (5 onglets au lieu de 6 : Ma ville,
+  Villes, Jumelages, Classement, Pays — ce qui desserre aussi la barre
+  mobile signalée au §30).
+- `/palmares` reste valable et **redirige** vers
+  `/classement?section=palmares` en conservant `classement`, `periode` et
+  `echelle`. Aucun lien interne ne pointait vers `/palmares` (vérifié) ;
+  `guide.ts` et le préchauffage des tests ont été mis à jour.
+- Textes FR + EN (`classement.sectionActuel`, `classement.sectionPalmares`).
+
+**Défaut trouvé en chemin (corrigé).** `tests/unit/visites.test.ts`, commité
+dans la version `0.39.0`, contenait une chaîne littérale coupée par un retour à
+la ligne (erreur de syntaxe TypeScript introduite par un script d'édition) :
+ses 2 tests ne se chargeaient plus. J'avais lu « 202 passed » sans voir que le
+fichier lui-même échouait au chargement. Corrigé ; le compte est maintenant
+204 tests unitaires.
+
+**Testé.** `jalon8bis-palmares.spec.ts` (le test d'interface réécrit) :
+`/palmares?…` redirige en conservant les filtres, plus d'onglet Palmarès dans la
+barre, le commutateur est présent avec la bonne section active, les filtres
+(éprouvées, semaine, national) fonctionnent, `/classement` reste sur le
+classement actuel par défaut. `guide.test.ts` mis à jour. Capture vérifiée.
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,

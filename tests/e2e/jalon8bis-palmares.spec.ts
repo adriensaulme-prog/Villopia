@@ -252,7 +252,7 @@ test.describe("Jalon 8bis — les palmarès", () => {
     }
   });
 
-  test("la page /palmares affiche les sept classements sans erreur, et change avec les filtres", async ({
+  test("le Palmarès est une section de Classement (A-INTEGRER §35) : onglet retiré de la barre, ancienne adresse redirigée, sept classements et filtres", async ({
     page,
   }) => {
     const joueur = await creerCompteAvecVille("palm-ui");
@@ -260,9 +260,25 @@ test.describe("Jalon 8bis — les palmarès", () => {
       await connecter(page, joueur.email, joueur.motDePasse);
       await expect(page).toHaveURL(/\/ville$/, { timeout: 20_000 });
 
-      await page.goto("/palmares");
-      await expect(page.getByRole("heading", { name: "Les palmarès" })).toBeVisible();
+      // L'ancienne adresse redirige vers la section de Classement, filtres conservés.
+      await page.goto("/palmares?classement=pertes&periode=jour&echelle=national");
+      await expect(page).toHaveURL(/\/classement\?section=palmares&classement=pertes&periode=jour&echelle=national/);
+      // Plus d'onglet « Palmarès » dans la barre de navigation ; le commutateur est dans Classement.
+      await expect(page.locator("nav.tabs").getByRole("link", { name: "Palmarès" })).toHaveCount(0);
+      await expect(page.locator("nav.tabs").getByRole("link", { name: "Classement" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Classement actuel" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Palmarès" })).toHaveAttribute("aria-current", "page");
 
+      await page.goto("/classement?section=palmares");
+      for (const nom of ["Plus éprouvées", "Cette semaine", "National"]) {
+        await expect(page.getByRole("link", { name: nom })).toBeVisible();
+      }
+      // La vue par défaut de Classement est toujours le classement en direct.
+      await page.goto("/classement");
+      await expect(page.getByRole("link", { name: "Classement actuel" })).toHaveAttribute("aria-current", "page");
+
+      // Retour au Palmarès pour tester les filtres.
+      await page.goto("/classement?section=palmares");
       await page.getByRole("link", { name: "Plus éprouvées" }).click();
       await expect(page).toHaveURL(/classement=pertes/);
 

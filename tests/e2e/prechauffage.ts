@@ -18,7 +18,7 @@ const PAGES = [
   "/villes",
   "/jumelages",
   "/classement",
-  "/palmares",
+  "/classement?section=palmares",
   "/pays",
 ];
 

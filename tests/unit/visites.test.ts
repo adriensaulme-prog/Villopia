@@ -34,8 +34,7 @@ describe("plafond de visites quotidien", () => {
     const sql = derniereMigrationDefinissant(/function public\.visiter_ville\(/);
     const debut = sql.lastIndexOf("function public.visiter_ville(");
     // Seulement le corps de visiter_ville() : une migration peut redéfinir d'autres fonctions à sa suite.
-    const corps = sql.slice(debut, sql.indexOf("
-$$;", debut));
+    const corps = sql.slice(debut, sql.indexOf("\n$$;", debut));
     expect(corps).toMatch(/v_nb_aujourdhui >= public\.plafond_visites_quotidien\(\)/);
     expect(corps).not.toMatch(/v_nb_aujourdhui >= \d/);
   });

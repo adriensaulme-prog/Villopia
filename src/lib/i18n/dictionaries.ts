@@ -260,6 +260,8 @@ export const dictionaries = {
     "nav.pays": "Pays",
 
     "classement.titre": "Se classer",
+    "classement.sectionActuel": "Classement actuel",
+    "classement.sectionPalmares": "Palmarès",
     "classement.mondial": "Mondial",
     "classement.national": "National",
     "classement.regional": "Régional",
@@ -730,6 +732,8 @@ export const dictionaries = {
     "nav.pays": "Country",
 
     "classement.titre": "Get ranked",
+    "classement.sectionActuel": "Current ranking",
+    "classement.sectionPalmares": "Leaderboards",
     "classement.mondial": "World",
     "classement.national": "National",
     "classement.regional": "Regional",

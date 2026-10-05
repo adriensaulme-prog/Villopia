@@ -189,6 +189,20 @@ journal existant, puis ce fichier peut être supprimé.*
 > cours des blocs, Énergie et mégaprojets restent dehors) ; §34 fait
 > (migration `0045`). Détail : `DECISIONS.md` §4 « Notes §29 à §34 ».
 
+> **§35 — fait le 05/10/2026** (Palmarès confirmé par Adrien).
+> **§35 (fusionner "Palmarès" dans l'onglet "Classement", 05/10/2026) :
+> nouveau** — Adrien veut retirer un onglet qu'il appelle "Historique"
+> et mettre son contenu dans "Classement" ; élucidé côté Claude chat
+> comme visant très probablement l'onglet "Palmarès" (classements par
+> période), à confirmer avec lui.
+
+> **§36 (bâtiments Services/Commerce trop simples, arbres trop proches
+> des maisons, 05/10/2026) : nouveau, capture d'écran à l'appui** —
+> confirme un défaut déjà signalé au §20 A et jamais corrigé pour
+> Services/Commerce/Recherche (seuls Industrie et Énergie ont été
+> repris) ; plus un nouveau défaut sur le placement des arbres de
+> jardin, sans marge minimale avec la maison.
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).
@@ -1954,3 +1968,122 @@ automatique lui-même (§15, confirmé et toujours voulu par Adrien pour
 les visites normales) — il ajoute une exception claire : pas de visite
 automatique quand l'intention du joueur, démontrée par son clic, est
 d'attaquer plutôt que de soutenir.
+## 35. Fusionner "Palmarès" dans l'onglet "Classement" (demande d'Adrien, 05/10/2026)
+
+**Demande d'Adrien** : « il faudrait retirer l'onglet historique et
+ajouter l'historique des classements dans l'onglet classement ».
+
+**Élucidé en lisant le code** : il n'existe pas d'onglet littéralement
+nommé « Historique » dans la barre de navigation (`NavTabs.tsx` : Ma
+ville, Villes, Jumelages, Classement, Palmarès, Pays — 6 onglets,
+déjà signalés comme une barre dense au §30). Ce qu'Adrien appelle
+« Historique » est très probablement l'onglet **Palmarès**
+(`/palmares`) : contrairement à **Classement** (`/classement`, rang en
+direct par population, vues mondiale/nationale/régionale), Palmarès
+montre des classements **par période** (jour / semaine / mois /
+toujours) sur 7 catégories (croissance, pertes, influence, visites,
+attaques, générosité, jumelages) — c'est bien un historique de
+performance, pas un rang instantané, d'où la confusion probable de nom.
+
+**Hypothèse écartée, pour mémoire** : le **Journal** mondial
+(`nav.journal`, A-INTEGRER §26 A) aurait pu être une autre lecture de
+« historique », mais il n'est pas dans la barre d'onglets principale
+(`NavTabs.tsx`) — il est accessible via un lien secondaire dans
+`Nav.tsx`, à côté de « Règles ». Rien à « retirer » de la barre
+d'onglets pour lui, et son contenu (présidences, guerres, alliances,
+mégaprojets, grands monuments, à l'échelle du jeu entier) n'a pas de
+lien naturel avec « l'historique des classements ». **À confirmer avec
+Adrien si Palmarès n'est pas ce qu'il visait.**
+
+**Demande reformulée (si Palmarès confirmé)** : fusionner les deux
+pages sous l'onglet « Classement » — retirer Palmarès de la barre de
+navigation et faire apparaître son contenu comme une vue/un sous-onglet
+à l'intérieur de la page Classement, à côté du classement en direct par
+population.
+
+**Proposition pour Claude Code** :
+- dans `/classement`, ajouter un commutateur (onglets internes, ou un
+  menu déroulant) entre « Classement actuel » (vue existante :
+  mondial/national/régional, par population) et « Palmarès » (les 7
+  catégories × 4 périodes de `/palmares`) — en gardant le calcul
+  existant de `palmares/page.tsx` tel quel, seule la coquille de
+  page/navigation change ;
+- retirer l'entrée `{ href: "/palmares", cle: "nav.palmares" }` de
+  `NavTabs.tsx` ;
+- garder la route `/palmares` fonctionnelle (redirection vers
+  `/classement?vue=palmares` ou équivalent) plutôt que de la
+  supprimer, au cas où un lien existant pointe encore vers elle ;
+- vérifier s'il existe des liens internes vers `/palmares` à mettre à
+  jour (Bulletin municipal, Journal mondial, etc.) pour qu'ils pointent
+  directement vers la bonne vue dans `/classement`.
+
+**Portée** : changement d'organisation de la navigation uniquement —
+aucun changement dans le calcul des classements ou des palmarès
+eux-mêmes.
+
+**Traité le 05/10/2026 (Claude Code)** : Palmarès confirmé par Adrien comme
+l'onglet visé ; fusionné dans Classement (commutateur « Classement actuel /
+Palmarès »), retiré de la barre, `/palmares` redirige — détail dans
+`DECISIONS.md` §4 « Palmarès fusionné dans Classement ».
+## 36. Bâtiments Services/Commerce trop simples (déjà signalé) + arbres trop proches des maisons (retour d'Adrien, capture d'écran, 05/10/2026)
+
+**Retour d'Adrien**, avec une capture d'écran d'une ville à tours : « les
+bâtiments blancs en bas à gauche manque de détail et certains arbres
+sont trop proches des habitations ».
+
+### A. Bâtiments blancs/gris peu détaillés : Services et Commerce, pas encore repris
+
+**Confirmé en lisant le code** (`src/lib/ville3d/quartiers.ts`) :
+`buildServices()` est une simple boîte avec un toit plat gris
+(`MAT.FLATROOF`/`COL.roofGray`) et une croix peinte sur la façade (école/
+hôpital) — murs beige très clair (`SERVICES_WALLS`, proches du blanc à
+l'écran). `buildCommerce()` est un peu plus travaillée (bandeau
+enseigne coloré, auvent, vitrine) mais garde la même boîte à toit plat
+gris en silhouette de base. Sur la capture, ce sont très probablement
+ces bâtiments-là (Services surtout) qui lisent comme « blancs, sans
+détail » à côté des maisons (plus variées : plusieurs modèles, toits
+différents) et des tours (très détaillées).
+
+**Ce n'est pas un nouveau défaut** : le §20 A (27/09/2026) avait déjà
+signalé exactement ce problème pour l'Industrie et l'Énergie, en notant
+que « même logique à vérifier pour Commerce, Services et Recherche »,
+qui partagent le même compromis « 2 étapes » que l'Industrie. Dans le
+lot « petits points » du 02/10/2026, seuls l'Industrie (pas vérifié ici
+si repris depuis) et l'Énergie ont été concrètement retravaillés —
+**Commerce, Services et Recherche n'ont jamais été repris**. Cette
+capture d'écran confirme que le problème reste entier pour Services (et
+sans doute Commerce au niveau 0, avant que les étages/l'enseigne
+n'arrivent).
+
+**À faire** : reprendre `buildServices()` (et vérifier `buildCommerce()`
+au niveau 0, `buildRecherche()`) dans le même esprit que ce qui a déjà
+été fait pour l'Énergie et l'Industrie — plus de variantes de
+silhouette (pas seulement une boîte à toit plat), un peu plus de détail
+en façade (pas seulement une croix ou un bandeau), pour que ces
+bâtiments ne détonnent pas à côté des maisons et des tours. Chiffres et
+détails exacts laissés à Claude Code comme d'habitude.
+
+### B. Arbres de jardin parfois trop proches de la maison
+
+**Confirmé en lisant le code** (`src/lib/ville3d/batiments.ts`,
+fonction qui construit chaque maison) : un arbre est placé dans le
+« fond de jardin » de chaque maison —
+`placeInLot(rect, front, 2, 2, LOT - 3.2, rr(r, -3.5, 3.5))` — avec un
+décalage latéral aléatoire pouvant aller jusqu'à 3,5 m de part et
+d'autre du centre, mais **sans vérification de la distance réelle au
+mur de la maison** ni aux arbres des parcelles voisines. Selon la
+largeur de la maison tirée au sort sur cette parcelle, ce décalage
+aléatoire peut rapprocher l'arbre du mur ou d'un arbre voisin plus que
+ce qui est visuellement confortable — ce que montre la capture.
+
+**À faire** : resserrer la plage de décalage latéral, ou (mieux) la
+rendre dépendante de la largeur réelle de la maison construite sur la
+parcelle plutôt qu'une plage fixe ±3,5 m indépendante du bâtiment,
+pour garantir une marge minimale constante entre le tronc de l'arbre et
+le mur. Même logique de bon sens pour l'écart avec les arbres des
+jardins voisins si plusieurs maisons adjacentes tirent un décalage qui
+les rapproche. Détail d'implémentation laissé à Claude Code.
+
+**Portée** : les deux points sont des ajustements visuels (silhouettes
+de bâtiments, placement d'un élément de décor) — aucun changement de
+règle de jeu, aucune migration attendue.
