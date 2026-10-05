@@ -5544,6 +5544,119 @@ ne signalent pas un développement débloqué : suite possible.
 
 ---
 
+### Énergie à l'écart, paysage pour /pays, monuments et stades agrandis (retour d'Adrien du 05/10/2026, A-INTEGRER §49)
+
+**Demande d'Adrien (§49, cinq corrections, traitées dans cet ordre).** C : l'Énergie est trop proche du Siège
+international. E : le fond de `/pays` doit être un paysage de campagne, sans ville. A + B ensemble : monuments plus
+grands et plus détaillés (la statue géante à 50 m ou plus), posés sur une parcelle de façade au bord de la rue, plus
+dans les cours. D : Stade et Grand stade beaucoup plus grands, sur plusieurs blocs réservés. Règles : fonction pure
+de la graine, un objet posé ne bouge plus, application légère, pas de migration SQL, aucune vraie marque.
+
+**Texte du §49 absent de la copie locale.** `docs/A-INTEGRER.md` s'arrête au §48 et la version à jour (projet
+Claude « Jeu », `claude/A-INTEGRER.md`) n'est pas lisible depuis la session de code : le travail suit la consigne
+reçue telle quelle. À resynchroniser (le statut du §49, dans l'encadré de `A-INTEGRER.md`, le dit aussi).
+
+**Ce qui bouge une fois (à connaître).** « Un objet posé ne bouge plus » reste vrai *après* ce changement, mais
+trois choses ont dû changer de place, une seule fois chacune, et c'est voulu par les demandes elles-mêmes :
+- *C* — les mégaprojets déjà posés dans le secteur d'Énergie (ou à moins de 150 m) : **133 couples graine × palier
+  sur 3 600 (3,7 %)**, uniquement aux paliers 28 à 33 (aéroport, centre de recherche, centrale, grand stade,
+  centrale nouvelle génération, Siège international), les seuls qui arrivent jusque-là ;
+- *D* — le Stade et le Grand stade (leur bloc d'origine n'est plus qu'une partie de leur site) ;
+- *A+B* — les 16 monuments quittent les cours pour une parcelle de façade.
+Tout le reste est exactement où il était (testé).
+
+#### C — le secteur d'Énergie est exclu du placement des mégaprojets
+
+*Cause mesurée.* Le Siège international (palier 33, stade 4) tombait à la case la plus lointaine, vers 440 m,
+pile à l'entrée du secteur d'Énergie (axe +x, ±30°, à partir de 450 m) : sur la graine `graine-89`, **17 m** d'une
+éolienne ; sur 200 graines × 18 paliers, 121 couples passaient sous 150 m d'une installation réelle (paliers 28 à 33).
+*Règle.* Une case est refusée si son centre est à moins de **150 m** du secteur d'Énergie
+(`distanceAuSecteurEnergie`, `emplacements.ts` : distance au trapèze où tombent toutes les installations ; elle
+minore donc la distance à n'importe laquelle). Le mégaprojet refusé prend la **première case libre plus loin** dans
+l'ordre de `cases.ts` (jamais entre la ville et son ancienne case : il reste hors de la ville quand elle atteint son
+stade), les autres gardent leur case. Le calcul porte toujours sur les 18 paliers, puis on ne rend que ceux demandés :
+la place d'un mégaprojet ne dépend ni des autres mégaprojets débloqués ni de leur ordre. Mémorisé par graine.
+*Résultat.* Sur 200 graines × 18 paliers, la distance la plus faible entre le centre d'un mégaprojet et une
+installation d'Énergie réelle est de **164 m** (consigne : environ 150 m).
+
+#### E — `/pays` : un paysage, sans aucune ville
+
+Avant : `/pays` n'annonçait pas de scène, il montrait donc celle de la dernière page visitée, une ville tirée au
+hasard. Maintenant `<SincroniserScene paysage seed={countryId} …/>` : un mode `paysage` de la scène (`scene.ts`,
+`generatePaysage`, `generer.ts`) pose la campagne des villes (forêts, route bordée d'arbres) *jusqu'au centre* :
+un carrefour de campagne, 64 bosquets autour, aucun bloc, aucun bâtiment. La graine est l'id du pays consulté (un
+paysage par pays, toujours le même) ; le soleil suit la latitude, la longitude et le fuseau de ce pays. Caméra,
+brouillard, ombres et occlusion utilisent un rayon propre (260 m). Une ville du jeu n'est pas touchée (les arbres
+d'alignement de la route démarrent toujours à 190 m ; seul le paysage les rapproche, à 30 m).
+*Première proposition* : c'est volontairement sobre (le but du fond est de laisser lire le panneau) ; relief,
+champs, fermes ou plans d'eau sont possibles si Adrien en veut.
+
+#### A + B — monuments : plus grands, plus détaillés, sur une parcelle de façade
+
+*Taille.* Un monument tient dans le carré d'une parcelle (14,5 m) : son emprise est un cercle de 8 à 13 m, et c'est
+en hauteur qu'il grandit. Chaque type a son gabarit (rayon, hauteur ; `GABARITS`, `monuments.ts`) — un banc ne monte
+pas à 50 m :
+
+| Rang | Monuments (hauteur) |
+|---|---|
+| Modestes | borne 9 m · banc 7 m · fontaine 9 m · buste 13 m · obélisque 22 m |
+| Notables | arc de triomphe 17 m · horloge 27 m · fontaine monumentale 15 m · statue équestre 22 m · mur 11 m |
+| Prestigieux | arche 34 m · observatoire 40 m · statue emblématique 46 m · temple 24 m · **statue géante 56 m** · **monument ultime 62 m** |
+
+(Avant : de 4 à 15 m, la statue géante à 15 m.) Un type inconnu retombe sur un gabarit tiré de son palier.
+*Détail.* Les 16 silhouettes sont redessinées à cette échelle, pas simplement agrandies : proportions des statues
+(équestre, Liberté, colosse) liées à la hauteur de la figure et non à la largeur du socle, rangs de fenêtres éclairées
+des tours, cadrans à repères, beffroi, quadrige de l'arc, triglyphes du temple, rayons du soleil de l'arche, dauphins
+et mufles des fontaines, plaquettes du mur, pagne et torse du colosse. Ellipsoïdes lisses (méridiens/parallèles) à la
+place de l'icosphère, cylindres à 1,5 fois plus de pans. Un défaut corrigé en route : le disque solaire du colosse
+était posé *devant* sa tête.
+*Place pavée.* Chaque monument vient avec une place pavée de la taille de sa parcelle, avec bordure et quatre
+jardinières d'angle (`buildPlaceMonument`), y compris quand son bloc n'est pas encore ouvert (friche).
+*Emplacement (B).* Un monument par bloc, dans les **16 blocs les plus centraux** (le palier p dans le p-ième) ; dans le
+bloc, une parcelle du pourtour tirée au hasard parmi les **jardins publics** (rang 6 et au-delà ; jamais le parking, une
+maison, un immeuble ni le gratte-ciel : un monument ne déloge rien) ; sa façade (le côté +z de la construction) est
+tournée vers la rue de la parcelle. Les cours gardent leur fontaine et leurs arbres. Les mégaprojets évitent ces 16
+blocs. Les monuments sont tous à moins de 222 m du centre.
+*Pourquoi un par bloc et pas deux par cour dans huit blocs.* Deux monuments de 40 à 60 m côte à côte se cachent
+mutuellement ; un par bloc les espace d'au moins 80 m et les rend lisibles du centre à la périphérie.
+
+#### D — Stade et Grand stade : plusieurs blocs réservés
+
+*Taille.* Le Stade occupe un carré de **2 × 2 blocs** (144 m de côté, rues intérieures comprises, plateforme de
+136 m, 36 m de haut) et le Grand stade **3 × 3 blocs** (224 m, plateforme de 216 m, 60 m de haut), contre un seul
+bloc avant (Stade 30 m de large, Grand stade ~50 m). Pelouse tracée : 63 × 38 m et 106 × 67 m (le terrain de football
+réglementaire est de 105 × 68 m).
+*Placement* (`megaprojetsVille.ts`). Le site part de la case d'ancrage de son stade et s'étend **vers l'extérieur** de
+la ville (même signe que la case en x et en z) : les blocs ajoutés sont plus loin du centre que l'ancre, et le carré ne
+chevauche jamais un axe central. Tous ses blocs sont réservés : libres de tout autre mégaprojet et des 16 blocs de
+monuments, et à plus de 150 m du secteur d'Énergie par leur **bord** (`distanceRectAuSecteurEnergie`). Les mégaprojets
+d'un bloc sont placés d'abord (positions inchangées, sauf l'Énergie) ; le Stade et le Grand stade prennent ensuite la
+première case libre à partir de la leur.
+*Ce que ça change dans la ville.* Les blocs réservés n'ont ni lots ni cour ; les **rues intérieures disparaissent**
+(chaussées, trottoirs, lampadaires, arbres d'alignement, abribus, voitures : `buildRoadsAndTraffic(…, sansRue)` et
+`cotesInternes` de `buildBlock`), le pourtour garde sa rue et ses lampadaires. Quand la ville atteint le site, elle
+perd donc jusqu'à 4 ou 9 blocs d'habitations (le §45 en retirait un) — voir §10 point 43.
+*Bâtiments* (`megaprojetsEquipements.ts`, réécrits) : cuvette à deux niveaux de gradins (sièges bleus et blancs au
+Stade, bleus et rouges au Grand stade) séparés par un déambulatoire vitré, mur à 48 ou 96 pilastres avec vomitoires
+sombres, corniche, bandeaux vitrés, bannières, toits des tribunes sur mâts (Stade) ou toit-couronne blanc sur 28 mâts
+(Grand stade), quatre pylônes d'éclairage à projecteurs allumés la nuit, entrées (porche, enseigne, guichets,
+portiques, allées), parkings aux voitures garées, abris de touche, panneaux publicitaires, fanions, tableau
+d'affichage, rangées d'arbres.
+
+#### Poids et vérifications
+
+- Code : **+6,4 Ko gzip** pour toute la scène 3D (mesuré à l'esbuild, minifié : 57,5 → 63,8 Ko), pas de dépendance,
+  pas d'image, pas de modèle 3D, aucune migration SQL, aucune vraie marque.
+- Sommets par mégaprojet : le Stade 12 500, le Grand stade 17 800 (les autres, de 1 800 à 2 700) ; le garde-fou de
+  `megaprojetsSilhouettes.test.ts` passe à 14 000 et 20 000 pour ces deux-là, 90 000 pour les 18.
+- Tests : `megaprojetsEnergie.test.ts` (6, dont 200 graines × 18 paliers), `megaprojetsStades.test.ts` (13),
+  `ville3dPaysage.test.ts` (6), `monumentsVille.test.ts` et `monumentsEchelle.test.ts` réécrits, `monumentsDetail`,
+  `megaprojetsVille` et `megaprojetsSilhouettes` adaptés ; suite unitaire complète : 508 tests verts, `tsc` et lint
+  propres. Revue visuelle dans la vraie scène (avant / après) : monuments, statue géante, stades, secteur d'Énergie,
+  fond de `/pays` (page réelle, dans le navigateur de l'application).
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,
@@ -6056,3 +6169,24 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     poids (§1 point 6) : une dépendance de **développement** ne pèse rien sur l'application livrée, mais
     pèse sur `node_modules` (~25 Mo). → **À trancher par Adrien** : l'ajouter à `devDependencies` et en
     faire une suite (`npm run test:sql`), ou rester en usage ponctuel.
+42. **Taille des monuments (A-INTEGRER §49 A, 05/10/2026) : gabarits à valider.** Hauteurs de 7 à 62 m, posées par
+    Claude Code à partir du seul texte de la demande (« la statue géante à 50 m ou plus » : 56 m) ; les autres types
+    sont proportionnés à leur nature (un banc ne monte pas à 50 m). Limite physique : le carré d'une parcelle de
+    14,5 m, donc un rayon de 6,6 m au plus. → **À ajuster par Adrien après avoir regardé en jeu** : une ligne par type
+    dans `GABARITS` (`monuments.ts`), la hauteur seulement si le monument est déjà à la limite de largeur.
+43. **Stade et Grand stade sur plusieurs blocs (§49 D) : le coût en habitations.** Quand une ville atteint un de ces
+    sites, elle perd 4 ou 9 blocs d'habitations (le §45 en retirait un) et les rues qui les traversent disparaissent.
+    Les sites sont à la bordure de la ville (§37) : ce n'est pas le cœur, mais c'est un quartier entier. → **À
+    confirmer par Adrien** : acceptable tel quel, ou un site plus petit (par exemple 1 × 2 blocs pour le Stade) ; la
+    taille est une constante (`SITES_MULTI_BLOCS`, `megaprojets.ts`), le reste suit.
+44. **Un monument par bloc, dans les 16 blocs les plus centraux (§49 B).** Choix de Claude Code : deux monuments de
+    40 à 60 m dans le même bloc se cachent l'un l'autre ; un par bloc les espace d'au moins 80 m. Contrepartie : ils
+    s'étalent jusqu'à 222 m du centre (avant : dans les 8 blocs centraux, deux par cour). → **À confirmer par Adrien**,
+    ou à resserrer sur 8 blocs (une constante, `NB_BLOCS_MONUMENTS`, `monumentsVille.ts`, et un tirage de parcelle
+    qui évite deux parcelles voisines).
+45. **Fond de `/pays` (§49 E) : première proposition.** Carrefour de campagne, bosquets, forêts lointaines, un paysage
+    par pays, soleil du pays : sobre, pour laisser lire le panneau. Relief, champs, fermes ou plans d'eau
+    demanderaient du dessin neuf (`buildPaysage`, `terrain.ts`). → **À juger par Adrien** sur la page réelle.
+46. **Texte du §49 absent de la copie locale de `A-INTEGRER.md`** (elle s'arrête au §48 ; la version à jour est dans
+    le projet Claude « Jeu »). Le §49 a été traité d'après la consigne reçue (cinq corrections A à E). → **À
+    resynchroniser** : si le texte du §49 dit autre chose sur un point (chiffres, ordre, règle), le signaler.

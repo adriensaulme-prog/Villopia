@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generate, planifierBlocs } from "@/lib/ville3d/generer";
 import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { Geo } from "@/lib/ville3d/geometrie";
-import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet } from "@/lib/ville3d/megaprojets";
+import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet, tailleMegaprojet } from "@/lib/ville3d/megaprojets";
 import { rectCourBloc } from "@/lib/ville3d/terrain";
 import { BS, CITY_R_MIN, PLAFOND_RENDU_POPULATION, blockX0 } from "@/lib/ville3d/constantes";
 import { CEINTURE } from "@/lib/ville3d/emplacements";
@@ -71,24 +71,28 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     for (const cle of CLES) {
       const places = placesMegaprojets(cle, PALIERS);
       for (const palier of PALIERS) {
-        const place = places.get(palier)!;
+        const brut = places.get(palier)!;
+        // Un site de plusieurs blocs (§49 D) part de sa case d'ancrage, la plus proche de la ville : c'est elle qu'on mesure.
+        const place = { ...brut, x: blockX0(brut.bi) + BS / 2, z: blockX0(brut.bj) + BS / 2 };
         const { blocks } = planifierBlocs(cle, POPULATION_STADE[stadeDe(palier)], vocationsDe(cle, 7), 0);
         const dmin = Math.min(
           ...blocks.filter((b) => b.active).map((b) => Math.max(Math.abs(b.bi - place.bi), Math.abs(b.bj - place.bj)))
         );
         expect(dmin, `${cle} palier ${palier}`).toBeGreaterThanOrEqual(1);
-        // Le premier du stade est à une à trois cases ; chaque voisin de stade s'écarte d'une case de plus au plus.
-        expect(dmin, `${cle} palier ${palier}`).toBeLessThanOrEqual(3 + rangDansLeStade(palier));
-        // Beaucoup plus près que l'ancienne ceinture fixe à 450 m.
-        expect(normeMax(place), `${cle} palier ${palier}`).toBeLessThan(CEINTURE - 50);
+        // Le premier du stade est à une à trois cases ; chaque voisin de stade s'écarte d'une case de plus au plus,
+        // et deux de plus s'il a dû quitter le secteur d'Énergie (§49 C, tests/unit/megaprojetsEnergie.test.ts).
+        expect(dmin, `${cle} palier ${palier}`).toBeLessThanOrEqual(3 + rangDansLeStade(palier) + 2);
+        // Toujours en deçà de la ceinture d'Énergie (450 m) : avant le §49 C elle était dépassée de moins de 10 m par le dernier stade.
+        expect(normeMax(place), `${cle} palier ${palier}`).toBeLessThan(CEINTURE);
         expect(normeMax(place)).toBeGreaterThanOrEqual(CITY_R_MIN - BS);
       }
     }
   });
 
-  it("chaque mégaprojet est au centre de la cour de son bloc, loin des rues", () => {
+  it("chaque mégaprojet d'un bloc est au centre de la cour de son bloc, loin des rues", () => {
     for (const cle of CLES) {
       for (const [, p] of placesMegaprojets(cle, PALIERS)) {
+        if (p.taille > 1) continue;
         const x0 = blockX0(p.bi),
           z0 = blockX0(p.bj);
         expect(p.x).toBeGreaterThan(x0 + 14);
@@ -110,9 +114,9 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     }
   });
 
-  it("aucun mégaprojet ne tombe dans la cour d'un monument (les 8 cases les plus centrales)", () => {
+  it("aucun mégaprojet ne tombe sur un bloc de monument (les 16 cases les plus centrales, A-INTEGRER §49 B)", () => {
     for (const cle of CLES) {
-      const centrales = new Set(casesCentrales(cle, 8).map((c) => c.bi + "," + c.bj));
+      const centrales = new Set(casesCentrales(cle, 16).map((c) => c.bi + "," + c.bj));
       for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
         expect(centrales.has(p.bi + "," + p.bj), `${cle} palier ${palier}`).toBe(false);
       }
@@ -171,8 +175,8 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       buildMegaprojet(g, 0, 0, def.type, def.stade, rngFrom("t"), ao as never, 1);
       return ao[0].h;
     };
-    // Taille réelle (§45) : au plus 55 m de haut au stade 4 — jamais les 33 × 4 m qu'un palier brut donnerait.
-    for (const palier of PALIERS) expect(hauteur(palier), `palier ${palier}`).toBeLessThanOrEqual(55 + 1e-9);
+    // Taille réelle (§45) : au plus 55 m de haut au stade 4 — jamais les 33 × 4 m qu'un palier brut donnerait ; 60 m pour le Grand stade (§49 D).
+    for (const palier of PALIERS) expect(hauteur(palier), `palier ${palier}`).toBeLessThanOrEqual(60 + 1e-9);
     expect(hauteur(PALIERS.at(-1)!)).toBeGreaterThan(hauteur(PREMIER)); // le stade 4 est plus grand que le stade 0
   });
 
@@ -196,6 +200,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("la position n'a pas changé d'un mètre : toujours le centre de la cour de la case (celle d'avant le §45)", () => {
       for (const cle of CLES)
         for (const [, p] of placesMegaprojets(cle, PALIERS)) {
+          if (p.taille > 1) continue;
           const rect = rectCourBloc(cle, p.bi, p.bj)!;
           expect(p.x).toBeCloseTo((rect[0] + rect[2]) / 2, 9);
           expect(p.z).toBeCloseTo((rect[1] + rect[3]) / 2, 9);
@@ -205,6 +210,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("l'emprise tient dans le bloc : jamais de débord sur une rue ni sur le bloc voisin, quelle que soit la ville", () => {
       for (const cle of CLES)
         for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+          if (p.taille > 1) continue;
           const bx = blockX0(p.bi),
             bz = blockX0(p.bj);
           const msg = `${cle} palier ${palier}`;
@@ -219,6 +225,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("les plus gros (stade 3 et 4) sont réduits à la place qu'ils ont plutôt que de déborder ; les petits gardent leur rayon de stade", () => {
       for (const cle of CLES)
         for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+          if (p.taille > 1) continue;
           if (stadeDe(palier) <= 2) expect(p.rayon, `${cle} ${palier}`).toBe(rayonMegaprojet(stadeDe(palier)));
           // 24,75 m : la distance minimale entre le centre d'une cour et le bord de son bloc (cour de 14,5 × 29 m décalée de 7,25 m).
           expect(p.rayon, `${cle} ${palier}`).toBeCloseTo(Math.min(rayonMegaprojet(stadeDe(palier)), 24.75), 9);
@@ -229,7 +236,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       const mesure = (rayonMax?: number) => {
         const g = new Geo();
         const ao: { x0: number; x1: number; h: number }[] = [];
-        buildMegaprojet(g, 0, 0, "grand_stade", 4, rngFrom("t"), ao as never, 1, rayonMax);
+        buildMegaprojet(g, 0, 0, "siege_international", 4, rngFrom("t"), ao as never, 1, rayonMax);
         return { largeur: ao[0].x1 - ao[0].x0, h: ao[0].h };
       };
       const plein = mesure();

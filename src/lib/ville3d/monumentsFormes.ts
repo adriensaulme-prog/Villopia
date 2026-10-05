@@ -9,8 +9,7 @@
  */
 import type { Couleur } from "./constantes";
 import { COL, MAT } from "./constantes";
-import type { RNG } from "./aleatoire";
-import { blob, box, cylinder, norm, type Geo } from "./geometrie";
+import { box, cylinder, norm, type Geo } from "./geometrie";
 
 export type Face = "+z" | "-z" | "+x" | "-x";
 
@@ -18,12 +17,29 @@ export function mixer(a: Couleur, b: Couleur, t: number): Couleur {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-/** blob() tire un facteur 0,82-1,12 par sommet pour les feuillages ; un tirage constant donne une sphère lisse. */
-const LISSE: RNG = () => 0.5;
-
-/** Ellipsoïde lisse (icosphère de 42 sommets) : têtes, dômes, croupes de cheval. */
-export function ellipsoide(g: Geo, cx: number, cy: number, cz: number, rx: number, ry: number, rz: number, c: Couleur, m: number) {
-  blob(g, cx, cy, cz, rx, ry, rz, c, m, LISSE);
+/**
+ * Ellipsoïde lisse (méridiens et parallèles, normales exactes) : têtes, dômes, croupes de cheval, globes.
+ * Depuis le §49 les monuments font jusqu'à 60 m : l'icosphère de 42 sommets qu'on utilisait avant se
+ * voyait facettée dès qu'un dôme dépassait quelques mètres.
+ */
+export function ellipsoide(g: Geo, cx: number, cy: number, cz: number, rx: number, ry: number, rz: number, c: Couleur, m: number, nLon = 14, nLat = 8) {
+  const lignes: number[][] = [];
+  for (let j = 0; j <= nLat; j++) {
+    const phi = -Math.PI / 2 + (Math.PI * j) / nLat;
+    const cp = Math.cos(phi),
+      sp = Math.sin(phi);
+    const ligne: number[] = [];
+    for (let i = 0; i <= nLon; i++) {
+      const th = (2 * Math.PI * i) / nLon;
+      const ux = cp * Math.cos(th),
+        uz = cp * Math.sin(th),
+        uy = sp;
+      const n = norm([ux / rx, uy / ry, uz / rz]);
+      ligne.push(g.v(cx + ux * rx, cy + uy * ry, cz + uz * rz, n[0], n[1], n[2], c, m, 0, 0, 0));
+    }
+    lignes.push(ligne);
+  }
+  for (let j = 0; j < nLat; j++) for (let i = 0; i < nLon; i++) g.q(lignes[j][i], lignes[j][i + 1], lignes[j + 1][i + 1], lignes[j + 1][i]);
 }
 
 /**
@@ -310,4 +326,39 @@ export function lampadaire(
 /** Flamme (braséro, torche, lanterne sommitale) : un cône émissif, qui brille la nuit comme le feu rouge des tours. */
 export function flamme(g: Geo, cx: number, y0: number, cz: number, r: number, h: number, c: Couleur) {
   cylinder(g, cx, y0, cz, r, h, 8, c, MAT.BEACON, null, null, 0);
+}
+
+/**
+ * Colonne : plinthe, fût légèrement effilé (`seg` pans), chapiteau et abaque. `r` est le rayon du fût
+ * en bas, `h` la hauteur totale.
+ */
+export function colonne(g: Geo, x: number, y0: number, z: number, r: number, h: number, c: Couleur, m: number, seed = 0, seg = 12, chapiteau: Couleur = c) {
+  const hBase = h * 0.07,
+    hChap = h * 0.08,
+    hAb = h * 0.03;
+  box(g, x - r * 1.35, y0, z - r * 1.35, x + r * 1.35, y0 + hBase, z + r * 1.35, { c, m, seed });
+  cylinder(g, x, y0 + hBase, z, r, h - hBase - hChap - hAb, seg, c, m, null, null, r * 0.86);
+  const yc = y0 + h - hChap - hAb;
+  cylinder(g, x, yc, z, r * 0.86, hChap, seg, chapiteau, m, null, null, r * 1.2);
+  box(g, x - r * 1.45, yc + hChap, z - r * 1.45, x + r * 1.45, yc + hChap + hAb, z + r * 1.45, { c: chapiteau, m, seed });
+}
+
+/** Balustrade le long d'un segment parallèle à un axe : lisse basse, lisse haute et balustres tous les `pas` mètres. */
+export function balustrade(g: Geo, xa: number, za: number, xb: number, zb: number, y0: number, h: number, c: Couleur, m: number, seed = 0, pas = 0.9) {
+  const selonX = Math.abs(xb - xa) >= Math.abs(zb - za);
+  const L = selonX ? Math.abs(xb - xa) : Math.abs(zb - za);
+  const n = Math.max(1, Math.round(L / pas));
+  const ep = Math.max(0.1, h * 0.09);
+  const posee = (t: number, y1: number, y2: number, demi: number) => {
+    const x = selonX ? Math.min(xa, xb) + t : xa,
+      z = selonX ? za : Math.min(za, zb) + t;
+    box(g, x - demi, y1, z - demi, x + demi, y2, z + demi, { c, m, seed });
+  };
+  const lisse = (y1: number, y2: number, demi: number) => {
+    if (selonX) box(g, Math.min(xa, xb), y1, za - demi, Math.max(xa, xb), y2, za + demi, { c, m, seed });
+    else box(g, xa - demi, y1, Math.min(za, zb), xa + demi, y2, Math.max(za, zb), { c, m, seed });
+  };
+  lisse(y0, y0 + h * 0.12, ep * 0.9);
+  lisse(y0 + h * 0.88, y0 + h, ep);
+  for (let k = 0; k <= n; k++) posee((L * k) / n, y0, y0 + h, k === 0 || k === n ? ep * 1.2 : ep * 0.55);
 }

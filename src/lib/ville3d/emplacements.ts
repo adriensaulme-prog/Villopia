@@ -3,8 +3,8 @@
  * dans un bloc : les installations d'Énergie (docs/A-INTEGRER.md §25,
  * point 5 + « voir où il est »). Les monuments d'influence (§33, voir
  * monumentsVille.ts) et les mégaprojets (§37, voir megaprojetsVille.ts)
- * n'y sont plus : ils sont dans la cour d'une case de la ville ou à sa
- * bordure.
+ * n'y sont plus : ils sont sur une parcelle de façade d'un bloc de la
+ * ville (§49 B) ou à sa bordure.
  *
  * Avant le §25 chaque objet était posé à un ANGLE ALÉATOIRE sur 360° :
  * impossible de savoir où regarder. Désormais Énergie a son SECTEUR fixe,
@@ -45,6 +45,9 @@ const DEG = Math.PI / 180;
 const DEMI_SECTEUR = 30;
 
 export const AXE_ENERGIE = 0;
+
+/** Profondeur (m, au-delà de la CEINTURE) sur laquelle les installations d'Énergie se répartissent ; la centrale reste à moins de 60 m. */
+const PROFONDEUR_ENERGIE = 250;
 
 /**
  * Demi-emprise (en z) du plus large objet d'Énergie : la ferme solaire (jusqu'à
@@ -95,11 +98,85 @@ function horsDeLaRoute(p: Point, r: RNG): Point {
 /** Installation d'Énergie n° k (0-based) : éolienne ou panneau solaire, au hasard stable dans son secteur. */
 export function emplacementEnergie(key: string, k: number): Point {
   const r = rngFrom(key + "|energie|" + k);
-  return horsDeLaRoute(dansSecteur(AXE_ENERGIE, r() * 2 - 1, CEINTURE + rr(r, 0, 250)), r);
+  return horsDeLaRoute(dansSecteur(AXE_ENERGIE, r() * 2 - 1, CEINTURE + rr(r, 0, PROFONDEUR_ENERGIE)), r);
 }
 
 /** Centrale d'Énergie : même secteur, au plus près de la ville. */
 export function emplacementCentrale(key: string): Point {
   const r = rngFrom(key + "|energie|centrale");
   return horsDeLaRoute(dansSecteur(AXE_ENERGIE, r() * 2 - 1, CEINTURE + rr(r, 0, 60)), r);
+}
+
+/** Sommets du secteur d'Énergie, la zone où tombent toutes ses installations : un trapèze, de la CEINTURE à CEINTURE + PROFONDEUR_ENERGIE, ouvert de ±DEMI_SECTEUR. */
+const SECTEUR_ENERGIE: readonly Point[] = (() => {
+  const pente = Math.tan((AXE_ENERGIE + DEMI_SECTEUR) * DEG);
+  const loin = CEINTURE + PROFONDEUR_ENERGIE;
+  return [
+    { x: CEINTURE, z: -CEINTURE * pente },
+    { x: loin, z: -loin * pente },
+    { x: loin, z: loin * pente },
+    { x: CEINTURE, z: CEINTURE * pente },
+  ];
+})();
+
+function distanceAuSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x,
+    dz = b.z - a.z;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz)));
+  return Math.hypot(p.x - (a.x + t * dx), p.z - (a.z + t * dz));
+}
+
+/**
+ * Distance (m) du point (x, z) au secteur d'Énergie (0 dedans) : toute
+ * installation d'Énergie, éolienne, panneaux ou centrale, est dans ce secteur,
+ * donc le point est au moins à cette distance de chacune d'elles. Sert à tenir
+ * les mégaprojets à l'écart (megaprojetsVille.ts, A-INTEGRER §49).
+ */
+export function distanceAuSecteurEnergie(x: number, z: number): number {
+  const p = { x, z };
+  const dedans = SECTEUR_ENERGIE.every((a, i) => {
+    const b = SECTEUR_ENERGIE[(i + 1) % SECTEUR_ENERGIE.length];
+    return (b.x - a.x) * (z - a.z) - (b.z - a.z) * (x - a.x) >= 0;
+  });
+  if (dedans) return 0;
+  return Math.min(...SECTEUR_ENERGIE.map((a, i) => distanceAuSegment(p, a, SECTEUR_ENERGIE[(i + 1) % SECTEUR_ENERGIE.length])));
+}
+
+/** Les deux polygones convexes (listes de sommets) se recouvrent-ils ? Théorème de l'axe séparateur. */
+function seRecouvrent(a: readonly Point[], b: readonly Point[]): boolean {
+  for (const poly of [a, b]) {
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i],
+        q = poly[(i + 1) % poly.length];
+      const nx = -(q.z - p.z),
+        nz = q.x - p.x;
+      const proj = (pts: readonly Point[]) => pts.map((v) => v.x * nx + v.z * nz);
+      const pa = proj(a),
+        pb = proj(b);
+      if (Math.max(...pa) < Math.min(...pb) || Math.max(...pb) < Math.min(...pa)) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Distance (m) du rectangle (x0, z0)-(x1, z1) au secteur d'Énergie (0 s'ils se touchent). Un mégaprojet
+ * qui occupe plusieurs blocs (le Stade, le Grand stade) se tient à l'écart de l'Énergie par son BORD,
+ * pas par son centre (megaprojetsVille.ts, A-INTEGRER §49 C et D).
+ */
+export function distanceRectAuSecteurEnergie(x0: number, z0: number, x1: number, z1: number): number {
+  const rect: Point[] = [
+    { x: x0, z: z0 },
+    { x: x1, z: z0 },
+    { x: x1, z: z1 },
+    { x: x0, z: z1 },
+  ];
+  if (seRecouvrent(rect, SECTEUR_ENERGIE)) return 0;
+  let d = Infinity;
+  for (const [A, B] of [
+    [rect, SECTEUR_ENERGIE],
+    [SECTEUR_ENERGIE, rect],
+  ] as const)
+    for (const p of A) for (let i = 0; i < B.length; i++) d = Math.min(d, distanceAuSegment(p, B[i], B[(i + 1) % B.length]));
+  return d;
 }

@@ -10,7 +10,7 @@
 
 import { cleDe } from "./emplacements";
 import { casesTriees } from "./cases";
-import { buildMonument } from "./monuments";
+import { buildMonument, buildPlaceMonument } from "./monuments";
 import { placesMegaprojets } from "./megaprojetsVille";
 import { placesMonuments } from "./monumentsVille";
 import { rngFrom } from "./aleatoire";
@@ -38,6 +38,7 @@ import {
   buildEnergieCampagne,
   buildIdleBlock,
   buildMegaprojetsCampagne,
+  buildPaysage,
   buildRoadsAndTraffic,
   buildTramway,
   zonesEnergie,
@@ -48,6 +49,7 @@ import {
   type ZoneSansArbre,
 } from "./terrain";
 import type { VocationQuartier } from "./quartiers";
+import type { Facade } from "./batiments";
 import { technologiesDepuisPalier, type TechnologiesVille } from "@/lib/game/technologies";
 
 /** Vocation de chaque bloc déjà ouvert, par rang (0 = le plus central) —
@@ -148,6 +150,30 @@ export function planifierBlocs(
   return { blocks, K };
 }
 
+/**
+ * Demi-taille du carré que le paysage sans ville cadre (A-INTEGRER §49 E) : pilote, comme le rayon
+ * d'une ville, le brouillard, les ombres, l'occlusion au sol et la caméra (scene.ts).
+ */
+export const RAYON_PAYSAGE = 260;
+
+/**
+ * Paysage de campagne sans aucune ville (A-INTEGRER §49 E) : fond de la page /pays. `name` est la
+ * graine (l'id du pays consulté) ; même graine, même paysage. Aucun bloc, aucun bâtiment.
+ */
+export function generatePaysage(name: string): ResultatGeneration {
+  const key = cleDe(name);
+  const g = new Geo();
+  const ao: TamponAO[] = [];
+  flat(g, -4000, -4000, 4000, 4000, 0, COL.meadow, MAT.MEADOW);
+  buildPaysage(g, key, ao);
+  return {
+    g,
+    ao,
+    glow: [],
+    stats: { maxFloors: 0, towers: 0, active: 0, center: [0, 0], extent: 300, next: Infinity, cityR: RAYON_PAYSAGE },
+  };
+}
+
 export function generate(
   name: string,
   C: number,
@@ -190,7 +216,8 @@ export function generate(
   const horsVille = (b: Bloc) =>
     Math.max(Math.abs(blockX0(b.bi)), Math.abs(blockX0(b.bi) + BS), Math.abs(blockX0(b.bj)), Math.abs(blockX0(b.bj) + BS)) >= cityR;
 
-  // A-INTEGRER §33 : les monuments occupent la cour des premiers blocs (ou leur friche).
+  // A-INTEGRER §33 puis §49 A+B : un monument occupe une parcelle de façade (un jardin public) de l'un
+  // des premiers blocs, au bord de la rue — ou sa friche si le bloc n'est pas encore ouvert.
   const places = placesMonuments(
     key,
     monuments.map((m) => m.palier)
@@ -201,28 +228,57 @@ export function generate(
     key,
     megaprojets.map((m) => m.palier)
   );
-  const casesSansCour = new Set([...places.values(), ...placesMega.values()].map((p) => p.bi + "," + p.bj));
-  // A-INTEGRER §45 : un mégaprojet occupe son bloc entier (taille réelle), qui n'a donc pas de lots.
-  const casesMegaprojet = new Set([...placesMega.values()].map((p) => p.bi + "," + p.bj));
-  // Rien ne se plante sur un monument (disque de 12 m) ni sur l'emprise d'un mégaprojet (carré, marge de 3 m pour sa plateforme).
+  // A-INTEGRER §45 et §49 D : un mégaprojet occupe son bloc entier (taille réelle) — le Stade et le Grand stade
+  // un carré de 2 × 2 et de 3 × 3 blocs —, qui n'a donc ni lots ni cour.
+  const blocsMega = [...placesMega.values()].flatMap((p) => p.blocs);
+  const casesSansCour = new Set(blocsMega.map((b) => b.bi + "," + b.bj));
+  // Parcelles de façade occupées par un monument, par bloc : buildBlock() n'y pose pas de jardin public.
+  const lotsMonument = new Map<string, Set<string>>();
+  for (const p of places.values()) {
+    const cle = p.bi + "," + p.bj;
+    if (!lotsMonument.has(cle)) lotsMonument.set(cle, new Set());
+    lotsMonument.get(cle)!.add(p.lc + "," + p.lr);
+  }
+  const casesMegaprojet = casesSansCour;
+  // Côtés des blocs d'un site de plusieurs blocs qui touchent un autre bloc du même site : pas de trottoir ni de lampadaire.
+  const cotesInternes = new Map<string, Set<Facade>>();
+  for (const p of placesMega.values()) {
+    if (p.taille === 1) continue;
+    const dans = new Set(p.blocs.map((b) => b.bi + "," + b.bj));
+    for (const b of p.blocs) {
+      const cotes = new Set<Facade>();
+      if (dans.has(b.bi - 1 + "," + b.bj)) cotes.add("-x");
+      if (dans.has(b.bi + 1 + "," + b.bj)) cotes.add("+x");
+      if (dans.has(b.bi + "," + (b.bj - 1))) cotes.add("-z");
+      if (dans.has(b.bi + "," + (b.bj + 1))) cotes.add("+z");
+      cotesInternes.set(b.bi + "," + b.bj, cotes);
+    }
+  }
+  // Rues qui traversent un site de plusieurs blocs : elles disparaissent avec lui.
+  const ruesInternes = [...placesMega.values()].filter((p) => p.taille > 1).map((p) => p.rect);
+  // Rien ne se plante sur un monument (sa parcelle de 14,5 m) ni sur l'emprise d'un mégaprojet (carré, marge de 3 m pour sa plateforme ; tout le carré de blocs pour un site de plusieurs blocs).
+  const demiSite = (p: { rayon: number; taille: number; rect: [number, number, number, number] }, marge: number) =>
+    p.taille > 1 ? (p.rect[2] - p.rect[0]) / 2 + marge - 3 : p.rayon + marge;
   const emplacementsSurCour: ZoneSansArbre[] = [
-    ...[...places.values()].map((p) => ({ x: p.x, z: p.z })),
-    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: p.rayon + 3 })),
+    ...[...places.values()].map((p) => ({ x: p.x, z: p.z, demi: 8 })),
+    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: demiSite(p, 3) })),
   ];
 
-  buildRoadsAndTraffic(g, act, key, Math.ceil(cityR / T));
+  buildRoadsAndTraffic(g, act, key, Math.ceil(cityR / T), ruesInternes);
   for (const b of blocks) {
     if (b.active)
       buildBlock(g, b, C, key, ao, stats, glow, ev, tech, theme, {
         sansCour: casesSansCour.has(b.bi + "," + b.bj),
         siteMegaprojet: casesMegaprojet.has(b.bi + "," + b.bj),
+        cotesInternes: cotesInternes.get(b.bi + "," + b.bj),
+        lotsMonument: lotsMonument.get(b.bi + "," + b.bj),
       });
     else if (!horsVille(b)) buildIdleBlock(g, b, key, ao, emplacementsSurCour);
   }
   if (tech.tramway) buildTramway(g, key, cityR);
   if (tech.drones) buildDrones(g, key, cityR);
   buildCountryside(g, key, ao, cityR, [
-    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: p.rayon + 6 })),
+    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: demiSite(p, 6) })),
     ...zonesEnergie(key, elanEnergie),
   ]);
   buildCountryRoads(g, key, ao, cityR);
@@ -232,7 +288,9 @@ export function generate(
     const place = places.get(m.palier);
     if (!place) continue;
     const r = rngFrom(key + "|monument|type|" + m.palier);
-    buildMonument(g, place.x, place.z, m.type, m.palier, ao, Math.floor(r() * 900) + 50);
+    const seed = Math.floor(r() * 900) + 50;
+    buildPlaceMonument(g, place.x, place.z, ao, seed);
+    buildMonument(g, place.x, place.z, m.type, m.palier, ao, seed, place.front);
   }
   stats.next = ev.filter((t) => t > C).reduce((m, t) => Math.min(m, t), Infinity);
   return { g, ao, glow, stats: { ...stats, cityR } };

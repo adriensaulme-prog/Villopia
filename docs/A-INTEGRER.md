@@ -360,6 +360,21 @@ journal existant, puis ce fichier peut être supprimé.*
 > les deux nouvelles sections des §47/§48.
 
 
+> **§49 — fait le 05/10/2026** (retour d'Adrien du 05/10/2026 : cinq corrections A à E, traitées dans l'ordre C, E,
+> A+B, D). **Le texte du §49 n'est pas dans cette copie locale** (elle s'arrête au §48) et la version à jour du
+> projet Claude « Jeu » n'est pas lisible depuis la session de code : le travail suit la consigne reçue — à
+> resynchroniser (`DECISIONS.md` §10 point 46). **C** : le secteur d'Énergie est exclu du placement des mégaprojets
+> (150 m ; test sur 200 graines × 18 paliers, minimum mesuré 164 m) ; **déplace une fois** les mégaprojets déjà posés
+> dans ce secteur (133 couples graine × palier sur 3 600, paliers 28 à 33). **E** : le fond de `/pays` est un
+> paysage de campagne propre au pays consulté, sans ville. **A+B** : les 16 monuments font de 7 à 62 m (statue géante
+> 56 m), sont redessinés avec plus de détail, et se posent sur une parcelle de façade au bord de la rue, façade
+> tournée vers elle, un par bloc dans les 16 blocs centraux — **ils ont tous quitté les cours, une fois**. **D** : le
+> Stade occupe 2 × 2 blocs et le Grand stade 3 × 3, rues intérieures effacées — **ils ont changé de place, une
+> fois**. Fonctions pures de la graine, aucune migration, aucune dépendance, aucune image, aucune marque (+6,4 Ko
+> gzip de code). **Points à trancher par Adrien** : `DECISIONS.md` §10 points 42 à 46 (gabarits des monuments, coût en
+> habitations des deux stades, un monument par bloc, fond de `/pays`, texte du §49). Détail : `DECISIONS.md` §4
+> « Énergie à l'écart, paysage pour /pays, monuments et stades agrandis ».
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).

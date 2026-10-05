@@ -1,8 +1,8 @@
 /**
  * Cases candidates d'une ville, dans l'ordre de distance au croisement
  * central (0 = la plus centrale). Extrait de planifierBlocs() pour que
- * d'autres calculs — la place des monuments dans les cours des premiers
- * blocs (A-INTEGRER §33) — lisent exactement le même ordre que le rendu.
+ * d'autres calculs — la place des monuments sur une parcelle de façade des
+ * premiers blocs (A-INTEGRER §33, §49 B) — lisent exactement le même ordre que le rendu.
  * Pur : ne dépend que de la graine de la ville, jamais de sa population.
  */
 import { rngFrom } from "./aleatoire";

@@ -208,11 +208,30 @@ function decorTechToit(
   }
 }
 
-/** Réglages facultatifs de buildBlock() (monuments dans la cour, A-INTEGRER §33). */
+/** Une parcelle du pourtour d'un bloc (A-INTEGRER §49 A+B : les monuments s'y posent). */
+export interface LotFacade {
+  /** Colonne et rangée du lot dans la grille 4 × 4 du bloc. */
+  lc: number;
+  lr: number;
+  /** Rang du lot parmi ceux du pourtour, après mélange : 0-3 maisons, 4-5 immeubles, au-delà jardins publics (et un parking). */
+  idx: number;
+  rect: Rect;
+  /** Côté du lot qui donne sur la rue (celui des maisons ; pour un lot d'angle, l'un des deux). */
+  front: Facade;
+}
+
+/** Réglages facultatifs de buildBlock() (monuments, mégaprojets). */
 export interface OptionsBloc {
   /** Reçoit le rectangle de la cour commune du bloc (centre des parcelles intérieures). */
   surCour?: (rect: Rect) => void;
-  /** La cour accueille des monuments : on ne la décore pas. */
+  /** Reçoit les parcelles du pourtour du bloc et l'indice (`idx`) de celle qui devient un parking. */
+  surFacades?: (lots: LotFacade[], parkingIdx: number) => void;
+  /**
+   * Parcelles du pourtour (« lc,lr ») occupées par un monument d'influence (A-INTEGRER §49 A+B) : pas
+   * de jardin public à leur place, le monument pose sa propre place pavée.
+   */
+  lotsMonument?: ReadonlySet<string>;
+  /** La cour est occupée : on ne la décore pas. */
   sansCour?: boolean;
   /**
    * Ce bloc est le site d'un mégaprojet à taille réelle (A-INTEGRER §45) : il garde sa pelouse, ses
@@ -220,6 +239,12 @@ export interface OptionsBloc {
    * gratte-ciel, ni cour) — le mégaprojet, posé par generate(), occupe le bloc.
    */
   siteMegaprojet?: boolean;
+  /**
+   * Côtés de ce bloc qui touchent un autre bloc du MÊME site de mégaprojet (A-INTEGRER §49 D : le Stade et
+   * le Grand stade s'étendent sur plusieurs blocs, rues intérieures comprises). Ni trottoir, ni lampadaire,
+   * ni arbre d'alignement, ni abribus sur ces côtés : ils seraient sous le bâtiment, ou le traverseraient.
+   */
+  cotesInternes?: ReadonlySet<Facade>;
 }
 
 export function buildBlock(
@@ -248,26 +273,29 @@ export function buildBlock(
   box(g, bx0, 0, bz0, bx0 + BS, 0.15, bz0 + BS, { c: COL.lawn, m: MAT.PLAIN, topM: MAT.LAWN, topC: COL.lawn, seed });
   const sh = 0.2,
     sc = COL.sidewalk;
-  box(g, bx0, 0, bz0, bx0 + BS, sh, bz0 + SW, { c: sc, m: MAT.SIDEWALK });
-  box(g, bx0, 0, bz0 + BS - SW, bx0 + BS, sh, bz0 + BS, { c: sc, m: MAT.SIDEWALK });
-  box(g, bx0, 0, bz0 + SW, bx0 + SW, sh, bz0 + BS - SW, { c: sc, m: MAT.SIDEWALK });
-  box(g, bx0 + BS - SW, 0, bz0 + SW, bx0 + BS, sh, bz0 + BS - SW, { c: sc, m: MAT.SIDEWALK });
+  // Un côté « interne » touche un autre bloc du même site de mégaprojet : rien ne s'y dessine (les tirages, eux, ont toujours lieu).
+  const interne = (cote: Facade) => options.cotesInternes?.has(cote) ?? false;
+  if (!interne("-z")) box(g, bx0, 0, bz0, bx0 + BS, sh, bz0 + SW, { c: sc, m: MAT.SIDEWALK });
+  if (!interne("+z")) box(g, bx0, 0, bz0 + BS - SW, bx0 + BS, sh, bz0 + BS, { c: sc, m: MAT.SIDEWALK });
+  if (!interne("-x")) box(g, bx0, 0, bz0 + SW, bx0 + SW, sh, bz0 + BS - SW, { c: sc, m: MAT.SIDEWALK });
+  if (!interne("+x")) box(g, bx0 + BS - SW, 0, bz0 + SW, bx0 + BS, sh, bz0 + BS - SW, { c: sc, m: MAT.SIDEWALK });
 
   // arbres d'alignement
-  const streetTree = (x: number, z: number) => {
+  const streetTree = (x: number, z: number, cote: Facade) => {
     // Le tirage a toujours lieu ; sur le site d'un mégaprojet, l'arbre ne serait que sous sa plateforme.
-    if (r() < 0.7 && !options.siteMegaprojet) tree(g, x, z, sh, rr(r, 0.75, 0.9), r, ao);
+    if (r() < 0.7 && !options.siteMegaprojet && !interne(cote)) tree(g, x, z, sh, rr(r, 0.75, 0.9), r, ao);
   };
   for (let k = 1; k < 6; k++) {
     const t = 6 + k * 9.2;
-    streetTree(bx0 + t, bz0 + 1.2);
-    streetTree(bx0 + t, bz0 + BS - 1.2);
-    streetTree(bx0 + 1.2, bz0 + t);
-    streetTree(bx0 + BS - 1.2, bz0 + t);
+    streetTree(bx0 + t, bz0 + 1.2, "-z");
+    streetTree(bx0 + t, bz0 + BS - 1.2, "+z");
+    streetTree(bx0 + 1.2, bz0 + t, "-x");
+    streetTree(bx0 + BS - 1.2, bz0 + t, "+x");
   }
 
   // lampadaires le long des trottoirs (éclairent la chaussée la nuit)
   const lamp = (x: number, z: number, hx: number, hz: number) => {
+    if (interne(hz < 0 ? "-z" : hz > 0 ? "+z" : hx < 0 ? "-x" : "+x")) return;
     box(g, x - 0.09, sh, z - 0.09, x + 0.09, sh + 5.6, z + 0.09, { c: hex("#3b4148"), m: MAT.PLAIN });
     box(
       g,
@@ -297,10 +325,10 @@ export function buildBlock(
   // abribus, occasionnel, sur un des quatre trottoirs du bloc.
   if (r() < 0.4) {
     const cote = Math.floor(r() * 4);
-    if (cote === 0) abribus(g, bx0 + 29, bz0 + 2.2, true);
-    else if (cote === 1) abribus(g, bx0 + 29, bz0 + BS - 2.2, true);
-    else if (cote === 2) abribus(g, bx0 + 2.2, bz0 + 29, false);
-    else abribus(g, bx0 + BS - 2.2, bz0 + 29, false);
+    if (cote === 0 && !interne("-z")) abribus(g, bx0 + 29, bz0 + 2.2, true);
+    else if (cote === 1 && !interne("+z")) abribus(g, bx0 + 29, bz0 + BS - 2.2, true);
+    else if (cote === 2 && !interne("-x")) abribus(g, bx0 + 2.2, bz0 + 29, false);
+    else if (cote === 3 && !interne("+x")) abribus(g, bx0 + BS - 2.2, bz0 + 29, false);
   }
 
   // Site d'un mégaprojet (A-INTEGRER §45) : le bloc entier lui est réservé. Tout ce qui suit ne
@@ -343,6 +371,10 @@ export function buildBlock(
     return f[Math.floor(r() * f.length)];
   });
   const parkingIdx = 6 + Math.floor(r() * (perim.length - 6));
+  options.surFacades?.(
+    perim.map(([lc, lr], idx) => ({ lc, lr, idx, rect: lotRect(bx0, bz0, lc, lr), front: fronts[idx] })),
+    parkingIdx
+  );
   // Tours plus hautes au centre ; les blocs lointains plafonnent à 14 étages
   // (silhouette dense au centre, quelle que soit la taille de la ville).
   const dCenter = Math.hypot(b.bi + 0.5, b.bj + 0.5);
@@ -411,7 +443,7 @@ export function buildBlock(
         }
       } else buildPark(g, rect, lr_, ao, true);
     } else if (idx === parkingIdx && C >= APART_FROM) buildParking(g, rect, front, lr_, lotSeed);
-    else buildPark(g, rect, lr_, ao);
+    else if (!options.lotsMonument?.has(lc + "," + lr)) buildPark(g, rect, lr_, ao);
   });
 
   // cour commune au centre du bloc
@@ -424,8 +456,8 @@ export function buildBlock(
       Math.max(...xs.map((q) => q[3])),
     ];
     options.surCour?.(rect);
-    // A-INTEGRER §33 : des monuments d'influence occupent la cour de ce bloc —
-    // pas de fontaine ni d'arbres par-dessus ; ils sont posés par generate().
+    // La cour garde sa fontaine et ses arbres, sauf si un mégaprojet occupe le bloc (`sansCour`) : depuis
+    // le §49 B les monuments sont sur une parcelle de façade, plus dans la cour.
     if (!options.sansCour) buildCourtyard(g, rect, lotRng(9, 9), ao);
   }
 
@@ -532,6 +564,30 @@ export function rectCourBloc(key: string, bi: number, bj: number): Rect | null {
     },
   });
   return rect;
+}
+
+/** Parcelles du pourtour d'un bloc, calculées une fois par (graine, bloc) : buildBlock() rejoue le flux aléatoire du bloc pour les trouver. */
+const memoFacades = new Map<string, { lots: LotFacade[]; parkingIdx: number }>();
+
+/**
+ * Parcelles du pourtour d'un bloc (rang, rectangle, côté de la rue) et indice du parking — même méthode que
+ * rectCourBloc() : on exécute buildBlock() sur une géométrie jetable, parce que le mélange des lots et le
+ * côté du gratte-ciel viennent du flux aléatoire du bloc, qu'on ne doit surtout pas modifier.
+ */
+export function facadesBloc(key: string, bi: number, bj: number): { lots: LotFacade[]; parkingIdx: number } {
+  const cle = key + "|" + bi + "," + bj;
+  const deja = memoFacades.get(cle);
+  if (deja) return deja;
+  let res: { lots: LotFacade[]; parkingIdx: number } = { lots: [], parkingIdx: -1 };
+  const b: Bloc = { bi, bj, d: 0, openAt: 0, gap: 1, towerAt: Infinity, active: true, vocation: "residentiel" };
+  buildBlock(new Geo(), b, 0, key, [], { maxFloors: 0, towers: 0, active: 0 }, [], [], technologiesDepuisPalier(0), "classique", {
+    surFacades: (lots, parkingIdx) => {
+      res = { lots, parkingIdx };
+    },
+  });
+  if (memoFacades.size >= 256) memoFacades.clear();
+  memoFacades.set(cle, res);
+  return res;
 }
 
 /**
@@ -646,7 +702,7 @@ export function buildMegaprojetsCampagne(
  * tous les PERIOD cases. Une voiture par case, avec son propre générateur :
  * ouvrir un bloc ne déplace pas celles déjà garées ailleurs.
  */
-export function buildRoadsAndTraffic(g: Geo, activeBlocks: Bloc[], key: string, rayonEnCases: number) {
+export function buildRoadsAndTraffic(g: Geo, activeBlocks: Bloc[], key: string, rayonEnCases: number, sansRue: readonly Rect[] = []) {
   const tiles = new Set<string>();
   const m5 = (v: number) => ((v % PERIOD) + PERIOD) % PERIOD;
   for (const bl of activeBlocks) {
@@ -659,7 +715,11 @@ export function buildRoadsAndTraffic(g: Geo, activeBlocks: Bloc[], key: string, 
     tiles.add("0," + t);
     tiles.add(t + ",0");
   }
-  const list = [...tiles].map((k) => k.split(",").map(Number)).sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const list = [...tiles]
+    .map((k) => k.split(",").map(Number))
+    // A-INTEGRER §49 D : les rues qui traversent un site de plusieurs blocs (le Stade, le Grand stade) disparaissent avec lui.
+    .filter(([ti, tj]) => !sansRue.some((r) => ti * T > r[0] && ti * T < r[2] && tj * T > r[1] && tj * T < r[3]))
+    .sort((p, q) => p[0] - q[0] || p[1] - q[1]);
   for (const [ti, tj] of list) {
     const x0 = ti * T - T / 2,
       z0 = tj * T - T / 2;
@@ -728,8 +788,11 @@ export function buildDrones(g: Geo, key: string, cityR: number, n = 6) {
   }
 }
 
-/** Routes de campagne : les deux axes centraux repartent du bord actuel de la ville vers l'horizon, bordés d'arbres. */
-export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: number) {
+/**
+ * Routes de campagne : les deux axes centraux repartent du bord actuel de la ville vers l'horizon, bordés d'arbres.
+ * `premierArbre` : distance du premier arbre d'alignement (190 m : hors de la ville ; le paysage sans ville en pose plus près).
+ */
+export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: number, premierArbre = 190) {
   const hw = DEMI_ROUTE_CAMPAGNE,
     far = 3800,
     y = 0.03,
@@ -740,7 +803,7 @@ export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: nu
   flat(g, E, -hw, far, hw, y, COL.road, MAT.ROAD);
   for (const sgn of [-1, 1]) {
     for (let i = 0; i < 68; i++) {
-      const d = 190 + i * 21;
+      const d = premierArbre + i * 21;
       if (d < E + 14) continue;
       const q = rngFrom(key + "|bord|" + sgn + "|" + i);
       const side = q() < 0.5 ? -1 : 1,
@@ -752,4 +815,37 @@ export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: nu
       if (q() < 0.12) car(g, sgn * (d + 6), q() < 0.5 ? -2.2 : 2.2, true, q);
     }
   }
+}
+
+/**
+ * Paysage de campagne SANS ville (A-INTEGRER §49 E) : le fond de /pays. Cette page parle d'un pays,
+ * pas d'une ville ; elle montrait jusque-là la ville de la dernière page visitée, tirée au hasard.
+ * Même campagne que celle qui entoure les villes (forêts, route bordée d'arbres), mais jusqu'au
+ * centre : un carrefour de campagne, des bosquets autour, aucun bloc, aucun bâtiment. Une graine
+ * (le pays) donne toujours le même paysage ; tout vient d'un générateur par élément, comme le reste.
+ */
+export function buildPaysage(g: Geo, key: string, ao: TamponAO[]) {
+  // Les grandes forêts des villes, sans l'emprise d'une ville au milieu.
+  buildCountryside(g, key, ao, 0);
+  // Des bosquets plus près, pour que le premier plan ne soit pas une prairie nue.
+  for (let k = 0; k < 64; k++) {
+    const r = rngFrom(key + "|paysage|bosquet|" + k);
+    const a = r() * Math.PI * 2,
+      d = rr(r, 45, 340);
+    const cx = Math.cos(a) * d,
+      cz = Math.sin(a) * d;
+    const n = 4 + Math.floor(r() * 9),
+      spread = rr(r, 7, 19);
+    const coni = r() < 0.4;
+    for (let i = 0; i < n; i++) {
+      const q = rngFrom(key + "|paysage|arbre|" + k + "|" + i);
+      const x = cx + rr(q, -spread, spread),
+        z = cz + rr(q, -spread, spread);
+      // Pas sur la route de campagne ni sur ses arbres d'alignement.
+      if (Math.abs(x) < 16 || Math.abs(z) < 16) continue;
+      if (coni && q() < 0.8) conifer(g, x, z, rr(q, 0.9, 1.25), q, ao);
+      else tree(g, x, z, 0, rr(q, 1.1, 1.6), q, ao);
+    }
+  }
+  buildCountryRoads(g, key, ao, 0, 30);
 }

@@ -336,7 +336,9 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§47 et §48 faits** (classement hebdomadaire des pays + développements nationaux votés et financés
+*Dernière mise à jour : 05/10/2026. **§49 fait** (retour d'Adrien du 05/10/2026 : Énergie écartée des mégaprojets, fond de `/pays` en paysage de campagne, monuments de 7 à
+62 m sur une parcelle de façade, Stade en 2 × 2 blocs et Grand stade en 3 × 3 ; aucune migration ; texte du §49 absent de la copie
+locale, à resynchroniser). **§47 et §48 faits** (classement hebdomadaire des pays + développements nationaux votés et financés
 par les ressources, `/pays` refait en cinq onglets ; migrations `0052`, `0053`, `0054` à appliquer ; SQL
 exécuté dans un Postgres local jetable). **§45 fait** (mégaprojets à taille réelle : un bloc entier réservé, de 22 à ~50 m de
 large ; aucune migration). **§42 (suite) fait** (crise de la Recherche = pas de nouvelle

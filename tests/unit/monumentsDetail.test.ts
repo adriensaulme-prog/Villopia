@@ -1,18 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { Geo } from "@/lib/ville3d/geometrie";
 import { MAT } from "@/lib/ville3d/constantes";
-import { ECHELLE_MONUMENT, buildMonument, couleurMetal, rangMonument } from "@/lib/ville3d/monuments";
+import { buildMonument, couleurMetal, gabaritMonument, rangMonument } from "@/lib/ville3d/monuments";
 import type { TamponAO } from "@/lib/ville3d/mobilier";
 import { CATALOGUE_MONUMENTS } from "@/lib/game/monuments";
 
 /**
- * A-INTEGRER §43 : les monuments ne sont plus trois silhouettes primitives
- * recyclées. Chaque type a la sienne, le rang (modeste / notable /
+ * A-INTEGRER §43 (et §49 A+B pour la taille) : les monuments ne sont plus trois
+ * silhouettes primitives recyclées. Chaque type a la sienne, le rang (modeste / notable /
  * prestigieux) se lit autrement que par la taille, et la teinte or/bronze
  * reste la signature commune.
  */
-const E = ECHELLE_MONUMENT;
-
 function construire(type: string, palier: number, seed = 1) {
   const g = new Geo();
   const ao: TamponAO[] = [];
@@ -161,12 +159,12 @@ describe("la teinte or/bronze reste la signature commune (§43)", () => {
   });
 });
 
-describe("chaque monument reste dans son emprise et sous la hauteur de son palier (§43)", () => {
-  it("à l'intérieur du cercle du socle, au-dessus du sol, sous la hauteur du palier, sans valeur absurde", () => {
+describe("chaque monument reste dans son emprise et sous la hauteur de son gabarit (§43, §49)", () => {
+  it("à l'intérieur du cercle du socle, au-dessus du sol, sous la hauteur du gabarit, sans valeur absurde", () => {
     for (const { type, palier } of PAIRES) {
       const { g, ao } = construire(type, palier);
-      const rSocle = (1.1 + Math.min(palier, 8) * 0.12) * E;
-      const sommet = 0.15 + 0.3 * E + (1.6 + Math.min(palier, 8) * 0.55) * E;
+      const { rayon: rSocle, hauteur } = gabaritMonument(type, palier);
+      const sommet = 0.15 + hauteur;
       const vs = sommets(g);
       for (const v of vs) {
         expect(Number.isFinite(v.x + v.y + v.z), type).toBe(true);
@@ -174,7 +172,7 @@ describe("chaque monument reste dans son emprise et sous la hauteur de son palie
       expect(Math.max(...vs.map((v) => Math.hypot(v.x, v.z))), `${type} déborde de son socle`).toBeLessThanOrEqual(rSocle + 1e-6);
       expect(Math.min(...vs.map((v) => v.y)), type).toBeGreaterThanOrEqual(0.15 - 1e-9);
       const haut = Math.max(...vs.map((v) => v.y));
-      expect(haut, `${type} dépasse la hauteur de son palier`).toBeLessThanOrEqual(sommet + 1e-6);
+      expect(haut, `${type} dépasse la hauteur de son gabarit`).toBeLessThanOrEqual(sommet + 1e-6);
       expect(haut, `${type} n'utilise pas sa hauteur`).toBeGreaterThan(sommet * 0.9);
       expect(ao).toHaveLength(1);
       for (const i of g.I) expect(i >= 0 && i < g.n).toBe(true);

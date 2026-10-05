@@ -9,7 +9,7 @@
  * 17 cm, voitures de 4,3 m, mâts de 18 cm), abords plantés. Voir megaprojetsFormes.ts.
  */
 import { COL, COMMERCE_ENSEIGNE, INDUSTRIE_ACCENT, MAT, hex, type Couleur } from "./constantes";
-import { box, cylinder, flat } from "./geometrie";
+import { box, cylinder, flat, type Geo } from "./geometrie";
 import { banc } from "./mobilier";
 import { disque, tronc } from "./monumentsFormes";
 import {
@@ -140,121 +140,282 @@ export function parcSports(s: Site) {
   rangeeArbres(s, pz(s, 0.5), pz(s, 0.95), px(s, 0.94), false, 6);
 }
 
-/** Cuvette de stade : gradins inclinés à sièges par secteurs avec allées, mur extérieur à pilastres, garde-corps de pelouse. */
+/**
+ * Pylône d'éclairage de stade (A-INTEGRER §49 D, taille réelle) : fût métallique de 60 cm, deux rangées de
+ * projecteurs en `MAT.LAMP` (ils s'allument la nuit), échelle d'accès. Un mât de 20 cm (matLumineux) ne se
+ * voit plus à côté d'une cuvette de 120 m.
+ */
+function pylone(g: Geo, x: number, z: number, y0: number, h: number, seed: number, face: "x" | "z") {
+  box(g, x - 0.3, y0, z - 0.3, x + 0.3, y0 + h, z + 0.3, { c: COL.metal, m: MAT.PLAIN, seed });
+  box(g, x - 0.9, y0, z - 0.9, x + 0.9, y0 + 1.2, z + 0.9, { c: hex("#aab0b6"), m: MAT.PLAIN, seed });
+  // Deux rangées de quatre projecteurs, orientées vers le terrain.
+  for (const dy of [0, 1.7])
+    for (let k = 0; k < 4; k++) {
+      const t = (k - 1.5) * 1.5;
+      const [px0, pz0] = face === "x" ? [x, z + t] : [x + t, z];
+      box(g, px0 - (face === "x" ? 0.35 : 0.65), y0 + h - 1.6 + dy, pz0 - (face === "x" ? 0.65 : 0.35), px0 + (face === "x" ? 0.35 : 0.65), y0 + h - 0.6 + dy, pz0 + (face === "x" ? 0.65 : 0.35), {
+        c: [1, 0.96, 0.85],
+        m: MAT.LAMP,
+        seed,
+      });
+    }
+  box(g, x - 3.4, y0 + h - 2, z - 0.15, x + 3.4, y0 + h - 1.85, z + 0.15, { c: COL.metal, m: MAT.PLAIN, seed });
+}
+
+/** Panneaux publicitaires bas autour de la pelouse : une file de caissons colorés, côté touche et derrière chaque but. */
+function panneauxPub(s: Site, x: number, z: number, dX: number, dZ: number) {
+  const { g } = s;
+  const couleurs = [SIEGE_BLEU, SIEGE_ROUGE, SIEGE_BLANC, hex("#d9a441")];
+  const pas = 4.2;
+  const y = BASE;
+  for (const sg of [-1, 1]) {
+    const zz = z + sg * (dZ + 1.4);
+    const n = Math.floor((2 * dX) / pas);
+    for (let k = 0; k < n; k++) {
+      const xa = x - dX + k * pas + 0.1;
+      box(g, xa, y, zz - 0.2, xa + pas - 0.2, y + 0.9, zz + 0.2, { c: couleurs[(k + (sg > 0 ? 1 : 0)) % 4], m: MAT.PAINT, seed: s.seed });
+    }
+    const xx = x + sg * (dX + 1.4);
+    const m = Math.floor((2 * dZ) / pas);
+    for (let k = 0; k < m; k++) {
+      const za = z - dZ + k * pas + 0.1;
+      box(g, xx - 0.2, y, za, xx + 0.2, y + 0.9, za + pas - 0.2, { c: couleurs[(k + 2) % 4], m: MAT.PAINT, seed: s.seed });
+    }
+  }
+}
+
+/** Abris de touche : deux bancs couverts, côté +z de la pelouse, de part et d'autre de la médiane. */
+function abrisTouche(s: Site, x: number, z: number, dZ: number) {
+  const { g } = s;
+  for (const sg of [-1, 1]) {
+    const xc = x + sg * 9,
+      zc = z + dZ + 4.5;
+    box(g, xc - 4, BASE, zc - 0.9, xc + 4, BASE + 0.55, zc + 0.9, { c: SIEGE_BLEU, m: MAT.PAINT, seed: s.seed });
+    box(g, xc - 4.4, BASE + 2.3, zc - 1.3, xc + 4.4, BASE + 2.45, zc + 1.3, { c: hex("#d7dee5"), m: MAT.GLASS, seed: s.seed });
+    for (const e of [-1, 1]) box(g, xc + e * 4.2 - 0.07, BASE, zc - 1.2, xc + e * 4.2 + 0.07, BASE + 2.4, zc - 1.1, { c: COL.metal, m: MAT.PLAIN, seed: s.seed });
+  }
+}
+
+/** Mâts à fanions sur le haut du mur : une hampe de 7 m et une flamme de couleur toutes les `pas` positions angulaires. */
+function fanions(s: Site, rx: number, rz: number, y: number, n: number, cols: Couleur[]) {
+  const { g, cx, cz } = s;
+  for (let k = 0; k < n; k++) {
+    const a = ((k + 0.5) / n) * Math.PI * 2;
+    const x = cx + Math.cos(a) * rx,
+      z = cz + Math.sin(a) * rz;
+    box(g, x - 0.07, y, z - 0.07, x + 0.07, y + 6.5, z + 0.07, { c: COL.metal, m: MAT.PLAIN, seed: s.seed });
+    const c = cols[k % cols.length];
+    const dir: [number, number, number] = [-Math.sin(a), 0, Math.cos(a)];
+    quad(g, [x, y + 6.4, z], [x + dir[0] * 2.2, y + 6.2, z + dir[2] * 2.2], [x + dir[0] * 2.2, y + 5.1, z + dir[2] * 2.2], [x, y + 5.0, z], c, MAT.PAINT, [Math.cos(a), 0.3, Math.sin(a)], s.seed);
+  }
+}
+
+/** Entrée de stade : porche sombre surmonté d'une enseigne, guichets et portiques sur le parvis (de profondeur `prof`, jusqu'au bord de la plateforme), allée dallée vers la rue. */
+function entree(s: Site, x: number, z: number, sens: "+x" | "-x" | "+z" | "-z", largeur: number, prof: number) {
+  const { g } = s;
+  const sg = sens[0] === "+" ? 1 : -1;
+  const surX = sens[1] === "x";
+  const demi = largeur / 2;
+  // porche et enseigne (axe de l'entrée = axe du mur à cet endroit)
+  const porche = (a: number, b: number, c: number, d: number, y0: number, y1: number, col: Couleur, m: number) =>
+    surX ? box(g, x + sg * a, y0, z - d, x + sg * b, y1, z + d, { c: col, m, top: false, seed: s.seed }) : box(g, x - d, y0, z + sg * a, x + d, y1, z + sg * b, { c: col, m, top: false, seed: s.seed });
+  porche(-1.5, 1.6, 0, demi, BASE, BASE + 6.2, hex("#2b3036"), MAT.PLAIN);
+  porche(-1.9, 2.2, 0, demi + 0.7, BASE + 6.2, BASE + 7.8, SIEGE_ROUGE, MAT.PAINT);
+  porche(2.2, 2.5, 0, demi + 0.7, BASE + 6.4, BASE + 7.6, hex("#f1eee7"), MAT.PAINT);
+  // guichets et portiques sur le parvis
+  for (let k = 0; k < 4; k++) {
+    const t = (k - 1.5) * (largeur / 4.2);
+    const a = prof * 0.42;
+    if (surX) {
+      box(g, x + sg * a - 0.6, BASE, z + t - 0.8, x + sg * a + 0.6, BASE + 2.3, z + t + 0.8, { c: hex("#cfd5da"), m: MAT.PLAIN, seed: s.seed });
+      box(g, x + sg * (a + prof * 0.38) - 0.1, BASE, z + t - 0.6, x + sg * (a + prof * 0.38) + 0.1, BASE + 1.1, z + t + 0.6, { c: COL.metal, m: MAT.PLAIN, seed: s.seed });
+    } else {
+      box(g, x + t - 0.8, BASE, z + sg * a - 0.6, x + t + 0.8, BASE + 2.3, z + sg * a + 0.6, { c: hex("#cfd5da"), m: MAT.PLAIN, seed: s.seed });
+      box(g, x + t - 0.6, BASE, z + sg * (a + prof * 0.38) - 0.1, x + t + 0.6, BASE + 1.1, z + sg * (a + prof * 0.38) + 0.1, { c: COL.metal, m: MAT.PLAIN, seed: s.seed });
+    }
+  }
+  allee(g, surX ? [Math.min(x, x + sg * prof), z - demi - 1, Math.max(x, x + sg * prof), z + demi + 1] : [x - demi - 1, Math.min(z, z + sg * prof), x + demi + 1, Math.max(z, z + sg * prof)], s.seed);
+}
+
+/**
+ * Cuvette de stade : gradins inclinés à sièges par secteurs avec allées d'escalier, déambulatoire sombre à mi-hauteur,
+ * mur extérieur à pilastres et vomitoires, corniche et garde-corps de pelouse.
+ */
 function cuvette(
   s: Site,
-  o: { rxO: number; rzO: number; rxI: number; rzI: number; hauteur: number; seg: number; mur: Couleur; sieges: [Couleur, Couleur]; pilastres: number }
+  o: { rxO: number; rzO: number; rxI: number; rzI: number; hauteur: number; seg: number; mur: Couleur; sieges: [Couleur, Couleur]; pilastres: number; vomitoires: number }
 ) {
   const { g, cx, cz, R } = s;
-  const yBas = BASE + 0.6;
-  murOvale(g, cx, cz, o.rxO * R, o.rzO * R, BASE, BASE + o.hauteur, o.seg, (i) => (i % 2 ? hex("#d3d0c8") : o.mur), MAT.PLAIN, true, s.seed);
-  anneauPente(g, cx, cz, o.rxI * R, o.rzI * R, yBas, o.rxO * R * 0.995, o.rzO * R * 0.995, BASE + o.hauteur, o.seg, (i) => (i % 6 === 0 ? hex("#4a4e55") : o.sieges[Math.floor(i / 6) % 2]), MAT.PLAIN, s.seed);
+  const yBas = BASE + 0.8;
+  const yHaut = BASE + o.hauteur;
+  const rxM = (o.rxI + o.rxO) / 2,
+    rzM = (o.rzI + o.rzO) / 2;
+  const yM = BASE + 0.8 + (o.hauteur - 0.8) * 0.5;
+  murOvale(g, cx, cz, o.rxO * R, o.rzO * R, BASE, yHaut, o.seg, (i) => (i % 2 ? hex("#d9d6ce") : o.mur), MAT.PLAIN, true, s.seed);
+  // Deux niveaux de gradins séparés par un déambulatoire sombre (un mur vitré, vu de l'intérieur du stade).
+  const sieges = (i: number) => (i % 6 === 0 ? hex("#4a4e55") : o.sieges[Math.floor(i / 6) % 2]);
+  anneauPente(g, cx, cz, o.rxI * R, o.rzI * R, yBas, rxM * R, rzM * R, yM, o.seg, sieges, MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, rxM * R, rzM * R, yM, yM + 1.6, o.seg, hex("#33495c"), MAT.DARKGLASS, false, s.seed);
+  anneauPente(g, cx, cz, rxM * R, rzM * R, yM + 1.6, o.rxO * R * 0.995, o.rzO * R * 0.995, yHaut, o.seg, sieges, MAT.PLAIN, s.seed);
   murOvale(g, cx, cz, o.rxI * R, o.rzI * R, BASE, yBas, o.seg, SIEGE_BLANC, MAT.PLAIN, false, s.seed);
-  // pilastres verticaux sur le mur extérieur, qui dépassent d'un mètre
+  // Corniche : un bandeau saillant tout autour du haut du mur.
+  murOvale(g, cx, cz, o.rxO * R + 0.5, o.rzO * R + 0.5, yHaut - 0.9, yHaut + 0.3, o.seg, hex("#f4f2ec"), MAT.PLAIN, true, s.seed);
+  // Bandeau vitré sombre sur le mur, à hauteur du déambulatoire.
+  murOvale(g, cx, cz, o.rxO * R + 0.1, o.rzO * R + 0.1, BASE + o.hauteur * 0.46, BASE + o.hauteur * 0.62, o.seg, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
+  // Pilastres verticaux sur le mur extérieur, qui dépassent d'un mètre, et vomitoires sombres entre eux.
   for (let k = 0; k < o.pilastres; k++) {
     const a = (k / o.pilastres) * Math.PI * 2;
     const x = cx + Math.cos(a) * o.rxO * R,
       z = cz + Math.sin(a) * o.rzO * R;
-    box(g, x - 0.35, BASE, z - 0.35, x + 0.35, BASE + o.hauteur + 1, z + 0.35, { c: BLANC, m: MAT.PLAIN, top: true, seed: s.seed });
+    box(g, x - 0.45, BASE, z - 0.45, x + 0.45, yHaut + 1, z + 0.45, { c: BLANC, m: MAT.PLAIN, top: true, seed: s.seed });
+  }
+  for (let k = 0; k < o.vomitoires; k++) {
+    const a = ((k + 0.5) / o.vomitoires) * Math.PI * 2;
+    const x = cx + Math.cos(a) * (o.rxO * R + 0.1),
+      z = cz + Math.sin(a) * (o.rzO * R + 0.1);
+    box(g, x - 1.1, BASE, z - 1.1, x + 1.1, BASE + o.hauteur * 0.3, z + 1.1, { c: hex("#2b3036"), m: MAT.PLAIN, top: false, seed: s.seed });
   }
 }
 
-/** Stade : cuvette ovale à gradins bleus et blancs par secteurs, pelouse tracée aux buts, tribunes latérales couvertes, quatre mâts, entrées. */
+/** Stade (A-INTEGRER §49 D : 2 × 2 blocs, 136 m de plateforme) : cuvette à deux niveaux, toitures des tribunes, quatre pylônes, entrées, parkings, panneaux publicitaires. */
 export function stade(s: Site) {
   const { g, cx, cz, R, H } = s;
   plateforme(s, hex("#cdc7b8"));
-  const hW = Math.min(0.36 * H, 7);
-  for (const r of [zone(s, -1, -1, -0.92, 1), zone(s, 0.92, -1, 1, 1), zone(s, -0.92, -1, 0.92, -0.9), zone(s, -0.92, 0.9, 0.92, 1)]) pelouse(g, r, s.seed);
-  cuvette(s, { rxO: 0.86, rzO: 0.66, rxI: 0.5, rzI: 0.34, hauteur: hW, seg: 36, mur: hex("#e6e3dc"), sieges: [SIEGE_BLEU, SIEGE_BLANC], pilastres: 24 });
-  terrainFoot(s, cx, cz, 0.36 * R, 0.22 * R);
-  // toits des deux tribunes latérales (secteurs côté +z et -z), sur mâts d'appui
+  const hW = 0.34 * H;
+  const SEG = 72;
+  // Pelouses aux extrémités, parkings le long des deux grands côtés.
+  for (const r of [zone(s, -1, -1, -0.94, 1), zone(s, 0.94, -1, 1, 1)]) pelouse(g, r, s.seed);
+  parking(s, zone(s, -0.86, 0.82, 0.86, 0.97), true, 0.45);
+  parking(s, zone(s, -0.86, -0.97, 0.86, -0.82), true, 0.45);
+  cuvette(s, { rxO: 0.9, rzO: 0.74, rxI: 0.62, rzI: 0.43, hauteur: hW, seg: SEG, mur: hex("#e6e3dc"), sieges: [SIEGE_BLEU, SIEGE_BLANC], pilastres: 48, vomitoires: 24 });
+  terrainFoot(s, cx, cz, 0.46 * R, 0.28 * R);
+  panneauxPub(s, cx, cz, 0.46 * R, 0.28 * R);
+  abrisTouche(s, cx, cz, 0.28 * R);
+  // Toits des deux tribunes latérales (côtés +z et -z), sur mâts d'appui, avec un bord de toit plus épais.
   for (const [a0, a1] of [
-    [Math.PI * 0.12, Math.PI * 0.88],
-    [Math.PI * 1.12, Math.PI * 1.88],
+    [Math.PI * 0.1, Math.PI * 0.9],
+    [Math.PI * 1.1, Math.PI * 1.9],
   ] as const) {
-    anneauPente(g, cx, cz, 0.66 * R, 0.46 * R, BASE + hW + 2.0, 0.89 * R, 0.69 * R, BASE + hW + 3.6, 12, hex("#f3f1ea"), MAT.PLAIN, s.seed, a0, a1);
-    for (let k = 0; k <= 6; k++) {
-      const a = a0 + ((a1 - a0) * k) / 6;
-      const x = cx + Math.cos(a) * 0.88 * R,
-        z = cz + Math.sin(a) * 0.68 * R;
-      box(g, x - 0.18, BASE, z - 0.18, x + 0.18, BASE + hW + 3.6, z + 0.18, { c: COL.metal, m: MAT.PLAIN, top: false, seed: s.seed });
+    anneauPente(g, cx, cz, 0.7 * R, 0.5 * R, BASE + hW + 1.5, 0.93 * R, 0.77 * R, BASE + hW + 4.2, 24, hex("#f3f1ea"), MAT.PLAIN, s.seed, a0, a1);
+    anneauPente(g, cx, cz, 0.925 * R, 0.765 * R, BASE + hW + 4.2, 0.93 * R, 0.77 * R, BASE + hW + 4.2, 24, hex("#d9d7d0"), MAT.PLAIN, s.seed, a0, a1);
+    for (let k = 0; k <= 10; k++) {
+      const a = a0 + ((a1 - a0) * k) / 10;
+      const x = cx + Math.cos(a) * 0.92 * R,
+        z = cz + Math.sin(a) * 0.76 * R;
+      box(g, x - 0.28, BASE, z - 0.28, x + 0.28, BASE + hW + 4.2, z + 0.28, { c: COL.metal, m: MAT.PLAIN, top: false, seed: s.seed });
     }
   }
-  // entrées sur le mur extérieur (deux porches sombres surmontés d'une enseigne) et mâts aux angles
-  for (const sg of [-1, 1]) {
-    volume(s, [px(s, sg * 0.86) - 0.4, pz(s, -0.09), px(s, sg * 0.86) + 0.4, pz(s, 0.09)], BASE, BASE + 4, { c: hex("#2b3036"), m: MAT.PLAIN, top: false });
-    volume(s, [px(s, sg * 0.86) - 0.6, pz(s, -0.12), px(s, sg * 0.86) + 0.6, pz(s, 0.12)], BASE + 4, BASE + 5, { c: SIEGE_ROUGE, m: MAT.PAINT });
-    allee(g, [sg > 0 ? px(s, 0.86) : px(s, -1), pz(s, -0.1), sg > 0 ? px(s, 1) : px(s, -0.86), pz(s, 0.1)], s.seed);
-  }
-  for (const [a, b] of [
-    [-0.92, -0.78],
-    [0.92, -0.78],
-    [-0.92, 0.78],
-    [0.92, 0.78],
-  ] as const)
-    matLumineux(g, px(s, a), pz(s, b), BASE, H * 0.9, s.seed);
-  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, 0.96), true, 7);
-  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, -0.96), true, 7);
-}
-
-/** Grand stade : arène à deux anneaux, façade à pilastres et bannières, toit-couronne blanc sur seize mâts, pelouse tracée, parvis planté. Bas et large, comme un vrai stade. */
-export function grandStade(s: Site) {
-  const { g, cx, cz, R, H } = s;
-  plateforme(s, hex("#cfc8b8"));
-  const hb = Math.min(0.3 * H, 0.62 * R),
-    SEG = 40;
-  const place = (i: number) => [SIEGE_BLEU, SIEGE_ROUGE][Math.floor(i / 5) % 2];
-  // pelouses d'angle, parvis dallé en couronne
-  for (const r of [zone(s, -1, -1, -0.8, -0.8), zone(s, 0.8, -1, 1, -0.8), zone(s, -1, 0.8, -0.8, 1), zone(s, 0.8, 0.8, 1, 1)]) pelouse(g, r, s.seed);
-  anneauPente(g, cx, cz, 0.93 * R, 0.75 * R, BASE + 0.02, 0.99 * R, 0.82 * R, BASE + 0.02, SEG, hex("#e6dfcf"), MAT.PAVING, s.seed);
-  // façade basse : panneaux blancs, bandeau vitré sombre, pilastres rythmant le pourtour
-  murOvale(g, cx, cz, 0.92 * R, 0.74 * R, BASE, BASE + hb, SEG, (i) => (i % 2 ? hex("#e1dfd9") : hex("#ece9e3")), MAT.PLAIN, true, s.seed);
-  murOvale(g, cx, cz, 0.925 * R, 0.745 * R, BASE + 0.16 * hb, BASE + 0.36 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
-  for (let k = 0; k < 40; k++) {
-    const a = (k / 40) * Math.PI * 2;
-    const x = cx + Math.cos(a) * 0.925 * R,
-      z = cz + Math.sin(a) * 0.745 * R;
-    box(g, x - 0.4, BASE, z - 0.4, x + 0.4, BASE + hb + 1.2, z + 0.4, { c: BLANC, m: MAT.PLAIN, top: true, seed: s.seed });
-  }
-  // bannières aux couleurs du club, une sur cinq pilastres
-  for (let k = 0; k < 8; k++) {
-    const a0 = ((k * 5 + 1) / 40) * Math.PI * 2,
-      a1 = ((k * 5 + 2.2) / 40) * Math.PI * 2;
-    const p = (a: number, y: number): [number, number, number] => [cx + Math.cos(a) * 0.94 * R, y, cz + Math.sin(a) * 0.757 * R];
-    quad(g, p(a0, BASE + 0.45 * hb), p(a1, BASE + 0.45 * hb), p(a1, BASE + 0.92 * hb), p(a0, BASE + 0.92 * hb), k % 2 ? SIEGE_ROUGE : SIEGE_BLEU, MAT.PAINT, [Math.cos((a0 + a1) / 2), 0, Math.sin((a0 + a1) / 2)], s.seed);
-  }
-  // cuvette intérieure (vue par l'ouverture du toit) et pelouse tracée
-  anneauPente(g, cx, cz, 0.5 * R, 0.34 * R, BASE + 0.6, 0.8 * R, 0.6 * R, BASE + 0.62 * hb, SEG, place, MAT.PLAIN, s.seed);
-  murOvale(g, cx, cz, 0.5 * R, 0.34 * R, BASE, BASE + 0.6, SEG, SIEGE_BLANC, MAT.PLAIN, false, s.seed);
-  terrainFoot(s, cx, cz, 0.4 * R, 0.25 * R);
-  // toit-couronne : du bord extérieur haut vers l'intérieur plus bas, tranches blanches, couronne de feux
-  anneauPente(g, cx, cz, 0.62 * R, 0.44 * R, BASE + hb - 0.5, 0.945 * R, 0.765 * R, BASE + hb + 2.4, SEG, hex("#f3f1ea"), MAT.PLAIN, s.seed);
-  murOvale(g, cx, cz, 0.62 * R, 0.44 * R, BASE + hb - 1.3, BASE + hb - 0.5, SEG, hex("#d9d7d0"), MAT.PLAIN, false, s.seed);
-  murOvale(g, cx, cz, 0.945 * R, 0.765 * R, BASE + hb, BASE + hb + 2.4, SEG, hex("#d9d7d0"), MAT.PLAIN, true, s.seed);
-  for (let k = 0; k < SEG; k += 2) {
-    const a = ((k + 0.5) / SEG) * Math.PI * 2;
-    const x = cx + Math.cos(a) * 0.63 * R,
-      z = cz + Math.sin(a) * 0.45 * R;
-    box(g, x - 0.4, BASE + hb - 1.5, z - 0.4, x + 0.4, BASE + hb - 1.3, z + 0.4, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed: s.seed });
-  }
-  // seize mâts d'appui du toit, qui le dépassent de sept mètres, et quatre grands mâts d'éclairage
-  for (let k = 0; k < 16; k++) {
-    const a = (k / 16) * Math.PI * 2;
-    const x = cx + Math.cos(a) * 0.96 * R,
-      z = cz + Math.sin(a) * 0.79 * R;
-    box(g, x - 0.25, BASE, z - 0.25, x + 0.25, BASE + hb + 7, z + 0.25, { c: COL.metal, m: MAT.PLAIN, top: true, seed: s.seed });
-  }
+  fanions(s, 0.9 * R, 0.74 * R, BASE + hW + 1, 12, [SIEGE_BLEU, SIEGE_ROUGE, SIEGE_BLANC]);
+  // Quatre pylônes d'éclairage dans les angles du site, plus hauts que le toit.
   for (const [a, b] of [
     [-0.9, -0.88],
     [0.9, -0.88],
     [-0.9, 0.88],
     [0.9, 0.88],
   ] as const)
-    matLumineux(g, px(s, a), pz(s, b), BASE, hb + 10, s.seed);
-  // entrées : deux porches sombres sur la façade, arbres sur les bords
-  for (const sg of [-1, 1]) volume(s, [px(s, sg * 0.92) - 0.5, pz(s, -0.1), px(s, sg * 0.92) + 0.5, pz(s, 0.1)], BASE, BASE + 5.5, { c: hex("#2b3036"), m: MAT.PLAIN, top: false });
-  rangeeArbres(s, px(s, -0.95), px(s, 0.95), pz(s, 0.97), true, 8);
-  rangeeArbres(s, px(s, -0.95), px(s, 0.95), pz(s, -0.97), true, 8);
+    pylone(g, px(s, a), pz(s, b), BASE, 0.9 * H, s.seed, b > 0 ? "z" : "z");
+  // Entrées : aux deux bouts du stade, et au milieu de chacun des deux grands côtés.
+  for (const sg of [-1, 1] as const) {
+    entree(s, px(s, sg * 0.9), cz, sg > 0 ? "+x" : "-x", 8, 0.1 * R);
+    entree(s, cx + sg * 0.22 * R, pz(s, 0.74), "+z", 8, 0.07 * R);
+    entree(s, cx + sg * 0.22 * R, pz(s, -0.74), "-z", 8, 0.07 * R);
+  }
+  // Tableau d'affichage au bout ouest de la cuvette.
+  box(g, px(s, -0.86) - 0.4, BASE + hW + 2.5, cz - 6, px(s, -0.86) + 0.4, BASE + hW + 7.6, cz + 6, { c: hex("#1b2128"), m: MAT.DARKGLASS, seed: s.seed });
+  box(g, px(s, -0.86) - 0.45, BASE + hW + 5.4, cz - 5, px(s, -0.86) + 0.45, BASE + hW + 6.4, cz + 5, { c: [1, 0.85, 0.55], m: MAT.LAMP, seed: s.seed });
+  for (const zz of [-5.5, 5.5]) box(g, px(s, -0.86) - 0.2, BASE + hW, cz + zz - 0.25, px(s, -0.86) + 0.2, BASE + hW + 2.5, cz + zz + 0.25, { c: COL.metal, m: MAT.PLAIN, seed: s.seed });
+  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, 0.985), true, 11, 1.3);
+  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, -0.985), true, 11, 1.3);
+}
+
+/** Grand stade (A-INTEGRER §49 D : 3 × 3 blocs, 216 m de plateforme) : arène à deux niveaux, façade à pilastres et bannières, toit-couronne blanc sur 28 mâts, pelouse aux dimensions réelles, parvis, parkings. Bas et large, comme un vrai stade. */
+export function grandStade(s: Site) {
+  const { g, cx, cz, R, H } = s;
+  plateforme(s, hex("#cfc8b8"));
+  const hb = 0.3 * H,
+    SEG = 96;
+  const place = (i: number) => [SIEGE_BLEU, SIEGE_ROUGE][Math.floor(i / 6) % 2];
+  // Parvis dallé en couronne autour de l'arène, parkings et pelouses dans les quatre angles du site.
+  anneauPente(g, cx, cz, 0.94 * R, 0.78 * R, BASE + 0.02, 0.995 * R, 0.84 * R, BASE + 0.02, SEG, hex("#e6dfcf"), MAT.PAVING, s.seed);
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ] as const) {
+    const r = zone(s, sx > 0 ? 0.72 : -0.97, sz > 0 ? 0.72 : -0.97, sx > 0 ? 0.97 : -0.72, sz > 0 ? 0.97 : -0.72);
+    parking(s, r, true, 0.45);
+  }
+  // Façade basse : panneaux blancs, bandeau vitré sombre, pilastres rythmant le pourtour.
+  const aE = 0.94,
+    bE = 0.78;
+  murOvale(g, cx, cz, aE * R, bE * R, BASE, BASE + hb, SEG, (i) => (i % 2 ? hex("#e1dfd9") : hex("#ece9e3")), MAT.PLAIN, true, s.seed);
+  murOvale(g, cx, cz, aE * R + 0.15, bE * R + 0.15, BASE + 0.14 * hb, BASE + 0.34 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
+  murOvale(g, cx, cz, aE * R + 0.15, bE * R + 0.15, BASE + 0.58 * hb, BASE + 0.76 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
+  const NP = 96;
+  for (let k = 0; k < NP; k++) {
+    const a = (k / NP) * Math.PI * 2;
+    const x = cx + Math.cos(a) * aE * R,
+      z = cz + Math.sin(a) * bE * R;
+    box(g, x - 0.5, BASE, z - 0.5, x + 0.5, BASE + hb + 1.4, z + 0.5, { c: BLANC, m: MAT.PLAIN, top: true, seed: s.seed });
+  }
+  // Vomitoires : vingt-quatre portes sombres au pied de la façade.
+  for (let k = 0; k < 24; k++) {
+    const a = ((k + 0.5) / 24) * Math.PI * 2;
+    const x = cx + Math.cos(a) * (aE * R + 0.1),
+      z = cz + Math.sin(a) * (bE * R + 0.1);
+    box(g, x - 1.5, BASE, z - 1.5, x + 1.5, BASE + 0.2 * hb, z + 1.5, { c: hex("#2b3036"), m: MAT.PLAIN, top: false, seed: s.seed });
+  }
+  // Bannières aux couleurs du club, une sur six pilastres.
+  for (let k = 0; k < 16; k++) {
+    const a0 = ((k * 6 + 1.2) / NP) * Math.PI * 2,
+      a1 = ((k * 6 + 2.8) / NP) * Math.PI * 2;
+    const p = (a: number, y: number): [number, number, number] => [cx + Math.cos(a) * (aE * R + 0.4), y, cz + Math.sin(a) * (bE * R + 0.4)];
+    quad(g, p(a0, BASE + 0.38 * hb), p(a1, BASE + 0.38 * hb), p(a1, BASE + 0.54 * hb), p(a0, BASE + 0.54 * hb), k % 2 ? SIEGE_ROUGE : SIEGE_BLEU, MAT.PAINT, [Math.cos((a0 + a1) / 2), 0, Math.sin((a0 + a1) / 2)], s.seed);
+  }
+  // Cuvette intérieure à deux niveaux (vue par l'ouverture du toit), pelouse tracée aux dimensions d'un vrai terrain (104 × 66 m).
+  const rxI = 0.74,
+    rzI = 0.52;
+  const yM = BASE + 0.8 + (0.62 * hb - 0.8) * 0.5;
+  anneauPente(g, cx, cz, rxI * R, rzI * R, BASE + 0.8, 0.85 * R, 0.64 * R, yM, SEG, place, MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, 0.85 * R, 0.64 * R, yM, yM + 1.8, SEG, hex("#33495c"), MAT.DARKGLASS, false, s.seed);
+  anneauPente(g, cx, cz, 0.85 * R, 0.64 * R, yM + 1.8, 0.93 * R, 0.77 * R, BASE + 0.62 * hb, SEG, place, MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, rxI * R, rzI * R, BASE, BASE + 0.8, SEG, SIEGE_BLANC, MAT.PLAIN, false, s.seed);
+  terrainFoot(s, cx, cz, 0.49 * R, 0.31 * R);
+  panneauxPub(s, cx, cz, 0.49 * R, 0.31 * R);
+  abrisTouche(s, cx, cz, 0.31 * R);
+  // Toit-couronne : du bord extérieur haut vers l'intérieur plus bas, tranches blanches, couronne de feux.
+  anneauPente(g, cx, cz, 0.78 * R, 0.56 * R, BASE + hb - 0.5, 0.955 * R, 0.795 * R, BASE + hb + 3.2, SEG, hex("#f3f1ea"), MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, 0.78 * R, 0.56 * R, BASE + hb - 1.8, BASE + hb - 0.5, SEG, hex("#d9d7d0"), MAT.PLAIN, false, s.seed);
+  murOvale(g, cx, cz, 0.955 * R, 0.795 * R, BASE + hb, BASE + hb + 3.2, SEG, hex("#d9d7d0"), MAT.PLAIN, true, s.seed);
+  for (let k = 0; k < SEG; k += 2) {
+    const a = ((k + 0.5) / SEG) * Math.PI * 2;
+    const x = cx + Math.cos(a) * 0.79 * R,
+      z = cz + Math.sin(a) * 0.57 * R;
+    box(g, x - 0.5, BASE + hb - 2.0, z - 0.5, x + 0.5, BASE + hb - 1.8, z + 0.5, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed: s.seed });
+  }
+  // Vingt-huit mâts d'appui du toit, qui le dépassent de huit mètres, et quatre pylônes d'éclairage dans les angles.
+  for (let k = 0; k < 28; k++) {
+    const a = (k / 28) * Math.PI * 2;
+    const x = cx + Math.cos(a) * 0.975 * R,
+      z = cz + Math.sin(a) * 0.815 * R;
+    box(g, x - 0.35, BASE, z - 0.35, x + 0.35, BASE + hb + 8, z + 0.35, { c: COL.metal, m: MAT.PLAIN, top: true, seed: s.seed });
+  }
+  fanions(s, 0.955 * R, 0.795 * R, BASE + hb + 3, 16, [SIEGE_BLEU, SIEGE_ROUGE, SIEGE_BLANC]);
+  for (const [a, b] of [
+    [-0.9, -0.9],
+    [0.9, -0.9],
+    [-0.9, 0.9],
+    [0.9, 0.9],
+  ] as const)
+    pylone(g, px(s, a), pz(s, b), BASE, 0.62 * H, s.seed, "z");
+  // Entrées : aux quatre points cardinaux, et deux de plus sur chaque grand côté.
+  entree(s, px(s, 0.94), cz, "+x", 14, 0.06 * R);
+  entree(s, px(s, -0.94), cz, "-x", 14, 0.06 * R);
+  for (const sg of [-1, 1] as const)
+    for (const t of [-0.3, 0, 0.3] as const) entree(s, cx + t * R * 1.5, pz(s, sg * 0.78), sg > 0 ? "+z" : "-z", 12, 0.2 * R);
+  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, 0.99), true, 13, 1.4);
+  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, -0.99), true, 13, 1.4);
 }
 
 /** Marché couvert : halle de brique et de fonte verte, arcades, nef à verrière et lanterneau, bas-côtés de zinc, enseigne, étals sous auvents rayés. */

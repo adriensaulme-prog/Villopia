@@ -3,7 +3,7 @@ import { CATALOGUE_MEGAPROJETS, type DefMegaprojet } from "@/lib/game/megaprojet
 import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { CENTRALE_ACCENT, COL, EOLIENNE_MAT, MAT, PANNEAU_CELLULE, SERVICES_BANDEAU, SERVICES_CROIX, type Couleur } from "@/lib/ville3d/constantes";
 import { Geo } from "@/lib/ville3d/geometrie";
-import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet } from "@/lib/ville3d/megaprojets";
+import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet, tailleMegaprojet } from "@/lib/ville3d/megaprojets";
 import { BASE } from "@/lib/ville3d/megaprojetsFormes";
 
 /**
@@ -27,7 +27,9 @@ function construire(type: string, stade: number, cle = "silhouettes|" + type): C
   const ao: Construit["ao"] = [];
   const r = rngFrom(cle);
   buildMegaprojet(g, 0, 0, type, stade, r, ao as never, Math.floor(r() * 900) + 50);
-  return { g, ao, R: rayonMegaprojet(stade), H: hauteurMegaprojet(stade) };
+  // La taille d'un mégaprojet : celle de son stade, sauf le Stade et le Grand stade (plusieurs blocs, §49 D).
+  const { R, H } = tailleMegaprojet(type, stade);
+  return { g, ao, R, H };
 }
 
 const DEFS: readonly DefMegaprojet[] = CATALOGUE_MEGAPROJETS;
@@ -147,14 +149,14 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
     }
   });
 
-  it("le budget de poids reste modeste : moins de 8 000 sommets par mégaprojet, 60 000 pour les 18 au stade le plus grand", () => {
+  it("le budget de poids reste modeste : moins de 8 000 sommets par mégaprojet d'un bloc, 14 000 pour le Stade et 20 000 pour le Grand stade (plusieurs blocs, §49 D), 90 000 pour les 18 au stade le plus grand", () => {
     let total = 0;
     for (const d of DEFS) {
       const n = construire(d.type, 4).g.n;
-      expect(n, d.type).toBeLessThan(8000);
+      expect(n, d.type).toBeLessThan(d.type === "stade" ? 14_000 : d.type === "grand_stade" ? 20_000 : 8000);
       total += n;
     }
-    expect(total).toBeLessThan(60_000);
+    expect(total).toBeLessThan(90_000);
   });
 
   describe("réemploi des modèles déjà dessinés", () => {

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
 import { SelecteurPays } from "./SelecteurPays";
 import { PanneauFlottant } from "@/components/PanneauFlottant";
+import { SincroniserScene } from "@/components/SincroniserScene";
 import { SousOnglets } from "./composants";
 import { OngletSemaine } from "./onglets/Semaine";
 import { OngletClassement } from "./onglets/Classement";
@@ -24,6 +25,7 @@ import {
 } from "./types";
 
 const TAILLE_TOP = 10;
+const PAYS_PAR_DEFAUT = { latitude: 46.6, longitude: 2.35, fuseauHoraire: "Europe/Paris" };
 
 /**
  * /pays : l'en-tête du pays (statut, président, chiffres) reste toujours visible ; dessous, cinq
@@ -93,7 +95,13 @@ export default async function PaysPage({
   ]);
   await supabaseAdmin.rpc("resoudre_conflits_en_cours");
 
-  const [{ data: mandatsBrutes }, { data: statsBrutes, error: erreurStats }, { data: villesBrutes }, { data: statutBrut }] =
+  const [
+    { data: mandatsBrutes },
+    { data: statsBrutes, error: erreurStats },
+    { data: villesBrutes },
+    { data: statutBrut },
+    { data: geoBrute },
+  ] =
     await Promise.all([
       supabase
         .from("presidents")
@@ -110,6 +118,7 @@ export default async function PaysPage({
             .limit(TAILLE_TOP)
         : Promise.resolve({ data: [] }),
       supabase.rpc("statut_pays_semaine", { p_country_id: countryId }),
+      supabase.from("countries").select("latitude, longitude, fuseau_horaire").eq("id", countryId).maybeSingle(),
     ]);
   if (erreurStats) console.error("Chargement des statistiques du pays a échoué :", erreurStats.message);
 
@@ -139,9 +148,17 @@ export default async function PaysPage({
     jeSuisPresident: estMonPays && mandatActuel?.villeId === maVilleId,
   };
   const nf = new Intl.NumberFormat(locale);
+  // Le soleil et l'heure du pays consulté (comme les pages de ville le font avec le pays de la ville).
+  const geo = geoBrute as { latitude: number | null; longitude: number | null; fuseau_horaire: string | null } | null;
+  const positionPays =
+    geo?.latitude != null && geo?.longitude != null && geo?.fuseau_horaire
+      ? { latitude: geo.latitude, longitude: geo.longitude, fuseauHoraire: geo.fuseau_horaire }
+      : PAYS_PAR_DEFAUT;
 
   return (
     <main className="screen" aria-label={traduire(locale, "pays.eyebrow")}>
+      {/* A-INTEGRER §49 E : le fond de /pays est un paysage de campagne sans ville, propre au pays consulté. */}
+      <SincroniserScene paysage seed={countryId} populationMax={0} pays={positionPays} />
       <PanneauFlottant locale={locale} className="dock dock-float dock-left dock-pays">
         <div className="head-row">
           <span className="eyebrow">{traduire(locale, "pays.eyebrow")}</span>
