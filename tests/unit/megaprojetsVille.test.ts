@@ -168,7 +168,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       const def = megaprojetDuPalier(palier)!;
       const g = new Geo();
       const ao: { h: number }[] = [];
-      buildMegaprojet(g, 0, 0, def.type, def.activite, def.stade, rngFrom("t"), ao as never, 1);
+      buildMegaprojet(g, 0, 0, def.type, def.stade, rngFrom("t"), ao as never, 1);
       return ao[0].h;
     };
     for (const palier of PALIERS) expect(hauteur(palier), `palier ${palier}`).toBeLessThan(15);
@@ -203,7 +203,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     // Géométrie du mégaprojet seul, et de la cour (fontaine, pavés, arbres) qu'il remplace.
     const gm = new Geo();
     const rm = rngFrom(cle + "|megaprojet|type|" + PREMIER);
-    buildMegaprojet(gm, place.x, place.z, "grande_ecole", "services", 0, rm, [], Math.floor(rm() * 900) + 50);
+    buildMegaprojet(gm, place.x, place.z, "grande_ecole", 0, rm, [], Math.floor(rm() * 900) + 50);
     const gc = new Geo();
     buildCourtyard(gc, rectCourBloc(cle, place.bi, place.bj)!, rngFrom(`${cle}|lot|${place.bi},${place.bj}|9,9`), []);
     expect(gc.V.length).toBeGreaterThan(0);

@@ -5299,6 +5299,75 @@ le déblocage de la `0029` est conservé ; aucune donnée de jeu touchée ; le m
 Recherche en sort (passe) ; le comportement SQL — rien ne se débloque en crise, tout se débloque d'un coup au retour
 à 60 %, rien n'est retiré à une nouvelle crise — s'ignore tant que la `0051` n'est pas appliquée.
 
+### Mégaprojets : une silhouette par type, couleur naturelle (A-INTEGRER §44) — 05/10/2026
+
+**Demande d'Adrien.** Redessiner `buildMegaprojet()` : une vraie silhouette par type, comme pour les monuments
+(§43), avec « la couleur et la matière naturelles du bâtiment réel » plutôt qu'une teinte d'activité ou l'or des
+monuments (décision tranchée par Adrien, qui levait le point ouvert du §43). Réutiliser les modèles d'Énergie
+pour Centrale solaire / Parc éolien / Centrale, et la croix de `buildServices()` pour l'Hôpital. **Aucune
+migration, aucune règle de jeu touchée** : déblocage, seuils et bonus du §41 inchangés.
+
+**Fait.** `megaprojets.ts` n'est plus qu'un répartiteur : une table `SILHOUETTES` typée sur les 18 types du
+catalogue (le compilateur exige une entrée par type ; un type inconnu retombe sur un bâtiment de pierre sobre).
+Les dessins sont répartis en trois fichiers par famille — `megaprojetsCivils.ts` (école, hôpital, opéra, tour
+emblématique, siège, technopole, centre de recherche), `megaprojetsEquipements.ts` (parc des sports, stade, grand
+stade, marché, logistique, gare, aéroport), `megaprojetsEnergie.ts` — sur des briques communes
+(`megaprojetsFormes.ts` : quad/triangle libres, toit à deux pans de matière libre, voûte, murs et gradins ovales,
+mât lumineux, panneaux sur toit). `buildMegaprojet()` perd son paramètre `activite` ; `MEGAPROJET_ACCENT`
+(constantes.ts) est supprimé ; `activite` reste dans le catalogue pour l'emoji de l'interface.
+
+| Type | Silhouette et matières |
+|---|---|
+| Grande école | deux ailes de pierre claire, atrium vitré à lanterneau, perron et portique |
+| Parc des sports | pelouse tracée dans une piste rouge, tribune à gradins bleus sous toit léger, deux mâts |
+| Marché couvert | halle de brique et fonte verte, nef à verrière, bas-côtés de zinc, étals sous auvents rayés |
+| Hôpital | bloc blanc, bandeau turquoise, **grande croix rouge de `buildServices()`**, urgences, hélistation |
+| Stade | cuvette ovale à gradins bleus et blancs, pelouse tracée, quatre mâts d'éclairage |
+| Centrale solaire | **trois rangées de la ferme de panneaux d'Énergie**, poste de transformation, grillage |
+| Zone logistique | deux hangars bardés à toit bas, quais sous auvent, camion, piles de conteneurs |
+| Technopole | campus : aile toute vitrée, aile blanche, atrium de verre, galerie, dôme, panneaux solaires |
+| Gare TGV | halle en voûte de verre sur nervures d'acier, voies et quai, rame blanche, horloge |
+| Parc éolien | **trois éoliennes d'Énergie** (mât, bande rouge, nacelle, pales, balise) |
+| Opéra | façade classique à six colonnes et fronton, dôme de cuivre patiné, tour de scène |
+| Tour emblématique | trois volumes vitrés en retrait, ailerons d'acier, couronne en pyramide, flèche, feu rouge |
+| Aéroport | piste marquée, terminal à toit en voûte, tour de contrôle, avion sur l'aire |
+| Centre de recherche | rotonde vitrée sous dôme, aile de laboratoires, tour technique, parabole, mât radio |
+| Centrale | **bâtiments de la centrale d'Énergie** (hall à bandeau jaune, réservoirs, poste, grillage) |
+| Grand stade | deux anneaux de gradins, galerie vitrée, toit-couronne blanc sur seize mâts, feux |
+| Centrale nouvelle génération | enceinte à dôme, deux tours de refroidissement, halle à toit solaire, batteries |
+| Siège international | lame de verre, salle des assemblées sous voûte, bassin, rang de mâts à fanions neutres |
+
+**Réemploi des modèles d'Énergie.** `energie.ts` dessine pour le plein champ (une centrale s'étend sur ~45 m avec
+ses pylônes ; une cour de bloc n'a que 14,5 m au minimum). Ces modèles sont donc **réduits** à l'emprise du
+mégaprojet par `reutiliser()` (échelle uniforme des sommets, normales et motifs de texture intacts) : on appelle
+les vraies fonctions `buildPanneauSolaire()`, `buildEolienne()` et — nouveau — `buildBatimentsCentrale()`.
+Pour ce dernier, `buildCentraleEnergie()` a été scindée en bâtiments + pylônes de raccordement, **sans rien
+changer à son résultat** (même ordre de tirages et de géométrie) : une centrale réduite avec ses lignes
+électriques aurait débordé de la cour. La centrale « nouvelle génération » n'a pas de modèle d'Énergie à
+reprendre : elle est dessinée à part, dans la même palette (murs clairs, bandeau jaune).
+
+**Taille inchangée, à décider avec Adrien.** L'emprise (`rayonMegaprojet(stade)` = 2,4 + 0,4 × stade) et la
+hauteur (`hauteurMegaprojet(stade)` = 4 + 1,7 × stade) sont celles d'avant, pour ne rien changer au placement
+(§37) ni aux tests. Vu dans la vraie scène (zoom maximal de la caméra), un mégaprojet de stade 0 ou 1 est **plus
+petit qu'un arbre** : les détails (colonnes, cadrans, gradins) ne se lisent bien que dans le showroom. Les
+modèles sont dessinés en fractions de ces deux valeurs : les agrandir est un changement de ces deux fonctions,
+dans la limite de la plus petite cour d'un bloc (14,5 m, donc un demi-côté de 7 m au plus).
+
+**Vérifié.** Showroom `/dev/showroom` (nouvelle section « Mégaprojets », comme pour les monuments) puis vraie
+scène sur une page temporaire (supprimée) : les 18 se dessinent à leur place, avec leurs vitrages et leurs
+ombres. Une vérification a corrigé le Grand stade, d'abord haut comme un gazomètre.
+
+**Testé.** `tests/unit/megaprojetsSilhouettes.test.ts` (nouveau, 14) : les 18 dessinés, sommets finis, dans
+l'emprise du stade et sous le plafond de hauteur ; une seule empreinte carrée (ombre et placement) ; **à stade
+égal les 18 géométries sont toutes différentes** ; aucun type ne retombe sur la silhouette de secours ; palette
+propre (≥ 4 couleurs, ≥ 2 matières) ; déterminisme ; budget de poids (< 6 000 sommets chacun, < 40 000 pour les 18) ;
+réemploi (cellules solaires en trois rangées, trois mâts blancs à balise, bandeau jaune et grillage sans pylône,
+croix de façade à barre haute et barre large + bandeau turquoise). **Sabotages vérifiés rouges** : deux types sur la
+même fonction, un type renvoyé au secours, réemploi retiré pour la centrale solaire, le parc éolien et la centrale,
+croix retirée. Les vérifications d'emprise ont d'ailleurs trouvé de vrais débords (toit de hangar, conteneurs,
+arbres, corniche), corrigés. Un seul cas de test ne distingue pas : une croix posée à l'arrière du bâtiment passerait
+(tout parallélépipède a une face +z) ; le showroom la montre à l'avant.
+
 ---
 
 ## §5. i18n

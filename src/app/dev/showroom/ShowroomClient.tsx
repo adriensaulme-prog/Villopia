@@ -8,6 +8,8 @@ import { MODELES_IMMEUBLES, MODELES_MAISONS, MODELES_TOURS } from "@/lib/ville3d
 import { buildCommerce, buildIndustrie, buildRecherche, buildServices } from "@/lib/ville3d/quartiers";
 import { buildMonument } from "@/lib/ville3d/monuments";
 import { CATALOGUE_MONUMENTS } from "@/lib/game/monuments";
+import { buildMegaprojet } from "@/lib/ville3d/megaprojets";
+import { CATALOGUE_MEGAPROJETS } from "@/lib/game/megaprojets";
 
 /**
  * Showroom (outil de développement, jamais dans le jeu publié — voir
@@ -31,7 +33,7 @@ interface Fiche {
   construire: (...args: never[]) => unknown;
 }
 
-type TypeFamille = "maison" | "immeuble" | "tour" | "quartier" | "monument";
+type TypeFamille = "maison" | "immeuble" | "tour" | "quartier" | "monument" | "megaprojet";
 
 interface Entree {
   fiche: Fiche;
@@ -41,6 +43,8 @@ interface Entree {
   niveau?: number;
   /** Palier (0 à 15) d'un monument : il fixe sa taille et son rang visuel. */
   palier?: number;
+  /** Stade (0 à 4) d'un mégaprojet : il fixe sa taille. */
+  stade?: number;
 }
 
 const TAILLE_VIGNETTE = 220;
@@ -72,8 +76,13 @@ function versGeometrieSimple(g: Geo): THREE.BufferGeometry {
   return geometry;
 }
 
-function construireGeometrie({ fiche, type, taille, niveau, palier }: Entree): THREE.BufferGeometry {
+function construireGeometrie({ fiche, type, taille, niveau, palier, stade }: Entree): THREE.BufferGeometry {
   const geo = new Geo();
+  if (type === "megaprojet") {
+    // Un mégaprojet se construit sur place (centre, type, stade), dans la cour d'un bloc.
+    buildMegaprojet(geo, 0, 0, fiche.id, stade ?? 0, rngFrom("showroom|" + fiche.id), [], 1);
+    return versGeometrieSimple(geo);
+  }
   if (type === "monument") {
     // Un monument se construit sur place (centre, type, palier), pas dans une parcelle.
     buildMonument(geo, 0, 0, fiche.id, palier ?? 0, [], 1);
@@ -171,7 +180,14 @@ const ENTREES_MONUMENTS: Entree[] = CATALOGUE_MONUMENTS.map((m, palier) => ({
   taille: [0, 0, 0, 0] as [number, number, number, number],
   palier,
 }));
-const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS, ...ENTREES_QUARTIERS, ...ENTREES_MONUMENTS];
+// Mégaprojets (A-INTEGRER §44) : les 18 types du catalogue, chacun à son stade (donc à sa taille).
+const ENTREES_MEGAPROJETS: Entree[] = CATALOGUE_MEGAPROJETS.map((m) => ({
+  fiche: { id: m.type, construire: buildMegaprojet as unknown as Fiche["construire"] },
+  type: "megaprojet" as const,
+  taille: [0, 0, 0, 0] as [number, number, number, number],
+  stade: m.stade,
+}));
+const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS, ...ENTREES_QUARTIERS, ...ENTREES_MONUMENTS, ...ENTREES_MEGAPROJETS];
 
 export function ShowroomClient() {
   const [nuit, setNuit] = useState(false);
@@ -272,6 +288,7 @@ export function ShowroomClient() {
       <Section titre="Tours" entrees={ENTREES_TOURS} enregistrer={enregistrer} />
       <Section titre="Quartiers (services, commerce, recherche, industrie)" entrees={ENTREES_QUARTIERS} enregistrer={enregistrer} />
       <Section titre="Monuments d'influence (du palier 0 au palier 15)" entrees={ENTREES_MONUMENTS} enregistrer={enregistrer} />
+      <Section titre="Mégaprojets (du stade 0 au stade 4)" entrees={ENTREES_MEGAPROJETS} enregistrer={enregistrer} />
     </div>
   );
 }

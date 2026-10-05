@@ -35,7 +35,7 @@ export type TypeMegaprojet =
 
 export interface DefMegaprojet {
   type: TypeMegaprojet;
-  /** Son thème : la teinte du bâtiment en 3D. */
+  /** Son thème : l'emoji du catalogue. Il ne teinte plus le bâtiment en 3D (A-INTEGRER §44) : chaque mégaprojet a la couleur de l'ouvrage réel. */
   activite: Activite;
   /** Record d'influence qui le débloque. */
   seuil: number;

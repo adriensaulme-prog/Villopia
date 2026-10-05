@@ -340,8 +340,9 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 technologie ; migration `0051` à appliquer). **§41 fait** (plus de ressources de ville ni de financement ; les
 18 mégaprojets rejoignent le catalogue des monuments, 34 entrées débloquées par l'influence ; migration
 `0050` à appliquer). **§43 fait** (les 16 monuments ont chacun leur silhouette,
-trois rangs visuels, détails de surface ; aucune migration ; reste les 18 mégaprojets du §41, encore
-dessinés par l'ancien `buildMegaprojet()`). **§40 fait** (cinq packs de thème : Bord de mer, Village de
+trois rangs visuels, détails de surface ; aucune migration). **§44 fait** (les 18 mégaprojets du §41 ont
+chacun leur silhouette et la couleur naturelle de l'ouvrage réel, Énergie réutilisée ; aucune migration ;
+leur taille, inchangée, reste à trancher avec Adrien). **§40 fait** (cinq packs de thème : Bord de mer, Village de
 pierre, Quartier industriel reconverti, Futuriste/éco, Nordique ; payants ; migration `0048` à appliquer).
 **§30 fait** (section « Thèmes de la ville » dans
 Ma ville + onglet Boutique, migration `0047` à appliquer, paiement non branché).

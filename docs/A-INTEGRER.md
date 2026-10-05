@@ -297,7 +297,7 @@ journal existant, puis ce fichier peut être supprimé.*
 > monuments, trois rangs visuels — modeste / notable / prestigieux —, détails
 > de surface : marches, plaques, cadrans, plaquettes, flammes, lampadaires
 > allumés la nuit ; teinte or/bronze gardée comme signature, du bronze mat à
-> l'or poli ; aucune migration). **Pas couvert : les mégaprojets du §41**, que
+> l'or poli ; aucune migration). **Pas couvert : les mégaprojets du §41** (fait depuis, voir §44), que
 > la note demandait d'amener au même niveau de détail une fois fusionnés : ils
 > sont toujours dessinés par l'ancien `buildMegaprojet()` (3 silhouettes
 > primitives). Il reste 18 silhouettes à dessiner et une décision d'Adrien :
@@ -306,6 +306,23 @@ journal existant, puis ce fichier peut être supprimé.*
 > **§43 (amélioration visuelle des monuments, 05/10/2026) : nouveau** —
 > suite du §39/§33 : la taille a été corrigée le 02/10, pas le détail ;
 > toujours 3 silhouettes primitives (cylindre/boîte).
+
+> **§44 — fait le 05/10/2026** (les 18 mégaprojets ont chacun leur silhouette
+> et la couleur/matière naturelle de l'ouvrage réel ; Centrale solaire, Parc
+> éolien et Centrale reprennent les modèles d'Énergie, réduits à la cour du bloc ;
+> l'Hôpital a la croix de `buildServices()` ; `buildMegaprojet()` perd son paramètre
+> d'activité et `MEGAPROJET_ACCENT` disparaît ; aucune migration, aucune règle de jeu
+> touchée). **Point à trancher par Adrien : la taille.** Elle est inchangée (stade 0 :
+> 4,8 m de large, stade 4 : 8 m) : dans la vraie scène, au zoom maximal, un mégaprojet
+> de stade 0 ou 1 est plus petit qu'un arbre, et les détails ne se lisent bien que dans
+> `/dev/showroom` (nouvelle section « Mégaprojets »). Les agrandir tient en deux
+> fonctions (`rayonMegaprojet`, `hauteurMegaprojet`), dans la limite de la plus petite
+> cour (14,5 m de large). Détail : `DECISIONS.md` §4 « Mégaprojets : une silhouette par
+> type, couleur naturelle ».
+> **§44 (détail visuel des 18 mégaprojets, 05/10/2026) : nouveau,
+> décision d'Adrien sur la teinte** — ni la teinte d'activité actuelle,
+> ni l'or/bronze des monuments : chaque mégaprojet doit avoir la
+> couleur/matière NATURELLE du bâtiment qu'il représente.
 
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
@@ -2534,44 +2551,75 @@ puisqu'ils sont visuellement plus gros) ; que devient l'ancien panneau
 « Mégaprojets du maire » (`Megaprojets.tsx`, choix/progression) une
 fois qu'il n'y a plus de choix ni de chantier — probablement fusionné
 dans le panneau des monuments existant plutôt que maintenu séparément.
-## 42. Bonus/malus des 7 activités de ville : état des lieux et proposition pour Résidentiel (05/10/2026)
+## 42. Bonus/malus des 7 activités de ville : état des lieux corrigé, stades, et malus d'Énergie (05/10/2026)
 
 **Demande d'Adrien** : définir clairement le bonus/malus de chaque
 activité (celles des jauges avec barres de pourcentage sur « Ma
 ville » : 🏠 Résidentiel, 🏭 Industrie, 🛒 Commerce, 🌳 Loisirs, 🏥
-Services, ⚡ Énergie, 🔬 Recherche).
+Services, ⚡ Énergie, 🔬 Recherche). **Correction par rapport à une
+première lecture du code, trop vite associée à la Contamination** :
+Énergie n'a rien à voir avec la Contamination — voir le détail ci-dessous.
 
-**Confirmé en lisant le code : 6 des 7 ont déjà un effet défini.**
+**Les 4 stades d'une jauge** (`src/lib/game/activites.ts`,
+`etatJauge()`), identiques pour les 7 activités :
+- **Crise** : jauge < 60 % — malus actif, intensité de 0 (à 60 %) à 1
+  (à 0 %), croissante linéairement.
+- **Fragile** : 60 % à 90 % — zone neutre, aucun effet.
+- **Équilibré** : 90 % à 120 % — zone neutre, aucun effet.
+- **Point fort** : jauge > 120 % — bonus actif, intensité de 0 (à
+  120 %) à 1 (à 150 % et au-delà, plafonné).
 
-| Activité | Effet en « point fort » | Effet en « crise » |
+**Deux mécaniques bien distinctes utilisent les activités en défense —
+à ne pas confondre entre elles :**
+
+1. **Attaques AntiVille** (un joueur attaque une ville précise) :
+   chaque type d'attaque a UNE activité qui la protège
+   (`activite_protectrice()`) — Grève → Industrie, Contamination →
+   Services, Propagande → Loisirs. Point fort de l'activité protectrice :
+   jusqu'à −50 % de l'effet de l'attaque. Crise : jusqu'à +50 %. C'est
+   la seule mécanique où Services intervient, et la seule où Industrie
+   intervient.
+2. **Manifestation** (événement spontané, aucun joueur attaquant) :
+   une ville dont une ou plusieurs activités sont en crise risque une
+   manifestation qui fait perdre de la population. Le risque cumule
+   +10 par activité en crise (+20 pour Énergie spécifiquement — poids
+   double), puis le **point fort d'Énergie réduit ce risque global
+   jusqu'à −50 %** (aucune activité d'Énergie n'est donc liée à la
+   Contamination : c'est son propre événement, « manifestation »).
+   Une fois la manifestation déclenchée, sa **sévérité** (perte de
+   population, 1 % de base) est modulée par la jauge de **Loisirs** :
+   point fort jusqu'à −50 %, crise jusqu'à +50 %. **Loisirs a donc deux
+   rôles distincts** : protège contre la Propagande (mécanique 1) ET
+   modère la sévérité d'une manifestation (mécanique 2).
+
+**Tableau corrigé :**
+
+| Activité | Bonus (point fort) | Malus (crise) |
 |---|---|---|
-| 🏭 Industrie | protège contre la Grève (jusqu'à −50 % de sa durée) | aggrave la Grève (jusqu'à +50 %) |
-| 🏥 Services | protège contre la Contamination (jusqu'à −50 % de perte) | aggrave la Contamination (jusqu'à +50 %) |
-| 🌳 Loisirs | protège contre la Propagande (jusqu'à −50 %) | aggrave la Propagande (jusqu'à +50 %) |
+| 🏭 Industrie | protège contre la Grève (jusqu'à −50 %) | aggrave la Grève (jusqu'à +50 %) |
+| 🏥 Services | protège contre la Contamination (jusqu'à −50 %) | aggrave la Contamination (jusqu'à +50 %) |
+| 🌳 Loisirs | protège contre la Propagande (−50 %) + réduit la perte d'une manifestation (−50 %) | aggrave la Propagande (+50 %) + aggrave la perte d'une manifestation (+50 %) |
 | 🛒 Commerce | jusqu'à 25 % de chances d'un habitant supplémentaire par visite | aucun malus propre écrit |
-| ⚡ Énergie | réduit le risque de Contamination lui-même, jusqu'à −50 % (indépendamment de la défense Services) | aucun malus propre écrit |
-| 🔬 Recherche | jusqu'à 50 % de chances de +2 influence au lieu de +1 sur une action d'influence | aucun malus propre écrit |
-| 🏠 **Résidentiel** | **aucun effet, ni bonus ni malus** | **aucun effet** |
+| ⚡ Énergie | réduit le RISQUE qu'une manifestation se déclenche, jusqu'à −50 % | **aucun malus propre écrit — voir proposition ci-dessous** |
+| 🔬 Recherche | jusqu'à 50 % de chances de +2 influence au lieu de +1 | aucun malus propre écrit |
+| 🏠 Résidentiel | aucun effet | aucun effet |
 
-Industrie/Services/Loisirs ont un bonus ET un malus symétriques (rôle
-défensif). Commerce/Énergie/Recherche n'ont qu'un bonus en point fort,
-pas de malus écrit en crise — à signaler si Adrien veut une vraie
-symétrie partout.
+**Malus d'Énergie proposé** *(demande d'Adrien)* : symétrique à son
+bonus actuel, en réutilisant exactement le même levier (le risque de
+manifestation) plutôt qu'en inventer un nouveau — en crise, Énergie
+AUGMENTE le risque de manifestation (au lieu de simplement peser plus
+lourd dans la somme comme aujourd'hui) : `v_risque := v_risque * (1 -
+0.5 * intensite_point_fort(jauge_energie) + 0.5 * intensite_crise(jauge_energie))`,
+exactement la même formule que celle déjà utilisée pour la défense
+Industrie/Services/Loisirs et pour la sévérité côté Loisirs — aucune
+nouvelle mécanique à inventer, juste étendre celle qui existe déjà à
+Énergie en crise.
 
-**Proposition pour Résidentiel** *(à valider par Adrien)* : comme les
-6 autres activités ont toutes un lien avec une mécanique qui existe déjà
-(défense, visites, influence), Résidentiel pourrait jouer sur la
-**croissance de la population elle-même** — par exemple point fort :
-chance supplémentaire de gagner un habitant par visite indépendamment
-de Commerce (ou un bonus sur le seuil "4 habitants par logement" des
-maisons) ; crise : la ville perd des habitants plus facilement (effet
-symétrique avec Industrie/Services/Loisirs). Choix du chiffre exact
-laissé à Claude Code une fois le principe validé par Adrien.
+**Point ouvert encore sans réponse** : Commerce et Recherche n'ont
+toujours aucun malus de crise propre. Résidentiel reste sans aucun
+effet (voir proposition faite par Claude chat : bonus/malus sur la
+croissance de population, à valider par Adrien).
 
-**Point ouvert signalé en passant** : si Adrien veut une vraie symétrie
-bonus/malus partout, il faudra aussi écrire un malus de crise pour
-Commerce, Énergie et Recherche (aujourd'hui absents), pas seulement
-pour Résidentiel.
 ## 43. Amélioration visuelle des monuments (suite du §33/§39, 05/10/2026)
 
 **Contexte** : les monuments ont déjà été agrandis (×2,5, le
@@ -2610,3 +2658,54 @@ dans ce même catalogue — si ce chantier de détail visuel démarre après
 le §41, prévoir que `buildMonument()` (ou son équivalent fusionné)
 doit aussi couvrir les anciens types de mégaprojets avec un niveau de
 détail cohérent, pas seulement les 16 types de monuments d'origine.
+## 44. Détail visuel des 18 mégaprojets fusionnés (suite du §41/§43, 05/10/2026)
+
+**Contexte** : le §43 a donné aux 16 monuments une vraie silhouette par
+type et 3 rangs visuels (modeste/notable/prestigieux). Les 18
+mégaprojets fusionnés au §41 (`buildMegaprojet()`,
+`src/lib/ville3d/megaprojets.ts`) utilisent encore les 3 silhouettes
+primitives d'origine (tour/dôme/arche) teintées selon l'activité.
+
+**Décision d'Adrien (AskUserQuestion du 05/10/2026)** : ni garder la
+teinte d'activité actuelle, ni adopter l'or/bronze des monuments —
+chaque mégaprojet doit avoir **la couleur et la matière naturelles du
+bâtiment réel qu'il représente**, comme un bâtiment normal de la
+ville plutôt qu'un objet-symbole stylisé.
+
+**À faire**, dans `buildMegaprojet()` — une vraie silhouette dessinée
+par type, comme pour les monuments, avec un matériau/une palette
+propre à chacun des 18 types plutôt qu'un paramètre de teinte unique :
+
+- **Grande école, Technopole, Centre de recherche** : façade claire,
+  beaucoup de vitrage (dans l'esprit d'un bâtiment Services/Recherche
+  déjà présent dans les quartiers).
+- **Parc des sports, Stade, Grand stade** : structure ouverte,
+  gradins, pelouse/terrain visible, mâts d'éclairage.
+- **Marché couvert** : grande halle, structure métallique et verrière,
+  dans l'esprit d'un marché couvert réel.
+- **Hôpital** : façade blanche/claire, croix rouge (même langage visuel
+  que la croix déjà utilisée sur `buildServices()`).
+- **Centrale solaire, Parc éolien** : réutiliser directement les
+  modèles déjà dessinés pour l'Énergie (`buildPanneauSolaire()`,
+  `buildEolienne()`, `src/lib/ville3d/energie.ts`) plutôt que d'en
+  inventer de nouveaux — c'est déjà la bonne silhouette, juste à plus
+  grande échelle pour un mégaprojet.
+- **Zone logistique** : hangars bas, quais de chargement.
+- **Gare TGV, Aéroport** : grande verrière/toiture incurvée, quais ou
+  piste suggérée.
+- **Opéra** : façade classique, colonnes, fronton.
+- **Tour emblématique, Siège international** : tour vitrée soignée,
+  dans l'esprit des tours de verre déjà existantes
+  (`construireTourVerre()`) mais avec un traitement qui la distingue
+  comme emblème.
+- **Centrale, Centrale nouvelle génération** : réutiliser/adapter les
+  bâtiments déjà dessinés pour la centrale d'Énergie
+  (`buildCentraleEnergie()`), éventuellement enrichis pour la version
+  « nouvelle génération ».
+
+**Portée** : un ajustement visuel, aucune migration, aucun changement
+de mécanique — les bonus permanents et le déblocage par seuil
+d'influence (§41) ne changent pas. Détail exact des formes et palettes
+laissé à Claude Code, dans le même esprit créatif que pour les packs
+(§40) et les monuments (§43) : point de départ, pas spécification
+figée.

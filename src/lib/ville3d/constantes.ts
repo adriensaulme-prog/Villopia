@@ -189,21 +189,6 @@ export const FUMEE = hex("#d9d9d6");
 // logique de progression que APART_FLOOR_EVERY pour les immeubles.
 export const QUARTIER_NIVEAU2_APRES = 10000;
 
-// Jalon 20 (1/3, docs/SYSTEME-DEVELOPPEMENT.md §6) — mégaprojets du
-// maire : bâtiments simples pour cette première passe ("un socle +
-// une silhouette + une couleur d'accent selon l'activité du thème",
-// pas encore le niveau de détail des maisons/quartiers — voir
-// docs/DECISIONS.md §4, journal du Jalon 20).
-export const MEGAPROJET_ACCENT: Record<string, Couleur> = {
-  residentiel: hex("#c23b2c"),
-  industrie: INDUSTRIE_ACCENT,
-  commerce: hex("#1f6fb2"),
-  loisirs: hex("#2f7d4f"),
-  services: SERVICES_CROIX,
-  energie: hex("#f2c230"),
-  recherche: RECHERCHE_DOME,
-};
-
 // Jalon 19 (docs/SYSTEME-DEVELOPPEMENT.md §7) — Énergie : pas de bloc
 // dans la ville, des installations dans la campagne autour, en nombre
 // proportionnel à son élan (jauges_ville()). Un repère tous les 4

@@ -612,7 +612,7 @@ export function buildMegaprojetsCampagne(
     if (!place) continue;
     const r = rngFrom(key + "|megaprojet|type|" + m.palier);
     const stade = megaprojetDuPalier(m.palier)?.stade ?? 0;
-    buildMegaprojet(g, place.x, place.z, m.type, m.activite, stade, r, ao, Math.floor(r() * 900) + 50);
+    buildMegaprojet(g, place.x, place.z, m.type, stade, r, ao, Math.floor(r() * 900) + 50);
   }
 }
 

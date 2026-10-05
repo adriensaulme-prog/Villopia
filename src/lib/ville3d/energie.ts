@@ -121,9 +121,17 @@ function pylone(g: Geo, cx: number, cz: number, h: number, seed: number) {
   box(g, cx - 1.6, h - 0.15, cz - 0.15, cx + 1.6, h + 0.15, cz + 0.15, { c: COL.metal, m: MAT.LATTICE, seed });
 }
 
-export function buildCentraleEnergie(g: Geo, cx: number, cz: number, r: RNG, ao: TamponAO[], seed: number) {
+/** Largeur du hall de la centrale ; les pylônes de raccordement partent de son flanc. */
+const CENTRALE_LARGEUR = 13;
+
+/**
+ * Les bâtiments de la centrale — hall, réservoirs, poste de contrôle, clôture — sans les pylônes
+ * de raccordement. Séparés pour que le mégaprojet « Centrale » (docs/A-INTEGRER.md §44) puisse
+ * réutiliser ce dessin, à plus petite échelle et sans lignes qui sortent de sa cour.
+ */
+export function buildBatimentsCentrale(g: Geo, cx: number, cz: number, r: RNG, ao: TamponAO[], seed: number) {
   const wallC = pick(r, CENTRALE_WALLS);
-  const w = 13,
+  const w = CENTRALE_LARGEUR,
     d = 10,
     h = 6.5;
   box(g, cx - w / 2, 0.15, cz - d / 2, cx + w / 2, 0.15 + h, cz + d / 2, {
@@ -165,7 +173,11 @@ export function buildCentraleEnergie(g: Geo, cx: number, cz: number, r: RNG, ao:
     z1 = cz + d / 2 + 1.5;
   box(g, x0, 0.15, z0 - ft / 2, x1, 0.15 + fh, z0 + ft / 2, { c: COL.fence, m: MAT.FENCE, seed });
   box(g, x0, 0.15, z1 - ft / 2, x1, 0.15 + fh, z1 + ft / 2, { c: COL.fence, m: MAT.FENCE, seed });
-  // pylônes de raccordement, en ligne vers la ville
-  for (let i = 0; i < 2; i++) pylone(g, cx + w / 2 + 8 + i * 14, cz, rr(r, 7, 9), seed + 2 + i);
   ao.push({ x0: x0 - 1, z0: z0 - 1, x1: x1 + 1, z1: z1 + 1, w: 1, h });
+}
+
+export function buildCentraleEnergie(g: Geo, cx: number, cz: number, r: RNG, ao: TamponAO[], seed: number) {
+  buildBatimentsCentrale(g, cx, cz, r, ao, seed);
+  // pylônes de raccordement, en ligne vers la ville
+  for (let i = 0; i < 2; i++) pylone(g, cx + CENTRALE_LARGEUR / 2 + 8 + i * 14, cz, rr(r, 7, 9), seed + 2 + i);
 }
