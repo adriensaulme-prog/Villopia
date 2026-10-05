@@ -5,6 +5,7 @@
  * (supabase/migrations/0029_..., anti-triche) — à tenir synchronisé si
  * ces chiffres changent.
  */
+import { etatJauge } from "./activites";
 
 export type TypeTechnologie =
   | "eclairage_led"
@@ -21,6 +22,16 @@ export const CATALOGUE_TECHNOLOGIES: TypeTechnologie[] = [
   "toits_vegetalises",
   "drones",
 ];
+
+/**
+ * Malus de crise de la Recherche (docs/SYSTEME-DEVELOPPEMENT.md §4, A-INTEGRER §42) : sous 60 % de
+ * jauge, plus aucune nouvelle technologie ne se débloque (migration 0051, `recherche_en_crise()`).
+ * Les paliers déjà débloqués restent ; les points continuent de compter et les paliers atteints
+ * se débloquent d'un coup au retour à 60 %. Copie TypeScript de la règle serveur, pour l'affichage.
+ */
+export function rechercheEnCrise(jaugeRecherche: number): boolean {
+  return etatJauge(jaugeRecherche) === "crise";
+}
 
 export function typeTechnologie(palier: number): TypeTechnologie | null {
   return CATALOGUE_TECHNOLOGIES[palier] ?? null;

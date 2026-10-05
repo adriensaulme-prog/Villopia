@@ -22,6 +22,7 @@ import { JaugesActivites, EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import { ChoisirActivite } from "@/components/ChoisirActivite";
 import { BulletinMunicipal, type EvenementBulletin } from "@/components/BulletinMunicipal";
 import { Technologies } from "@/components/Technologies";
+import { rechercheEnCrise } from "@/lib/game/technologies";
 import { Monuments } from "@/components/Monuments";
 import { definirRecommandation } from "@/app/villes/actions";
 import { PacksVille } from "@/components/PacksVille";
@@ -374,7 +375,12 @@ export default async function VillePage() {
           visiteFraiche={visiteFraiche}
           activitesDisponibles={activitesDeCetteVille}
         />
-        <Technologies locale={locale} paliersDebloques={nbTechnologiesDebloquees ?? 0} pointsRecherche={pointsRecherche} />
+        <Technologies
+          locale={locale}
+          paliersDebloques={nbTechnologiesDebloquees ?? 0}
+          pointsRecherche={pointsRecherche}
+          enCrise={rechercheEnCrise(jauges.find((j) => j.activite === "recherche")?.jauge ?? 1)}
+        />
         <Monuments locale={locale} cleVille={ville.id} paliersDebloques={paliersDebloques} influenceMax={ville.influence_max} />
         <PacksVille locale={locale} villeId={ville.id} themeApplique={ville.theme} packs={packsDuJoueur} />
         <div className="act">

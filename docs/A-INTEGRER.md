@@ -284,6 +284,11 @@ journal existant, puis ce fichier peut être supprimé.*
 > pas. À contester : le chiffre de 25 % et l'absence de second malus
 > « perte d'habitants ». Détail : `DECISIONS.md` §4 « Point fort du
 > Résidentiel ».
+> **§42 (suite) — fait le 05/10/2026** (malus de crise de la Recherche : plus de
+> nouvelle technologie sous 60 % de jauge, déblocage gelé et rattrapé au retour à
+> 60 % ; migration `0051`, **à appliquer par Adrien**). Commerce et Énergie avaient
+> déjà leur malus : rien à ajouter. Détail : `DECISIONS.md` §4 « Malus de crise de
+> la Recherche ».
 > **§42 (bonus/malus des 7 activités de ville, 05/10/2026) : nouveau,
 > état des lieux + proposition** — 6 des 7 activités ont déjà un effet
 > (point fort/crise) écrit dans le code ; Résidentiel n'en a aucun,

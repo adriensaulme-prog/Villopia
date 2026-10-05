@@ -5252,6 +5252,55 @@ attente (teinte d'activité ou or des monuments).
 
 ---
 
+### Malus de crise de la Recherche : pas de nouvelle technologie (A-INTEGRER §42, suite) — 05/10/2026
+
+**Demande d'Adrien** : après le point fort du Résidentiel, traiter les « malus de crise
+Commerce / Énergie / Recherche » signalés comme absents au §42.
+
+**État des lieux vérifié dans le code (le §42 se trompait sur deux lignes sur trois).**
+- *Commerce* : a bien un malus de crise — plus de bonus des jumelages en dessous de 60 %
+  (`reclamer_bonus_jumelages()`).
+- *Énergie* : a bien un malus de crise — sa jauge en crise compte double dans le risque de
+  manifestation (`verifier_manifestation()`) et les gratte-ciel s'arrêtent de monter.
+- *Recherche* : **seule sans malus** — le tableau du §4 (`SYSTEME-DEVELOPPEMENT.md`) prévoyait
+  « pas de nouvelle technologie débloquée », jamais codé. Rien à ajouter pour Commerce et Énergie.
+
+**Fait : la crise de la Recherche gèle le déblocage des technologies** (migration
+`0051_recherche_crise_technologies.sql`, **envoyée à Adrien, à appliquer** ; le SQL ne peut pas être
+exécuté ici).
+- `recherche_en_crise(ville)` : vrai quand `intensite_crise(jauge de Recherche) > 0`, c'est-à-dire sous
+  60 % (seuil et lecture « Crise » de la barre, inchangés).
+- `avancer_technologies()` (0029) sort aussitôt si la Recherche est en crise ; le reste de la fonction est
+  identique (mêmes seuils, même bulletin « technologie débloquée »).
+- **Rien n'est perdu** (règle permanente « jamais de destruction ») : les technologies déjà débloquées restent ;
+  les points de Recherche continuent de s'accumuler ; au retour à 60 % le prochain affichage de la ville
+  débloque d'un coup tous les paliers déjà atteints. C'est un gel, pas une pénalité chiffrée.
+- Interface : sous « Technologies » dans Ma ville, une phrase explique la crise (« tes points continuent de
+  s'accumuler, rien n'est perdu »), calculée depuis les jauges déjà lues (elle s'affiche même avant la `0051`,
+  où le gel n'est pas encore actif — voir le point d'attention ci-dessous).
+
+**Choix à contester.**
+1. *Gel binaire plutôt que progressif.* Les autres effets du §4 montent de 0 à leur maximum ; un palier à
+   débloquer n'a pas de demi-mesure honnête. Variante possible si Adrien préfère : le seuil du prochain palier
+   multiplié par `1 + intensité de crise` (jusqu'à ×2 à jauge nulle) — rien d'autre à changer.
+2. *Un gel qui se produit naturellement.* La jauge de Recherche vise 8 % des visites sur 180 jours avec un élan
+   qui décroît : une ville qui néglige la Recherche passe sous 60 % (≈ moins de 4,8 % des visites récentes). C'est
+   l'esprit du §5 (« équilibre ta ville »), mais le gel touche surtout les villes déjà grandes, où la Recherche
+   est débloquée (dès « Ville », 15 000 habitants).
+3. *Pas de second malus* (« perte de points de Recherche », etc.) : ce serait une double peine, comme pour le
+   Résidentiel.
+
+**Point d'attention.** Tant que la `0051` n'est pas appliquée, l'interface annonce un gel que la base n'applique
+pas encore ; l'écart disparaît à l'application de la migration (l'avertissement ne bloque rien).
+
+**Testé.** `rechercheCrise.test.ts` : seuil identique à `intensite_crise()` ; la garde précède tout déblocage ;
+le déblocage de la `0029` est conservé ; aucune donnée de jeu touchée ; le message s'affiche en crise seulement
+(FR et EN). E2E `recherche-crise-technologies.spec.ts` : l'avertissement apparaît en crise et disparaît quand la
+Recherche en sort (passe) ; le comportement SQL — rien ne se débloque en crise, tout se débloque d'un coup au retour
+à 60 %, rien n'est retiré à une nouvelle crise — s'ignore tant que la `0051` n'est pas appliquée.
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,

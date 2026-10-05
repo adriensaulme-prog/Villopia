@@ -12,10 +12,13 @@ export function Technologies({
   locale,
   paliersDebloques,
   pointsRecherche,
+  enCrise = false,
 }: {
   locale: Locale;
   paliersDebloques: number;
   pointsRecherche: number;
+  /** La Recherche est en crise (< 60 %) : le déblocage est gelé (A-INTEGRER §42). */
+  enCrise?: boolean;
 }) {
   const prochainType = typeTechnologie(paliersDebloques);
   if (paliersDebloques === 0 && !prochainType) {
@@ -24,6 +27,7 @@ export function Technologies({
   return (
     <div className="note">
       <b>{traduire(locale, "technologie.titre")}</b>
+      {enCrise ? <p className="note">{traduire(locale, "technologie.enCrise")}</p> : null}
       <ul className="bulletin-liste">
         {Array.from({ length: paliersDebloques }, (_, palier) => {
           const type = typeTechnologie(palier);

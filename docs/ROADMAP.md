@@ -336,7 +336,8 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§41 fait** (plus de ressources de ville ni de financement ; les
+*Dernière mise à jour : 05/10/2026. **§42 (suite) fait** (crise de la Recherche = pas de nouvelle
+technologie ; migration `0051` à appliquer). **§41 fait** (plus de ressources de ville ni de financement ; les
 18 mégaprojets rejoignent le catalogue des monuments, 34 entrées débloquées par l'influence ; migration
 `0050` à appliquer). **§43 fait** (les 16 monuments ont chacun leur silhouette,
 trois rangs visuels, détails de surface ; aucune migration ; reste les 18 mégaprojets du §41, encore

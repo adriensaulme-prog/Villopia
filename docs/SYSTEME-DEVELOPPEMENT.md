@@ -107,7 +107,7 @@ entre 60 % et 150 % de jauge), plafonnés, et calculés côté serveur.
 | 🌳 Loisirs | **ville soudée** : pertes dues aux manifestations et à la propagande jusqu'à −50 % | pertes +50 % |
 | 🏥 Services | **santé publique** : pertes dues à la contamination jusqu'à −50 % | contamination +50 % |
 | ⚡ Énergie | risque de **manifestation divisé par 2** | **pénurie** : les gratte-ciel arrêtent de monter, risque de manifestation ×2 |
-| 🔬 Recherche | **influence renforcée** : chaque influence envoyée a jusqu'à 50 % de chance de compter double | pas de nouvelle technologie débloquée |
+| 🔬 Recherche | **influence renforcée** : chaque influence envoyée a jusqu'à 50 % de chance de compter double | pas de nouvelle technologie débloquée *(codé le 05/10/2026, migration `0051` : gel du déblocage, rattrapé au retour à 60 %)* |
 
 Ces effets s'appuient sur les mécaniques **déjà codées** (grève,
 contamination, propagande, influence, jumelages) : on ne crée qu'un seul

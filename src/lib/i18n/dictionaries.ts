@@ -496,6 +496,8 @@ export const dictionaries = {
 
     "technologie.titre": "Technologies",
     "technologie.prochaine": "Prochaine technologie",
+    "technologie.enCrise":
+      "Recherche en crise : aucune nouvelle technologie tant que sa jauge reste sous 60 %. Tes points continuent de s'accumuler, rien n'est perdu.",
     "technologie.type.eclairage_led": "Éclairage public LED",
     "technologie.type.panneaux_solaires_toits": "Panneaux solaires sur les toits",
     "technologie.type.tramway": "Tramway",
@@ -1007,6 +1009,8 @@ export const dictionaries = {
 
     "technologie.titre": "Technologies",
     "technologie.prochaine": "Next technology",
+    "technologie.enCrise":
+      "Research in crisis: no new technology while its gauge stays below 60%. Your points keep adding up, nothing is lost.",
     "technologie.type.eclairage_led": "LED street lighting",
     "technologie.type.panneaux_solaires_toits": "Rooftop solar panels",
     "technologie.type.tramway": "Tramway",
