@@ -6,6 +6,8 @@ import { Geo } from "@/lib/ville3d/geometrie";
 import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { MODELES_IMMEUBLES, MODELES_MAISONS, MODELES_TOURS } from "@/lib/ville3d/batiments";
 import { buildCommerce, buildIndustrie, buildRecherche, buildServices } from "@/lib/ville3d/quartiers";
+import { buildMonument } from "@/lib/ville3d/monuments";
+import { CATALOGUE_MONUMENTS } from "@/lib/game/monuments";
 
 /**
  * Showroom (outil de développement, jamais dans le jeu publié — voir
@@ -29,7 +31,7 @@ interface Fiche {
   construire: (...args: never[]) => unknown;
 }
 
-type TypeFamille = "maison" | "immeuble" | "tour" | "quartier";
+type TypeFamille = "maison" | "immeuble" | "tour" | "quartier" | "monument";
 
 interface Entree {
   fiche: Fiche;
@@ -37,6 +39,8 @@ interface Entree {
   taille: [number, number, number, number];
   /** Stade (0 à 2) d'un bâtiment de quartier. */
   niveau?: number;
+  /** Palier (0 à 15) d'un monument : il fixe sa taille et son rang visuel. */
+  palier?: number;
 }
 
 const TAILLE_VIGNETTE = 220;
@@ -68,8 +72,13 @@ function versGeometrieSimple(g: Geo): THREE.BufferGeometry {
   return geometry;
 }
 
-function construireGeometrie({ fiche, type, taille, niveau }: Entree): THREE.BufferGeometry {
+function construireGeometrie({ fiche, type, taille, niveau, palier }: Entree): THREE.BufferGeometry {
   const geo = new Geo();
+  if (type === "monument") {
+    // Un monument se construit sur place (centre, type, palier), pas dans une parcelle.
+    buildMonument(geo, 0, 0, fiche.id, palier ?? 0, [], 1);
+    return versGeometrieSimple(geo);
+  }
   const r = rngFrom("showroom|" + fiche.id);
   // Façade sur +z pour toutes les familles : c'est le côté tourné vers la caméra par défaut (terrasses, porches, balcons visibles).
   // Tours montrées terminées (F = cap), pas en chantier : c'est la silhouette finale qu'on veut juger.
@@ -155,7 +164,14 @@ const ENTREES_QUARTIERS: Entree[] = (
     }))
   )
 );
-const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS, ...ENTREES_QUARTIERS];
+// Monuments d'influence (A-INTEGRER §43) : les 16 types du catalogue, chacun à son palier (donc à son rang visuel).
+const ENTREES_MONUMENTS: Entree[] = CATALOGUE_MONUMENTS.map((m, palier) => ({
+  fiche: { id: m.type, construire: buildMonument as unknown as Fiche["construire"] },
+  type: "monument" as const,
+  taille: [0, 0, 0, 0] as [number, number, number, number],
+  palier,
+}));
+const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS, ...ENTREES_QUARTIERS, ...ENTREES_MONUMENTS];
 
 export function ShowroomClient() {
   const [nuit, setNuit] = useState(false);
@@ -255,6 +271,7 @@ export function ShowroomClient() {
       <Section titre="Immeubles" entrees={ENTREES_IMMEUBLES} enregistrer={enregistrer} />
       <Section titre="Tours" entrees={ENTREES_TOURS} enregistrer={enregistrer} />
       <Section titre="Quartiers (services, commerce, recherche, industrie)" entrees={ENTREES_QUARTIERS} enregistrer={enregistrer} />
+      <Section titre="Monuments d'influence (du palier 0 au palier 15)" entrees={ENTREES_MONUMENTS} enregistrer={enregistrer} />
     </div>
   );
 }

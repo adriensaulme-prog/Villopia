@@ -5055,6 +5055,99 @@ de démonstration rendue avec chaque thème.
 
 ---
 
+### Monuments : une silhouette par type, trois rangs visuels (A-INTEGRER §43) — 05/10/2026
+
+**Demande d'Adrien** (§43) : améliorer la qualité visuelle des monuments au-delà de leur taille (déjà
+corrigée le 02/10/2026) : plus de variété de silhouettes, plus de détail de surface, un
+`temple_national` ou un `monument_ultime` qui se distinguent d'une `borne_commemorative` autrement
+que par la taille, la teinte or/bronze gardée comme signature. **Aucune migration, aucune règle de jeu
+touchée**, `ECHELLE_MONUMENT` et la hauteur par palier (4 m à 15 m) inchangés.
+
+**Constat.** `buildMonument()` choisissait l'une de trois silhouettes (colonne, statue, arche) par
+`hashType(type) % 3` : sans rapport avec le vrai monument (un « banc public » pouvait sortir en colonne)
+et 1 à 3 primitives nues, une seule teinte. Il y a désormais **une silhouette par type**, dessinée à la
+main dans un registre `FORMES` (`src/lib/ville3d/monuments.ts`), sur des formes de base nouvelles
+(`src/lib/ville3d/monumentsFormes.ts` : tronc de pyramide, arche, disque vertical, ellipsoïde lisse,
+plaque d'inscription, marches, lampadaire, flamme).
+
+| Palier | Type | Silhouette |
+|---|---|---|
+| 0 | `borne_commemorative` | bloc de pierre, fût effilé de bronze à plaques, coiffe pyramidale et boule |
+| 1 | `banc_public` | banc de pierre à lattes de bronze et dossier, lampadaire derrière (allumé la nuit) |
+| 2 | `fontaine_simple` | margelle, bassin d'eau, colonne de bronze, vasque, jet, quatre bornes |
+| 3 | `buste` | piédestal à plaques, buste de bronze (épaules, cou, tête) |
+| 4 | `obelisque` | deux assises, fût effilé à cartouches, pyramidion poli et pointe |
+| 5 | `arc_triomphe_miniature` | piliers à reliefs, massif percé d'une arche ronde, archivolte dorée, attique à inscription, groupe sculpté |
+| 6 | `horloge_municipale` | tour à pilastres et fenêtres éclairées la nuit, quatre cadrans (3 h), toit pyramidal doré |
+| 7 | `fontaine_monumentale` | grand bassin, trois vasques étagées, quatre jets satellites, jet central |
+| 8 | `statue_equestre` | haut piédestal à plaques, cheval et cavalier au sabre levé |
+| 9 | `mur_remerciements` | mur couvert de plaquettes, deux pylônes à braseros, stèle centrale à médaillon |
+| 10 | `arche_monumentale` | deux pylônes d'or, grand anneau en plein cintre, clé de voûte, soleil et flèche |
+| 11 | `tour_observatoire` | fût trapu à fenêtres éclairées, plate-forme à garde-corps, grand dôme, lunette, mât |
+| 12 | `statue_emblematique` | piédestal de marbre, figure drapée, couronne de rayons, torche levée, tablette |
+| 13 | `temple_national` | stylobate, 12 colonnes, cella à porte dorée, deux frontons à médaillon, dôme et lanterne |
+| 14 | `statue_geante` | colosse jambes écartées, bras ouverts (flamme, globe), couronne de rayons, disque solaire dans le dos |
+| 15 | `monument_ultime` | trois gradins, quatre braseros, quatre obélisques d'angle, pylône d'or à plaques et bandeaux, lanterne, globe, flèche |
+
+**Trois rangs, pour que le prestige se lise sans la taille** (`rangMonument()`, **choix de Claude Code, à
+contester** : coupures aux paliers 5 et 10) :
+
+| | Modeste (0-4) | Notable (5-9) | Prestigieux (10-15) |
+|---|---|---|---|
+| Socle | 1 marche | 2 marches | 3 marches |
+| Pierre | brute, chaude | tire vers le marbre | marbre clair |
+| Métal | bronze patiné, **mat** | or, **poli** | or poli, **plus vif** |
+| Plaques | 1 ligne | cadre doré, 2 lignes | cadre doré, 3 lignes |
+| Nuit | (le banc a son lampadaire) | fenêtres/lanternes propres au type | **4 lampadaires d'angle** allumés + flammes |
+
+La **teinte or/bronze reste la signature** : `couleurMetal()` glisse du bronze (palier 0) à l'or
+d'origine `#c9a227` (palier ~7) puis à l'or poli (palier 15), toujours en tons chauds ; les corps de
+pierre sont teintés d'or (« grès doré »).
+
+**Contraintes tenues, vérifiées par test.** Chaque monument reste dans le cercle de son socle (les
+emplacements de `monumentsVille.ts` supposent ≤ 5,14 m : deux monuments par cour, à 14,5 m l'un de l'autre), au
+sol (y ≥ 0,15) et sous la hauteur de son palier, en l'utilisant (≥ 90 %). Aucun nouveau matériau ni
+shader : `MAT.PLAIN`, `PAINT` (poli), `WATER`, `LAMP` et `BEACON` (flammes, lanterne sommitale) existent
+déjà. Poids : **+7 Ko gzip** de code (mesuré à l'esbuild), pas d'image, pas de dépendance. Géométrie : 300
+à 1 500 sommets par monument ; les 16 ensemble ajoutent environ 8 800 sommets à une ville de 30 000
+habitants (217 000 sommets, soit +4 %).
+
+**Vérifié à l'œil dans la vraie scène** (`creerSceneVille`, vrais shaders, dans un harnais jetable hors du
+dépôt, avec les 16 monuments débloqués, de jour et à 22 h 30). Ce contrôle a fait corriger cinq choses :
+l'or poli virait au **jaune citron** (le matériau brillant éclaircit sa couleur : base assombrie de 20 %
+ou 30 % selon le rang), les corps de pierre sortaient **presque blancs** (pierre plus sombre, grès teinté
+à 55 % d'or), la tour d'observatoire faisait **minaret** (fût trapu, grand dôme, lunette), le cheval était
+un meuble (jambes courtes, encolure en deux pièces, cavalier plus grand) et le mur ressemblait à une
+façade d'église (plus bas, plus large).
+
+**Pas couvert ici : les mégaprojets (§41).** La fusion des mégaprojets dans le catalogue était en cours
+dans une autre session au moment de ce travail (migration `0050` présente, `CATALOGUE_BATIMENTS` en cours
+d'écriture). Les 18 mégaprojets sont toujours dessinés par `buildMegaprojet()` (`megaprojets.ts`, inchangé :
+trois silhouettes primitives, teinte d'activité), donc nettement moins détaillés que les monuments : c'est
+l'incohérence que le §43 demandait d'éviter une fois la fusion faite. Pour la lever : une silhouette par
+mégaprojet (18 dessins) et **une décision d'Adrien** : un mégaprojet garde-t-il sa teinte d'activité
+(`MEGAPROJET_ACCENT`) ou prend-il l'or des monuments ? `buildMonument()` est prêt à les recevoir (registre
+`FORMES`, et repli stable vers l'une de trois silhouettes pour un type inconnu : obélisque, buste, arc), mais
+rien ne les y envoie aujourd'hui ; un palier ≥ 16 y serait en rang prestigieux, or poli. Non tranché ici.
+
+**Testé.** `tests/unit/monumentsDetail.test.ts` (nouveau, 12) : les 16 types au même palier donnent 16
+silhouettes différentes ; tout prestigieux est plus détaillé que tout modeste ; lampadaires d'angle
+seulement chez les prestigieux ; métal mat chez les modestes, poli ensuite ; 1, 2, 3 marches ; échelle du
+métal chaude et croissante ; ≥ 30 % de sommets chauds par monument ; emprise, sol et hauteur ; type
+inconnu stable ; graine sans effet sur la forme. **Sabotage vérifié rouge** : retour au choix par
+hachage → le test des silhouettes échoue. Les tests existants (`monumentsEchelle`, `monumentsVille`,
+`monuments`) passent sans changement ; suite unitaire complète verte. Les e2e Supabase n'ont pas été
+rejoués (aucune donnée touchée, et le serveur de dev partagé était cassé par le chantier §41).
+
+**À vérifier par Adrien.** (1) `/dev/showroom`, nouvelle section « Monuments d'influence » : les 16
+formes côte à côte, rendu simplifié (sans poli ni nuit). (2) Dans le jeu, les villes de test montent à
+13 680 d'influence, donc jusqu'au palier 9 : pour voir les prestigieux, passer une ville de dev à
+l'influence maximale, par exemple `update public.cities set influence_max = 1000000 where id = '<id>';`
+puis recharger `/ville` (`avancer_monuments()` débloque tout, les monuments sont dans les cours des huit
+blocs centraux), de jour puis la nuit.
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,

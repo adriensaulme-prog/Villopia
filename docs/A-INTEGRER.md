@@ -283,6 +283,16 @@ journal existant, puis ce fichier peut être supprimé.*
 > état des lieux + proposition** — 6 des 7 activités ont déjà un effet
 > (point fort/crise) écrit dans le code ; Résidentiel n'en a aucun,
 > proposition à valider.
+> **§43 — fait le 05/10/2026** (une silhouette dessinée par type pour les 16
+> monuments, trois rangs visuels — modeste / notable / prestigieux —, détails
+> de surface : marches, plaques, cadrans, plaquettes, flammes, lampadaires
+> allumés la nuit ; teinte or/bronze gardée comme signature, du bronze mat à
+> l'or poli ; aucune migration). **Pas couvert : les mégaprojets du §41**, que
+> la note demandait d'amener au même niveau de détail une fois fusionnés : ils
+> sont toujours dessinés par l'ancien `buildMegaprojet()` (3 silhouettes
+> primitives). Il reste 18 silhouettes à dessiner et une décision d'Adrien :
+> teinte d'activité ou or des monuments. Détail : `DECISIONS.md` §4 « Monuments :
+> une silhouette par type, trois rangs visuels ».
 > **§43 (amélioration visuelle des monuments, 05/10/2026) : nouveau** —
 > suite du §39/§33 : la taille a été corrigée le 02/10, pas le détail ;
 > toujours 3 silhouettes primitives (cylindre/boîte).

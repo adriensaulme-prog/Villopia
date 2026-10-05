@@ -332,7 +332,9 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§40 fait** (cinq packs de thème : Bord de mer, Village de
+*Dernière mise à jour : 05/10/2026. **§43 fait** (les 16 monuments ont chacun leur silhouette,
+trois rangs visuels, détails de surface ; aucune migration ; reste les 18 mégaprojets du §41, encore
+dessinés par l'ancien `buildMegaprojet()`). **§40 fait** (cinq packs de thème : Bord de mer, Village de
 pierre, Quartier industriel reconverti, Futuriste/éco, Nordique ; payants ; migration `0048` à appliquer).
 **§30 fait** (section « Thèmes de la ville » dans
 Ma ville + onglet Boutique, migration `0047` à appliquer, paiement non branché).
