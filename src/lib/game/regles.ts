@@ -69,11 +69,11 @@ export const SECTIONS_REGLES: SectionRegles[] = [
     paragraphes: {
       fr: [
         "Tu peux influencer la ville d'un autre joueur : elle gagne des points d'influence (jusqu'à 5 actions par jour, quelques secondes d'écart). Une ville en grève ne peut pas être influencée.",
-        "Le record d'influence d'une ville débloque des monuments, un palier après l'autre : ils apparaissent hors de la ville et se retrouvent avec « Voir où il est » dans le panneau Monuments.",
+        "Le record d'influence d'une ville débloque, un palier après l'autre, des monuments et des mégaprojets (hôpital, stade, centrales…) : rien à choisir, rien à financer, ils apparaissent tout seuls. Les monuments se dressent dans la ville, les mégaprojets à sa bordure ; « Voir où il est », dans le panneau Monuments et mégaprojets, les retrouve. Les mégaprojets gardent leurs bonus pour toujours (l'hôpital et l'opéra limitent les attaques, le stade les manifestations, les centrales renforcent l'Énergie).",
       ],
       en: [
         "You can influence another player's city: it gains influence points (up to 5 actions a day, a few seconds apart). A city on strike cannot be influenced.",
-        "A city's influence record unlocks monuments, one tier after another: they appear outside the city and can be found with “Show me where” in the Monuments panel.",
+        "A city's influence record unlocks monuments and megaprojects (hospital, stadium, power plants…), one tier after another: nothing to choose, nothing to fund, they appear on their own. Monuments stand in the city, megaprojects on its edge; “Show me where”, in the Monuments and megaprojects panel, finds them. Megaprojects keep their bonuses for good (the hospital and the opera house limit attacks, the stadium limits protests, the power plants boost Energy).",
       ],
     },
   },

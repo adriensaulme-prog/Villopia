@@ -28,14 +28,18 @@ export function buildMegaprojet(
   cz: number,
   type: string,
   activite: string,
-  palier: number,
+  /**
+   * Stade du mégaprojet (0 = ex-Bourg … 4 = ex-Mégapole, megaprojets.ts du jeu), PAS son
+   * palier du catalogue (16 à 33) : c'est lui qui règle la taille du bâtiment.
+   */
+  stade: number,
   r: RNG,
   ao: TamponAO[],
   seed: number
 ) {
   const accent = MEGAPROJET_ACCENT[activite] ?? COL.stone;
-  const rSocle = 2.4 + 0.4 * palier;
-  const h = 4 + palier * 1.7;
+  const rSocle = 2.4 + 0.4 * stade;
+  const h = 4 + stade * 1.7;
   const y0 = 0.15;
 
   // Socle pavé, commun aux trois silhouettes.

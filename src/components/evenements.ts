@@ -2,7 +2,7 @@ import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 import { EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import type { Activite } from "@/lib/game/activites";
 import { typeTechnologie } from "@/lib/game/technologies";
-import { typeMonument } from "@/lib/game/monuments";
+import { entreeCatalogue } from "@/lib/game/monuments";
 
 /**
  * Événements d'une ville (table city_events, lecture publique) et leur
@@ -44,8 +44,16 @@ export function libelleEvenement(locale: Locale, e: EvenementBulletin): string |
   if (e.type === "technologie_debloquee" && e.valeur != null && typeTechnologie(e.valeur)) {
     return `${traduire(locale, "bulletin.technologieDebloquee")} ${traduire(locale, `technologie.type.${typeTechnologie(e.valeur)!}`)}`;
   }
-  if (e.type === "monument_debloque" && e.valeur != null && typeMonument(e.valeur)) {
-    return `${traduire(locale, "bulletin.monumentDebloque")} ${traduire(locale, `monument.type.${typeMonument(e.valeur)!}`)}`;
+  // Monuments (paliers 0 à 15) et mégaprojets (16 à 33) se débloquent par le même mécanisme
+  // (A-INTEGRER §41) : même type d'événement, la famille se lit dans le catalogue.
+  if (e.type === "monument_debloque" && e.valeur != null) {
+    const entree = entreeCatalogue(e.valeur);
+    if (entree?.famille === "monument") {
+      return `${traduire(locale, "bulletin.monumentDebloque")} ${traduire(locale, `monument.type.${entree.type}` as never)}`;
+    }
+    if (entree?.famille === "megaprojet") {
+      return `${traduire(locale, "bulletin.megaprojetDebloque")} ${traduire(locale, `megaprojet.type.${entree.type}` as never)}`;
+    }
   }
   if (e.type === "guerre" && e.valeur != null) {
     return `${traduire(locale, "bulletin.guerre")} : −${e.valeur} ${pop}`;

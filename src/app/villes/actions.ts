@@ -166,44 +166,6 @@ export async function definirTheme(villeId: string, theme: string): Promise<{ su
 }
 
 /**
- * Le maire choisit un mégaprojet parmi les options du palier tout
- * juste débloqué (docs/SYSTEME-DEVELOPPEMENT.md §6, Jalon 20 1/3) —
- * réservé au propriétaire de la ville, un seul choix par palier,
- * jamais modifiable ensuite (choisir_megaprojet(), anti-triche côté
- * SQL).
- */
-export async function choisirMegaprojet(
-  villeId: string,
-  palier: number,
-  type: string
-): Promise<{ succes: boolean }> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/connexion");
-  }
-
-  const { error } = await supabaseAdmin.rpc("choisir_megaprojet", {
-    p_owner_id: user.id,
-    p_ville_id: villeId,
-    p_palier: palier,
-    p_type: type,
-  });
-
-  if (error) {
-    console.error("choisirMegaprojet a échoué :", error.message);
-  }
-
-  revalidatePath("/ville");
-  revalidatePath("/villes");
-
-  return { succes: !error };
-}
-
-/**
  * Influence une autre ville : +1 influence, au plus une fois par
  * (joueur, ville, jour) et au plus 5 fois par (joueur, jour) tous
  * cibles confondues. Comme visiterVille, toute la logique vit dans la

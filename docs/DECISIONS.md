@@ -5148,6 +5148,110 @@ blocs centraux), de jour puis la nuit.
 
 ---
 
+### Fin des ressources de ville, mégaprojets fusionnés dans le catalogue des monuments (A-INTEGRER §41) — 05/10/2026
+
+**Décision d'Adrien, structurante** (05/10/2026, confirmée par `AskUserQuestion`) : plus de ressources de
+ville du tout (ni matériaux, ni revenus), et les mégaprojets rejoignent le catalogue à seuils d'influence
+des monuments au lieu d'avoir leur propre système de financement. Mécanisme retenu : « automatique, comme
+les monuments » — plus de choix du maire entre 3 options, plus de financement par les visiteurs, plus de
+barre de chantier. Un mégaprojet apparaît tout seul quand le record d'influence (`influence_max`)
+franchit son seuil. Les bonus permanents sont conservés ; seul le déblocage change. La structure de table
+et la répartition des seuils étaient laissées à Claude Code.
+
+**Structure : une seule table, un seul catalogue.** `monuments` (inchangée : ville, palier, date) et
+`monument_catalogue()`, qui gagne deux colonnes (`famille` = `monument` | `megaprojet`, et `activite`, la
+teinte d'un mégaprojet). Deux tables avec un déblocage partagé auraient obligé à tenir deux listes de
+lignes synchronisées pour un comportement identique. **`palier` devient un identifiant stable, plus un
+rang** : les monuments gardent 0 à 15 (leurs lignes existantes restent valides, rien à migrer), les 18
+mégaprojets prennent 16 à 33. Conséquence : le catalogue n'est plus « palier croissant = seuil croissant »,
+donc `avancer_monuments()` ne s'arrête plus au premier seuil non atteint, elle parcourt tout ce dont le
+seuil est atteint. **Ne jamais renuméroter un palier existant** (écrit dans la migration et gardé par un
+test). `avancer_monuments()` est aussi devenue sans course (`on conflict do nothing` + `found`) : deux
+affichages simultanés ne créent ni doublon de ligne ni doublon d'événement.
+
+**Seuils (répartition de Claude Code, modifiable).** Les 18 mégaprojets gardent l'ordre de leurs anciens
+stades de population et s'intercalent entre les monuments, sans jamais partager un seuil : Bourg — Grande
+école 400, Parc des sports 750, Marché couvert 1 500 ; Ville — Hôpital 2 000, Stade 3 500, Centrale
+solaire 6 000, Zone logistique 8 000 ; Grande ville — Technopole 12 000, Gare TGV 15 000, Parc éolien
+20 000, Opéra 30 000 ; Métropole — Tour emblématique 40 000, Aéroport 60 000, Centre de recherche 80 000,
+Centrale 120 000 ; Mégapole — Grand stade 150 000, Centrale nouvelle génération 300 000, Siège
+international 400 000. Le catalogue unifié compte 34 entrées. Les villes de test (jusqu'à 13 680 d'influence)
+débloquent donc 8 mégaprojets sur 18 (jusqu'au Technopôle) et 18 entrées sur 34. L'ancienne suite « un palier de plus tous les 50 000 habitants »
+(qui répétait le catalogue de la Mégapole) disparaît : sans choix, répéter les mêmes types n'a plus de sens.
+
+**Bonus conservés à l'identique** : Stade et Grand stade (pertes de manifestation ×0,75), Centrale solaire,
+Parc éolien, Centrale, Centrale nouvelle génération (élan Énergie +20 % chacune, cumulatif), Hôpital
+(contamination ÷2), Opéra (propagande ÷2). Les trois fonctions qui les appliquent ne sont **pas
+recréées** : elles appellent `nb_megaprojets_construits()`, dont seul le corps change (le nom reste,
+« construit » veut dire « débloqué »). Elle lit désormais **directement le catalogue et `influence_max`**,
+pas les lignes de `monuments` : un bonus ne dépend jamais d'un affichage de page, et il n'y a pas deux
+sources de vérité.
+
+**Supprimé** : `choisir_megaprojet`, `avancer_megaprojets`, `etat_megaprojets`, `megaprojet_options`,
+`seuil_megaprojet`, `nb_megaprojets_ouverts`, `cout_megaprojet`, la table `megaprojets`, les colonnes
+`cities.materiaux_depenses` et `revenus_depenses`, le composant `Megaprojets.tsx`, l'action
+`choisirMegaprojet`, les clés de texte du choix et du financement. Les codes d'erreur P0024, P0025 et P0026
+ne servent plus (laissés au registre, comme P0005). **Ce qui n'a PAS été supprimé, volontairement** :
+`stock_ville()` reste, mais seulement pour les technologies (compteur de points de Recherche cumulés, jamais
+dépensé : ce n'est pas une ressource à dépenser, et le §41 ne cite que matériaux et revenus). Les
+**ressources nationales** des pays (Jalon 10) n'ont rien à voir et ne bougent pas.
+
+**Placement 3D inchangé (§41 le demande).** Un mégaprojet se débloque par l'influence, donc on ne sait plus à
+quelle taille de ville il apparaît ; sa case ne peut plus venir d'une population courante. Chaque mégaprojet
+garde donc le **stade** qu'il avait (`POPULATION_STADE`, 5 000 à 250 000), constante du catalogue, qui fixe sa
+case à la bordure d'une ville de cette taille — les premiers de chaque stade tombent exactement où ils
+tombaient avant — et les 3 ou 4 d'un même stade se rangent sur des cases voisines, dans l'ordre du
+catalogue. La taille du bâtiment suit le stade (pas le palier 16 à 33, qui donnerait des tours de 60 m). Une
+alternative écartée : mémoriser la population au déblocage dans une colonne, plus fidèle à « à la bordure de
+la ville » pour une petite ville très influente, mais une colonne de plus, un rattrapage et des positions
+qui changent. **À contester par Adrien** si une petite ville très influente doit voir ses mégaprojets contre
+son propre bord.
+
+**Fusion des deux panneaux.** Le panneau « Mégaprojets du maire » n'existe plus ; « Monuments » devient
+« Monuments et mégaprojets » : 34 entrées dans l'ordre où elles se débloquent, débloquées ou verrouillées avec
+leur seuil, et « Voir où il est » pour chacune. Il est replié par défaut, comme l'était déjà celui des
+monuments (les mégaprojets, eux, étaient dépliés). Les deux familles partagent le même type d'événement de
+bulletin (`monument_debloque`, valeur = palier) ; `libelleEvenement()` lit la famille dans le catalogue. Les
+anciens événements `megaprojet_construit` restent comme histoire, le type reste autorisé.
+
+**Données existantes (base de dev).** La table `megaprojets` et ses chantiers sont supprimés, sans
+reprise. Chaque ville récupère **silencieusement**, sans événement de bulletin (pour ne pas inonder le
+journal mondial), les mégaprojets que son record d'influence atteint déjà. Une ville qui avait construit
+un mégaprojet par sa population mais dont l'influence est faible le perd ; il reviendra avec l'influence.
+
+**Testé.** Nouveau `tests/unit/catalogueBatiments.test.ts` (19) : structure (34 entrées, seuils tous
+distincts, ordre, stades), fonctions, **parité du catalogue de la migration `0050` avec celui du code, lue
+dans le texte SQL**, les 16 monuments inchangés par rapport à la `0030`, les bonus visant les mêmes types
+que le SQL qui les applique, le financement bien supprimé, et aucune trace de l'ancien système dans `src/`.
+**Sabotage vérifié rouge** (seuil changé côté code, type changé côté SQL, `drop table` retiré, un monument
+renuméroté) ; ce garde a aussi trouvé un commentaire périmé dans `scene.ts`. `megaprojetsVille.test.ts`
+réécrit (15, dont les 18 d'un coup, aucune collision avec les cours des monuments) ; `evenements.test.ts`
+complété. Suite unitaire complète verte, typecheck et lint propres. **E2E, jouées sur une copie isolée de
+l'application** (le serveur de dev partagé répondait 500 pendant le refactor, cause non établie : je n'avais
+pas accès à ses journaux) : panneau à 34 entrées, bouton « Voir où il est » d'un mégaprojet
+et scène 3D (avec la ligne de déblocage posée à la main, la migration n'étant pas appliquée), page
+publique, journal, technologies, guide. **Pas jouées, faute de migration appliquée** : le nouveau
+`tests/e2e/catalogue-monuments-megaprojets.spec.ts` (catalogue de la base identique à celui du code, 7
+fonctions et colonnes disparues, déblocage automatique et sans doublon sous appels simultanés, Hôpital,
+Opéra, centrales), le premier test de `jalon20-monuments.spec.ts` (maintenant 34 paliers) et
+`voir-ou-megaprojets-energie.spec.ts` tel qu'écrit (déblocage par la base). **La migration
+n'a pas été exécutée ni analysée par un moteur SQL** (aucun outil disponible) : relue instruction par
+instruction, mais le premier vrai test est son application.
+
+**À faire par Adrien.** Appliquer `0050` dans l'éditeur SQL Supabase, puis `notify pgrst, 'reload schema';`
+(sinon l'API ne voit pas le nouveau `monument_catalogue()`), puis rejouer les trois e2e ci-dessus. Tant que
+la `0050` n'est pas appliquée, le jeu fonctionne (plus aucun appel aux fonctions supprimées) mais les
+mégaprojets ne se débloquent pas. Voir `docs/recette-catalogue-unifie.md`.
+
+**Points ouverts.** (1) La **Zone logistique** (« insensible à la pause de chantier ») n'a plus de sens :
+plus de chantier, elle reste purement cosmétique, comme avant (l'effet n'avait jamais été câblé). (2) La
+**grève** ne « met plus en pause le chantier ni les matériaux » (§6 bis du document de conception, corrigé).
+(3) `buildMegaprojet()` dessine encore les 18 mégaprojets avec trois silhouettes primitives et la teinte de
+leur activité ; le niveau de détail des monuments (§43) ne les couvre pas, et une décision d'Adrien est en
+attente (teinte d'activité ou or des monuments).
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,
@@ -5400,7 +5504,9 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     causes confondues (sans lien avec ce système, applicable dès
     maintenant si Adrien le souhaite pour l'antiville existante — à
     confirmer séparément). **[Résolu — validé par Adrien le 26/09/2026
-    (`docs/A-INTEGRER.md` §18), codé aux Jalons 17-20, voir §4.]**
+    (`docs/A-INTEGRER.md` §18), codé aux Jalons 17-20, voir §4. Modifié
+    le 05/10/2026 (§41) : plus de ressources de ville ni de financement,
+    les mégaprojets rejoignent le catalogue des monuments, voir §4.]**
 17. **"Bulletin municipal" (journal d'événements) et lien de partage
     personnalisé** — présents dans la maquette du Jalon 7 comme "clins
     d'œil", mais demanderaient chacun une vraie fonctionnalité qui

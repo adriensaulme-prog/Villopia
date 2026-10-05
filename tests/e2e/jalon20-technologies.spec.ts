@@ -109,28 +109,20 @@ test.describe("Jalon 20 (2/3) — technologies de Recherche", () => {
     }
   });
 
-  test("sabotage : stock_ville et etat_megaprojets voient TOUS les visiteurs, pas seulement l'appelant (RLS)", async () => {
-    // Régression : ces deux fonctions n'étaient pas "security definer"
-    // avant ce jalon — un joueur authentifié appelant l'une d'elles
-    // directement ne voyait, via la policy RLS de `visites`
-    // (auth.uid() = visiteur_id), que SES PROPRES visites. Corrigé dans
-    // la migration 0029 (voir son en-tête).
+  test("sabotage : stock_ville voit TOUS les visiteurs, pas seulement l'appelant (RLS)", async () => {
+    // Régression : cette fonction n'était pas "security definer"
+    // avant ce jalon — un joueur authentifié l'appelant directement ne
+    // voyait, via la policy RLS de `visites` (auth.uid() = visiteur_id),
+    // que SES PROPRES visites. Corrigé dans la migration 0029 (voir son
+    // en-tête). `etat_megaprojets()`, qui avait le même défaut, n'existe
+    // plus depuis le §41 (migration 0050) : seule stock_ville() reste,
+    // pour les points de Recherche des technologies.
     const cible = await creerCompteAvecVille("j20-rls-cible");
     const visiteurA = await creerCompteAvecVille("j20-rls-visiteurA");
     const visiteurB = await creerCompteAvecVille("j20-rls-visiteurB");
     try {
-      await supabaseAdmin.from("cities").update({ population_max: 40000 }).eq("id", cible.villeId);
-      // Choisi avant les visites, dont les points ne comptent qu'à
-      // partir de choisi_le (§6, "à partir du choix") — les visites
-      // ci-dessous sont donc explicitement datées après.
-      const { data: chantier } = await supabaseAdmin.rpc("choisir_megaprojet", {
-        p_owner_id: cible.userId,
-        p_ville_id: cible.villeId,
-        p_palier: 2,
-        p_type: "technopole",
-      });
-      await donnerVisites(visiteurA.userId, cible.villeId, "recherche", 5, new Date(chantier.choisi_le));
-      await donnerVisites(visiteurB.userId, cible.villeId, "recherche", 5, new Date(chantier.choisi_le));
+      await donnerVisites(visiteurA.userId, cible.villeId, "recherche", 5);
+      await donnerVisites(visiteurB.userId, cible.villeId, "recherche", 5);
 
       const clientVisiteurA = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -152,14 +144,6 @@ test.describe("Jalon 20 (2/3) — technologies de Recherche", () => {
       });
       expect(erreurStock).toBeNull();
       expect(stock).toBe(10);
-
-      // Même vérification pour etat_megaprojets() (mégaprojet choisi
-      // avec le thème Recherche, financé par les deux visiteurs).
-      const { data: etat, error: erreurEtat } = await clientVisiteurA.rpc("etat_megaprojets", {
-        p_ville_id: cible.villeId,
-      });
-      expect(erreurEtat).toBeNull();
-      expect((etat as { points: number }[])[0]?.points).toBe(10);
     } finally {
       await supprimerCompte(cible.userId);
       await supprimerCompte(visiteurA.userId);

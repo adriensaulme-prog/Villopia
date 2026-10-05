@@ -289,7 +289,11 @@ de vue du joueur — le titre dit ce qui change pour lui.
     Centrale solaire/Parc éolien/Centrale, Hôpital, Opéra). Migration
     `0028` appliquée, suite e2e dédiée verte (5 tests), suite complète
     83/86 (échecs = flakiness pré-existante sans rapport). Détail dans
-    `DECISIONS.md` §4.
+    `DECISIONS.md` §4. **Refondu le 05/10/2026 (§41, migration `0050`)** :
+    plus de choix du maire ni de financement ni de ressources de ville ; les
+    18 mégaprojets sont désormais des entrées du catalogue à seuils
+    d'influence des monuments (400 à 400 000), débloqués automatiquement,
+    bonus conservés.
   - [x] **2/3 — Technologies de Recherche.** Paliers de points de
     Recherche cumulés (100, 300, 800, 2 000, 5 000, puis ×2) débloqués
     automatiquement (pas de choix du maire, contrairement aux
@@ -332,7 +336,9 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§43 fait** (les 16 monuments ont chacun leur silhouette,
+*Dernière mise à jour : 05/10/2026. **§41 fait** (plus de ressources de ville ni de financement ; les
+18 mégaprojets rejoignent le catalogue des monuments, 34 entrées débloquées par l'influence ; migration
+`0050` à appliquer). **§43 fait** (les 16 monuments ont chacun leur silhouette,
 trois rangs visuels, détails de surface ; aucune migration ; reste les 18 mégaprojets du §41, encore
 dessinés par l'ancien `buildMegaprojet()`). **§40 fait** (cinq packs de thème : Bord de mer, Village de
 pierre, Quartier industriel reconverti, Futuriste/éco, Nordique ; payants ; migration `0048` à appliquer).

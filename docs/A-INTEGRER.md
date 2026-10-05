@@ -265,7 +265,12 @@ journal existant, puis ce fichier peut être supprimé.*
 > les monuments, 05/10/2026) : nouveau, décision structurante
 > d'Adrien** — plus de matériaux/revenus/choix du maire : les
 > mégaprojets rejoignent le catalogue à seuils d'influence des
-> monuments, débloqués automatiquement comme eux.
+> monuments, débloqués automatiquement comme eux. **État : fait le
+> 05/10/2026** (migration `0050`, **envoyée à Adrien, en attente
+> d'application**) — catalogue unifié de 34 entrées dans `monuments` /
+> `monument_catalogue()`, 18 mégaprojets entre 400 et 400 000
+> d'influence, bonus conservés, financement et ressources de ville
+> supprimés. Détail : `DECISIONS.md` §4 « Fin des ressources de ville… ».
 > **§42 — fait le 05/10/2026** (point fort du Résidentiel : jusqu'à 25 %
 > de chance d'un habitant de plus par visite, tirage indépendant du
 > Commerce ; migration `0049`, **à appliquer par Adrien** — le SQL n'a pas
@@ -2435,6 +2440,38 @@ déclarés dans `THEMES`/`PACKS` et inscrits au catalogue ; migration `0048` (ca
 à appliquer par Adrien) ; **payants** comme Haussmannien, attribuables à la main en attendant le paiement.
 Détail : `DECISIONS.md` §4 « Cinq nouveaux packs de thème ».
 ## 41. Suppression des ressources de ville + fusion des mégaprojets dans le catalogue des monuments (décision d'Adrien, 05/10/2026)
+
+> **État (05/10/2026, Claude Code) : fait, migration `0050` en attente
+> d'application par Adrien.** Point par point :
+> - ressources de ville (matériaux, revenus) : **supprimées** — colonnes
+>   `cities.materiaux_depenses` / `revenus_depenses` retirées.
+>   `stock_ville()` reste, **seulement** pour les points de Recherche des
+>   technologies (compteur jamais dépensé, hors du périmètre du §41) ; les
+>   ressources **nationales** des pays ne bougent pas ;
+> - choix du maire et financement : **supprimés** — table `megaprojets`, 7
+>   fonctions SQL, action serveur et panneau « Mégaprojets du maire » ;
+> - fusion dans le catalogue : **fait** — **une seule table** (`monuments`)
+>   et **un seul catalogue** (`monument_catalogue()`, qui gagne `famille` et
+>   `activite`), 34 entrées. `palier` devient un identifiant stable : monuments
+>   0 à 15 (inchangés), mégaprojets 16 à 33 ;
+> - répartition des seuils (laissée à Claude Code) : les 18 mégaprojets
+>   gardent l'ordre de leurs anciens stades et s'intercalent entre les
+>   monuments, de **400** (Grande école) à **400 000** (Siège
+>   international), sans seuil partagé ; liste complète dans la migration et
+>   `SYSTEME-DEVELOPPEMENT.md` §6 ;
+> - déblocage automatique, aucun choix : **fait** ; bonus permanents
+>   (Stade, centrales, Hôpital, Opéra) : **conservés à l'identique**, lus
+>   sur `influence_max` ;
+> - placement 3D (§37) : **inchangé** — chaque mégaprojet garde son ancien
+>   stade comme repère de case, les monuments restent dans les cours ;
+> - panneau : **fusionné** dans « Monuments et mégaprojets » (replié par
+>   défaut). Les mégaprojets restent dessinés par l'ancien `buildMegaprojet()`
+>   (§43 ne les couvre pas encore).
+> **Non fait / à savoir** : la migration n'a pas été exécutée ni analysée par
+> un moteur SQL ; les chantiers existants de la base de dev sont perdus
+> (chaque ville récupère silencieusement les mégaprojets que son influence
+> atteint) ; trois e2e attendent la migration. Voir
+> `docs/recette-catalogue-unifie.md`.
 
 **Décision d'Adrien, structurante** : plus de ressources de ville du
 tout (ni matériaux, ni revenus — les stocks alimentés aujourd'hui par

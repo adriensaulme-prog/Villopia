@@ -7,15 +7,11 @@ import { activitesDisponibles, type Activite } from "@/lib/game/activites";
 import { palierAttaques, type PalierAttaques } from "@/lib/game/antiville";
 import { palierVisites, palierInfluence, type PalierPopularite, type PalierRenommee } from "@/lib/game/popularite";
 import { palierJumelage } from "@/lib/game/jumelages";
-import { nbMegaprojetsOuverts } from "@/lib/game/megaprojets";
-import { typeMonument } from "@/lib/game/monuments";
+import { repartirBatiments } from "@/lib/game/monuments";
 import { DUREE_VISITE_FRAICHE_MS, QUOTA_VISITE_QUOTIDIEN } from "@/lib/game/visites";
 import { trierVilles, triValide } from "@/lib/game/triVilles";
 import { premierRangZone, type VocationsBlocs } from "@/lib/ville3d/generer";
 import type { VocationQuartier } from "@/lib/ville3d/quartiers";
-import type { MegaprojetConstruit, MonumentDebloque } from "@/lib/ville3d/terrain";
-import { cleDe } from "@/lib/ville3d/emplacements";
-import { placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
 import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
@@ -27,7 +23,6 @@ import { VisiteAutomatique } from "@/components/VisiteAutomatique";
 import { JaugesActivites, EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import { ChoisirActivite } from "@/components/ChoisirActivite";
 import { BulletinMunicipal, type EvenementBulletin } from "@/components/BulletinMunicipal";
-import { Megaprojets, type EtatMegaprojet } from "@/components/Megaprojets";
 import { Technologies } from "@/components/Technologies";
 import { Monuments } from "@/components/Monuments";
 import { influencerVille, proposerJumelage } from "./actions";
@@ -333,49 +328,6 @@ export default async function VillesPage({
       (jauges3D as { activite: Activite; elan: number }[]).find((j) => j.activite === "energie")?.elan ?? 0;
   }
 
-  // Jalon 20 (1/3, docs/SYSTEME-DEVELOPPEMENT.md §6) : construit les
-  // mégaprojets financés (opportuniste, même logique qu'au-dessus) puis
-  // lit l'état de tous les chantiers, pour la ville affichée en 3D.
-  let etatMegaprojets: EtatMegaprojet[] = [];
-  let megaprojetsConstruits: MegaprojetConstruit[] = [];
-  if (villeAffichee3D) {
-    await supabaseAdmin.rpc("avancer_megaprojets", { p_ville_id: villeAffichee3D.id });
-    const { data: megaprojetsBruts } = await supabase.rpc("etat_megaprojets", { p_ville_id: villeAffichee3D.id });
-    const chantiers = (megaprojetsBruts ?? []) as {
-      palier: number;
-      type: string;
-      activite: string;
-      statut: "en_chantier" | "construit";
-      points: number;
-      cout_points: number;
-      materiaux: number;
-      cout_materiaux: number;
-      revenus: number;
-      cout_revenus: number;
-    }[];
-    // « Voir où il est » (A-INTEGRER §37) : la place des mégaprojets construits, calculée ici (côté serveur).
-    const placesMega = placesMegaprojets(
-      cleDe(villeAffichee3D.id),
-      chantiers.filter((c) => c.statut === "construit").map((c) => c.palier)
-    );
-    etatMegaprojets = chantiers.map((c) => ({
-      palier: c.palier,
-      type: c.type as EtatMegaprojet["type"],
-      activite: c.activite,
-      statut: c.statut,
-      points: c.points,
-      coutPoints: c.cout_points,
-      materiaux: c.materiaux,
-      coutMateriaux: c.cout_materiaux,
-      revenus: c.revenus,
-      coutRevenus: c.cout_revenus,
-      place: placesMega.get(c.palier),
-    }));
-    megaprojetsConstruits = chantiers
-      .filter((c) => c.statut === "construit")
-      .map((c) => ({ palier: c.palier, type: c.type, activite: c.activite }));
-  }
-
   // Jalon 20 (2/3, docs/SYSTEME-DEVELOPPEMENT.md §6) : débloque les
   // technologies déjà financées (opportuniste, même logique
   // qu'au-dessus) puis lit combien sont débloquées et les points de
@@ -396,24 +348,20 @@ export default async function VillesPage({
     pointsRecherche3D = typeof pointsBruts === "number" ? pointsBruts : 0;
   }
 
-  // Jalon 20 (3/3, docs/A-INTEGRER.md §19) : débloque les monuments
-  // déjà atteints (opportuniste, même logique qu'au-dessus) puis lit
-  // combien sont débloqués, pour la ville affichée en 3D.
-  let nbMonumentsDebloques3D = 0;
-  let monumentsDebloques3D: MonumentDebloque[] = [];
+  // Jalon 20 (3/3, docs/A-INTEGRER.md §19) et §41 : débloque les monuments ET
+  // les mégaprojets déjà atteints (un seul catalogue, opportuniste, même
+  // logique qu'au-dessus) puis lit les paliers débloqués, pour la ville
+  // affichée en 3D.
+  let paliersDebloques3D: number[] = [];
   if (villeAffichee3D) {
     await supabaseAdmin.rpc("avancer_monuments", { p_ville_id: villeAffichee3D.id });
-    const { data: monumentsBruts } = await supabase
+    const { data: batimentsBruts } = await supabase
       .from("monuments")
       .select("palier")
       .eq("ville_id", villeAffichee3D.id);
-    nbMonumentsDebloques3D = monumentsBruts?.length ?? 0;
-    monumentsDebloques3D = [];
-    for (const m of monumentsBruts ?? []) {
-      const type = typeMonument(m.palier as number);
-      if (type) monumentsDebloques3D.push({ palier: m.palier as number, type });
-    }
+    paliersDebloques3D = (batimentsBruts ?? []).map((b) => b.palier as number);
   }
+  const { monuments: monumentsDebloques3D, megaprojets: megaprojetsDebloques3D } = repartirBatiments(paliersDebloques3D);
 
   return (
     <main className={`screen${villeSelectionnee ? " detail" : ""}`} aria-label={traduire(locale, "villes.titre")}>
@@ -424,7 +372,7 @@ export default async function VillesPage({
           pays={pays3D}
           vocations={vocations3D}
           elanEnergie={elanEnergie3D}
-          megaprojets={megaprojetsConstruits}
+          megaprojets={megaprojetsDebloques3D}
           nbTechnologies={nbTechnologiesDebloquees3D}
           monuments={monumentsDebloques3D}
           theme={villeAffichee3D.theme}
@@ -579,19 +527,12 @@ export default async function VillesPage({
                   visiteFraiche={visiteFraiche}
                   activitesDisponibles={activitesDisponibles(c.niveau)}
                 />
-                <Megaprojets
-                  locale={locale}
-                  villeId={c.id}
-                  estMaire={c.id === maVilleId}
-                  nbOuverts={nbMegaprojetsOuverts(c.population_max)}
-                  chantiers={etatMegaprojets}
-                />
                 <Technologies
                   locale={locale}
                   paliersDebloques={nbTechnologiesDebloquees3D}
                   pointsRecherche={pointsRecherche3D}
                 />
-                <Monuments locale={locale} cleVille={c.id} paliersDebloques={nbMonumentsDebloques3D} influenceMax={c.influence_max} />
+                <Monuments locale={locale} cleVille={c.id} paliersDebloques={paliersDebloques3D} influenceMax={c.influence_max} />
 
                 <div className="actions">
                   <div className="act">

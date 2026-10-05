@@ -39,6 +39,7 @@ import {
 import { buildCentraleEnergie, buildEolienne, buildPanneauSolaire } from "./energie";
 import { emplacementCentrale, emplacementEnergie } from "./emplacements";
 import { buildMegaprojet } from "./megaprojets";
+import { megaprojetDuPalier } from "@/lib/game/megaprojets";
 import { niveauPourPopulation } from "@/lib/game/niveauVille";
 import { technologiesDepuisPalier, type TechnologiesVille } from "@/lib/game/technologies";
 
@@ -591,12 +592,13 @@ export function buildEnergieCampagne(g: Geo, key: string, ao: TamponAO[], elan: 
 }
 
 /**
- * Mégaprojets construits, à la place que leur donne megaprojetsVille.ts
- * (A-INTEGRER §37) : la cour d'une case fixe, à la bordure de la ville
- * quand leur palier s'est ouvert, jamais relative au rayon courant de la
- * ville (qui grandit avec la population) : un mégaprojet déjà construit ne
+ * Mégaprojets débloqués, à la place que leur donne megaprojetsVille.ts
+ * (A-INTEGRER §37) : la cour d'une case fixe, à la bordure d'une ville
+ * de la taille de leur stade, jamais relative au rayon courant de la
+ * ville (qui grandit avec la population) : un mégaprojet déjà débloqué ne
  * bouge plus. Les places viennent de generate() (même calcul que le bouton
- * « Voir où il est »).
+ * « Voir où il est »). `m.palier` est le palier du catalogue unifié (16 à
+ * 33, A-INTEGRER §41) ; la taille du bâtiment suit son stade.
  */
 export function buildMegaprojetsCampagne(
   g: Geo,
@@ -609,7 +611,8 @@ export function buildMegaprojetsCampagne(
     const place = places.get(m.palier);
     if (!place) continue;
     const r = rngFrom(key + "|megaprojet|type|" + m.palier);
-    buildMegaprojet(g, place.x, place.z, m.type, m.activite, m.palier, r, ao, Math.floor(r() * 900) + 50);
+    const stade = megaprojetDuPalier(m.palier)?.stade ?? 0;
+    buildMegaprojet(g, place.x, place.z, m.type, m.activite, stade, r, ao, Math.floor(r() * 900) + 50);
   }
 }
 

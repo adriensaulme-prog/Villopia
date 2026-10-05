@@ -1,19 +1,23 @@
 import { traduire, type Locale } from "@/lib/i18n/dictionaries";
-import { CATALOGUE_MONUMENTS, seuilMonument } from "@/lib/game/monuments";
+import { CATALOGUE_BATIMENTS, catalogueParSeuil } from "@/lib/game/monuments";
+import { EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import { cleDe } from "@/lib/ville3d/emplacements";
 import { placesMonuments } from "@/lib/ville3d/monumentsVille";
+import { placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
 import { BoutonVoirOu } from "./BoutonVoirOu";
 
 /**
- * Catalogue des monuments d'influence (docs/A-INTEGRER.md §19 et §25) :
- * les 16 paliers, chacun débloqué ou verrouillé (avec son seuil), et pour
- * chaque monument débloqué un bouton « Voir où il est » qui amène la
- * caméra 3D dessus. Les monuments se débloquent tout seuls selon le
- * record d'influence (pas de choix, comme les technologies).
+ * Catalogue des monuments et des mégaprojets (docs/A-INTEGRER.md §19, §25
+ * et §41) : les 34 entrées dans l'ordre où elles se débloquent, chacune
+ * débloquée ou verrouillée (avec son seuil), et pour chaque entrée débloquée
+ * un bouton « Voir où il est » qui amène la caméra 3D dessus. Tout se
+ * débloque tout seul selon le record d'influence : pas de choix, pas de
+ * financement (le panneau « Mégaprojets du maire » n'existe plus).
  *
  * `cleVille` : la graine de la ville dessinée (son id), pour retrouver
- * l'emplacement exact du monument — même fonction que celle du rendu 3D
- * (emplacements.ts), donc jamais de décalage.
+ * l'emplacement exact — même fonction que celle du rendu 3D, donc jamais de
+ * décalage. `paliersDebloques` : les identifiants de palier (0 à 33) de la
+ * table `monuments` de cette ville.
  */
 export function Monuments({
   locale,
@@ -23,51 +27,64 @@ export function Monuments({
 }: {
   locale: Locale;
   cleVille: string;
-  paliersDebloques: number;
+  paliersDebloques: readonly number[];
   influenceMax: number;
 }) {
   const cle = cleDe(cleVille);
-  // A-INTEGRER §33 : les monuments sont dans les cours des premiers blocs ; on ne calcule
-  // la place que de ceux qui sont débloqués.
-  const places = placesMonuments(
+  const debloques = new Set(paliersDebloques);
+  // La place n'est calculée que pour ce qui est débloqué : les monuments sont dans les cours des
+  // premiers blocs (§33), les mégaprojets à la bordure de la ville (§37).
+  const placesMon = placesMonuments(
     cle,
-    Array.from({ length: paliersDebloques }, (_, i) => i)
+    CATALOGUE_BATIMENTS.filter((e) => e.famille === "monument" && debloques.has(e.palier)).map((e) => e.palier)
+  );
+  const placesMega = placesMegaprojets(
+    cle,
+    CATALOGUE_BATIMENTS.filter((e) => e.famille === "megaprojet" && debloques.has(e.palier)).map((e) => e.palier)
   );
   const nf = new Intl.NumberFormat(locale);
+  const ordre = catalogueParSeuil();
+  const prochain = ordre.find((e) => !debloques.has(e.palier));
   return (
     <details className="note catalogue-monuments">
       <summary>
-        <b>{traduire(locale, "monument.titre")}</b> · {paliersDebloques}/{CATALOGUE_MONUMENTS.length}
+        <b>{traduire(locale, "monument.titre")}</b> · {ordre.filter((e) => debloques.has(e.palier)).length}/{ordre.length}
       </summary>
       <ul className="catalogue-liste">
-        {CATALOGUE_MONUMENTS.map((palier, i) => {
-          const nom = traduire(locale, `monument.type.${palier.type}`);
-          const debloque = i < paliersDebloques;
-          const prochain = i === paliersDebloques;
-          if (debloque) {
-            const { x, z } = places.get(i)!;
+        {ordre.map((entree) => {
+          const nom =
+            entree.famille === "monument"
+              ? traduire(locale, `monument.type.${entree.type}` as never)
+              : traduire(locale, `megaprojet.type.${entree.type}` as never);
+          const emoji = entree.activite ? `${EMOJI_ACTIVITE[entree.activite]} ` : "";
+          if (debloques.has(entree.palier)) {
+            const place = (entree.famille === "monument" ? placesMon : placesMega).get(entree.palier);
             return (
-              <li key={palier.type} className="debloque">
+              <li key={entree.palier} className="debloque">
                 <span>
-                  ✓ {nom}
+                  ✓ {emoji}
+                  {nom}
                 </span>
-                <BoutonVoirOu
-                  x={x}
-                  z={z}
-                  libelle={traduire(locale, "monument.voir")}
-                  titre={`${traduire(locale, "monument.voir")} : ${nom}`}
-                />
+                {place ? (
+                  <BoutonVoirOu
+                    x={place.x}
+                    z={place.z}
+                    libelle={traduire(locale, "monument.voir")}
+                    titre={`${traduire(locale, "monument.voir")} : ${nom}`}
+                  />
+                ) : null}
               </li>
             );
           }
           return (
-            <li key={palier.type} className="verrouille">
+            <li key={entree.palier} className="verrouille">
               <span>
-                🔒 {nom}
+                🔒 {emoji}
+                {nom}
               </span>
               <span>
-                {prochain ? `${nf.format(influenceMax)} / ` : ""}
-                {nf.format(seuilMonument(i) ?? 0)} {traduire(locale, "monument.influence")}
+                {prochain?.palier === entree.palier ? `${nf.format(influenceMax)} / ` : ""}
+                {nf.format(entree.seuil)} {traduire(locale, "monument.influence")}
               </span>
             </li>
           );

@@ -51,7 +51,9 @@ async function supprimerCompte(userId: string) {
 test.describe.configure({ mode: "serial" });
 
 test.describe("Jalon 20 (3/3) — monuments d'influence", () => {
-  test("sabotage : avancer_monuments débloque les paliers atteints, un bulletin par palier, idempotent, jamais au-delà de 16", async () => {
+  // Depuis le §41 (migration 0050), le catalogue compte 34 entrées : les 16 monuments (paliers 0 à 15)
+  // et les 18 mégaprojets (16 à 33), débloqués par le même mécanisme. Ce test suppose la 0050 appliquée.
+  test("sabotage : avancer_monuments débloque les paliers atteints, un bulletin par palier, idempotent, jamais au-delà de 34", async () => {
     const ville = await creerCompteAvecVille("j20-mon-financement");
     try {
       await supabaseAdmin.from("cities").update({ influence: 24, influence_max: 24 }).eq("id", ville.villeId);
@@ -62,7 +64,7 @@ test.describe("Jalon 20 (3/3) — monuments d'influence", () => {
         .eq("ville_id", ville.villeId);
       expect(debloques).toHaveLength(1); // seuil 10 franchi, seuil 25 pas encore (24 < 25)
 
-      // Bien au-delà du dernier seuil (1 000 000) : les 16 paliers, pas plus.
+      // Bien au-delà du dernier seuil (1 000 000) : les 34 paliers, pas plus.
       await supabaseAdmin.from("cities").update({ influence_max: 5_000_000 }).eq("id", ville.villeId);
       await supabaseAdmin.rpc("avancer_monuments", { p_ville_id: ville.villeId });
       ({ data: debloques } = await supabaseAdmin
@@ -70,19 +72,19 @@ test.describe("Jalon 20 (3/3) — monuments d'influence", () => {
         .select("palier")
         .eq("ville_id", ville.villeId)
         .order("palier"));
-      expect(debloques?.map((d) => d.palier)).toEqual(Array.from({ length: 16 }, (_, i) => i));
+      expect(debloques?.map((d) => d.palier)).toEqual(Array.from({ length: 34 }, (_, i) => i));
 
       const { data: evenements } = await supabaseAdmin
         .from("city_events")
         .select("valeur")
         .eq("ville_id", ville.villeId)
         .eq("type", "monument_debloque");
-      expect(evenements).toHaveLength(16);
+      expect(evenements).toHaveLength(34);
 
       // Idempotent : un second appel ne rajoute rien.
       await supabaseAdmin.rpc("avancer_monuments", { p_ville_id: ville.villeId });
       const { data: apres } = await supabaseAdmin.from("monuments").select("palier").eq("ville_id", ville.villeId);
-      expect(apres).toHaveLength(16);
+      expect(apres).toHaveLength(34);
     } finally {
       await supprimerCompte(ville.userId);
     }

@@ -133,11 +133,19 @@ problème ».
 
 ---
 
-## 6. Stocks, technologies et mégaprojets
+## 6. Technologies et mégaprojets
 
-**Stocks** : chaque point d'Industrie ajoute 1 **matériau**, chaque
-point de Commerce 1 **revenu**. Ils s'accumulent et se dépensent dans les
-mégaprojets (les jauges, elles, ne baissent pas quand on dépense).
+> **Modifié le 05/10/2026 (décision d'Adrien, `docs/A-INTEGRER.md` §41).**
+> Il n'y a **plus de ressources de ville** (ni matériaux ni revenus) et les
+> mégaprojets n'ont plus de choix du maire ni de financement : ils ont
+> rejoint le catalogue à seuils d'influence des monuments et se débloquent
+> tout seuls (voir plus bas). Les paragraphes « Stocks » et « Mégaprojets »
+> d'origine sont remplacés ; le détail et les raisons sont dans
+> `DECISIONS.md` §4, « Fin des ressources de ville… ».
+
+**Stocks** : *supprimés (§41).* Les points d'Industrie et de Commerce
+n'alimentent plus rien à dépenser ; ils comptent pour les jauges de leur
+activité, comme les autres.
 
 **Technologies** : tous les paliers de points de Recherche cumulés
 (100, 300, 800, 2 000, 5 000, puis ×2), une technologie se débloque. Elle
@@ -145,24 +153,34 @@ est surtout **visuelle** (cahier des charges §12) : éclairage public LED
 la nuit, panneaux solaires sur les toits, tramway dans les grands axes,
 toits végétalisés, drones… avec parfois un petit bonus.
 
-**Mégaprojets** : à chaque stade de population, le maire choisit **un
-mégaprojet parmi 3** ; les visiteurs le financent.
+**Mégaprojets** *(refonte du 05/10/2026, §41)* : plus de choix du maire,
+plus de financement, plus de chantier. Les 18 mégaprojets sont des entrées
+du **catalogue à seuils d'influence des monuments** (`monument_catalogue()`,
+34 entrées au total) et se débloquent **automatiquement** quand le record
+d'influence de la ville (`influence_max`, jamais décroissant) franchit leur
+seuil, comme un monument. Ils gardent l'ordre de leurs anciens stades de
+population :
 
-| Stade | Au choix | Coût (matériaux / revenus / points du thème) |
-|---|---|---|
-| Bourg (5 000) | Grande école 🏥 · Parc des sports 🌳 · Marché couvert 🛒 | 400 / 400 / 250 |
-| Ville (15 000) | Hôpital 🏥 · Stade 🌳 · Centrale solaire ⚡ · Zone logistique 🏭 | 1 200 / 1 200 / 750 |
-| Grande ville (40 000) | Technopole 🔬 · Gare TGV 🛒 · Parc éolien ⚡ · Opéra 🌳 | 3 200 / 3 200 / 2 000 |
-| Métropole (100 000) | Tour emblématique · Aéroport 🛒 · Centre de recherche 🔬 · Centrale ⚡ | 8 000 / 8 000 / 5 000 |
-| Mégapole (250 000) | nouveau stade au-delà de Métropole, validé par Adrien le 26/09/2026 — mégaprojets à définir | 12 000 / 12 000 / 7 500 |
-| puis tous les 50 000 | nouveaux choix | coûts ×1,5 |
+| Ancien stade | Mégaprojets (seuil d'influence) |
+|---|---|
+| Bourg | Grande école 🏥 (400) · Parc des sports 🌳 (750) · Marché couvert 🛒 (1 500) |
+| Ville | Hôpital 🏥 (2 000) · Stade 🌳 (3 500) · Centrale solaire ⚡ (6 000) · Zone logistique 🏭 (8 000) |
+| Grande ville | Technopole 🔬 (12 000) · Gare TGV 🛒 (15 000) · Parc éolien ⚡ (20 000) · Opéra 🌳 (30 000) |
+| Métropole | Tour emblématique (40 000) · Aéroport 🛒 (60 000) · Centre de recherche 🔬 (80 000) · Centrale ⚡ (120 000) |
+| Mégapole | Grand stade 🌳 (150 000) · Centrale nouvelle génération ⚡ (300 000) · Siège international 🛒 (400 000) |
 
-- Les points du thème comptent **à partir du choix** du mégaprojet : les
-  visiteurs qui choisissent l'activité du thème font avancer le chantier.
-- Une fois construit : un **bâtiment emblématique** apparaît dans la
-  ville en 3D, et un **bonus permanent** s'ajoute (ex. Stade : départs
-  −25 % ; Centrale solaire : Énergie comptée +20 % ; Tour emblématique :
-  +prestige, lien avec les avantages nationaux du cahier §13).
+- La suite « puis tous les 50 000 habitants, nouveaux choix » disparaît : le
+  catalogue est fini, 34 entrées avec les 16 monuments.
+- Un mégaprojet débloqué : un **bâtiment emblématique** apparaît à la
+  bordure de la ville en 3D (les monuments, eux, dans les cours des blocs),
+  et un **bonus permanent** s'ajoute — **conservés tels quels** : Stade et
+  Grand stade, pertes de manifestation −25 % ; Centrale solaire, Parc
+  éolien, Centrale, Centrale nouvelle génération, Énergie comptée +20 %
+  chacune ; Hôpital, contamination ÷2 ; Opéra, propagande ÷2. Les autres
+  restent cosmétiques.
+- *Ancienne règle, supprimée :* le maire choisissait un mégaprojet par stade
+  de population et les visiteurs le finançaient (matériaux, revenus et points
+  du thème, coûts de 400/400/250 à 12 000/12 000/7 500 puis ×1,5).
 
 ---
 
@@ -181,12 +199,11 @@ déséquilibrée est une proie facile.** Les actions AntiVille existantes
 | 📢 Propagande | −2 influence | 🌳 Loisirs | perte jusqu'à −50 % | perte +50 % |
 
 **Ce que les attaques touchent en plus :**
-- la **grève** met aussi en pause le **chantier du mégaprojet** et la
-  production de matériaux pendant sa durée (« les ouvriers sont en
-  grève ») ;
+- ~~la **grève** met aussi en pause le **chantier du mégaprojet** et la
+  production de matériaux~~ — *supprimé le 05/10/2026 (§41) : il n'y a plus
+  de chantier ni de matériaux* ;
 - rien d'autre : une attaque ne retire jamais de points de développement
-  ni de stocks, et ne détruit jamais un bâtiment (la ville reste dessinée
-  à son record).
+  et ne détruit jamais un bâtiment (la ville reste dessinée à son record).
 
 **Après une attaque**, la ville réagit :
 - le bulletin municipal l'annonce, avec la ville attaquante ;
@@ -198,8 +215,9 @@ déséquilibrée est une proie facile.** Les actions AntiVille existantes
   la punir.
 
 **Mégaprojets défensifs** : l'Hôpital divise encore la contamination par
-2, la Zone logistique rend la ville insensible à la pause de chantier,
-l'Opéra divise la propagande par 2.
+2, l'Opéra divise la propagande par 2. *(La Zone logistique, « insensible à
+la pause de chantier », n'a plus d'effet depuis le §41 : plus de chantier à
+mettre en pause ; elle n'avait de toute façon jamais été câblée.)*
 
 **Force des attaques : des paliers selon le nombre d'attaques du jour**
 *(idée d'Adrien, 24/09/2026, après avoir testé le Jalon 4 : « −10 % de
@@ -274,12 +292,13 @@ population.
 
 ## 8. Données et anti-triche (pour Claude Code)
 
-- `city_activity_points` : par ville, 7 compteurs cumulés + stocks
-  (matériaux, revenus) + recherche cumulée.
+- `city_activity_points` : par ville, 7 compteurs cumulés + recherche
+  cumulée (*les stocks matériaux/revenus n'existent plus, §41*).
 - `visits` : ajouter la colonne `activite` (une des 7, obligatoire).
 - `city_blocks` : ville, rang du bloc, vocation, date d'ouverture.
-- `megaprojets` : ville, type, stade, statut (choisi / en chantier /
-  construit), progression.
+- ~~`megaprojets` : ville, type, stade, statut, progression~~ — *supprimée
+  (§41) : les mégaprojets sont des lignes de la table `monuments` (palier 16 à
+  33 du catalogue unifié, `monument_catalogue()`).*
 - `city_events` : manifestations et autres événements, pour le bulletin
   municipal.
 - Tout se calcule dans des fonctions SQL (comme `population_vers_niveau`)

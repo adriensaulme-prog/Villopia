@@ -4,7 +4,7 @@ import { cleDe } from "../../src/lib/ville3d/emplacements";
 import { placesMegaprojets } from "../../src/lib/ville3d/megaprojetsVille";
 
 /**
- * « Voir où il est » pour les mégaprojets construits (suite de
+ * « Voir où il est » pour les mégaprojets débloqués (suite de
  * docs/A-INTEGRER.md §25, place à la bordure de la ville depuis le §37) ; le
  * bouton d'Énergie, d'abord prévu au §25 puis conservé au §37, a été retiré à
  * la demande d'Adrien (05/10/2026) : la jauge Énergie n'en a plus. Client
@@ -37,11 +37,12 @@ test("un mégaprojet construit a son bouton « Voir où il est », qui cible l'e
     });
     if (erreurVille) throw new Error(`Création de la ville : ${erreurVille.message}`);
     const villeId = ville.id as string;
-    // Bourg (5 000) : premier palier de mégaprojet et activité Énergie débloquées.
-    await supabaseAdmin.from("cities").update({ population: 6000, population_max: 6000 }).eq("id", villeId);
+    // Bourg (5 000) : activité Énergie débloquée. Record d'influence à 400 : la Grande école (premier
+    // mégaprojet du catalogue unifié, palier 16, A-INTEGRER §41) se débloque toute seule à l'affichage.
     await supabaseAdmin
-      .from("megaprojets")
-      .insert({ ville_id: villeId, palier: 0, type: "grande_ecole", statut: "construit", construit_le: new Date().toISOString() });
+      .from("cities")
+      .update({ population: 6000, population_max: 6000, influence_max: 400 })
+      .eq("id", villeId);
     // De l'élan d'Énergie : des visites sur plusieurs jours (la page lit l'élan, pas des compteurs).
     const lignes = Array.from({ length: 12 }, (_, i) => {
       const d = new Date(Date.now() - i * 86_400_000);
@@ -58,10 +59,13 @@ test("un mégaprojet construit a son bouton « Voir où il est », qui cible l'e
     const cle = cleDe(villeId);
     const canvas = page.locator("canvas");
 
+    // Depuis le §41 le mégaprojet est dans le panneau « Monuments et mégaprojets » (replié par défaut) :
+    // on l'ouvre. Le panneau des thèmes (PacksVille) réutilise la même classe, on l'écarte.
+    await page.locator("details.catalogue-monuments:not(.packs-ville) summary").click({ timeout: 30_000 });
     const boutonMega = page.getByRole("button", { name: /Voir où il est : Grande école/ });
     await expect(boutonMega).toBeVisible({ timeout: 30_000 });
     await boutonMega.click();
-    const m = placesMegaprojets(cle, [0]).get(0)!;
+    const m = placesMegaprojets(cle, [16]).get(16)!;
     await expect(canvas).toHaveAttribute("data-repere", `${Math.round(m.x)},${Math.round(m.z)}`);
 
     // Énergie : de l'élan, donc des installations dans la campagne, mais plus de bouton pour les repérer.

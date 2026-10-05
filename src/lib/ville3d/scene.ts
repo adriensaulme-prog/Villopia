@@ -42,7 +42,7 @@ export interface ParametresVille {
   vocations?: VocationsBlocs;
   /** Jalon 19 : élan de l'activité Énergie (jauges_ville()), pilote les installations dans la campagne. */
   elanEnergie?: number;
-  /** Jalon 20 (1/3) : mégaprojets déjà construits (etat_megaprojets(), statut = "construit"). */
+  /** Jalon 20 (1/3), puis A-INTEGRER §41 : mégaprojets déjà débloqués (lignes de la table monuments dont le palier est un mégaprojet, 16 à 33). */
   megaprojets?: MegaprojetConstruit[];
   /** Jalon 20 (2/3) : nombre de paliers de technologies déjà débloqués (table technologies). */
   nbTechnologies?: number;

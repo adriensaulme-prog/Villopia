@@ -23,7 +23,15 @@ describe("libellé des événements", () => {
     expect(libelleEvenement("en", evt({ type: "monument_debloque", valeur: 0 }))).toBe("New monument: Commemorative marker");
   });
 
-  it("technologie débloquée et mégaprojet construit", () => {
+  it("mégaprojet débloqué (A-INTEGRER §41) : même événement qu'un monument, le palier 16 à 33 le nomme", () => {
+    expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: 16 }))).toBe("Nouveau mégaprojet : Grande école");
+    expect(libelleEvenement("en", evt({ type: "monument_debloque", valeur: 19 }))).toBe("New megaproject: Hospital");
+    expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: 33 }))).toBe("Nouveau mégaprojet : Siège international");
+    // Les monuments gardent leur texte, juste à côté de la frontière 15 / 16.
+    expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: 15 }))).toBe("Nouveau monument : Monument ultime");
+  });
+
+  it("technologie débloquée et mégaprojet construit (ancien événement, gardé comme histoire)", () => {
     expect(libelleEvenement("fr", evt({ type: "technologie_debloquee", valeur: 0 }))).toMatch(/^Technologie débloquée : /);
     expect(libelleEvenement("fr", evt({ type: "megaprojet_construit", activite: "commerce" }))).toBe(
       "Mégaprojet construit : 🛒 Commerce"
@@ -44,6 +52,7 @@ describe("libellé des événements", () => {
   it("donnée incomplète : pas de texte", () => {
     expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: null }))).toBeNull();
     expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: 99 }))).toBeNull();
+    expect(libelleEvenement("fr", evt({ type: "monument_debloque", valeur: 34 }))).toBeNull(); // juste après le dernier palier
     expect(libelleEvenement("fr", evt({ type: "megaprojet_construit", activite: null }))).toBeNull();
   });
 });
@@ -51,6 +60,7 @@ describe("libellé des événements", () => {
 describe("événements partageables", () => {
   it("seules les réussites se partagent, jamais les attaques, manifestations ni pertes de guerre", () => {
     expect(evenementPartageable(evt({ type: "monument_debloque", valeur: 3 }))).toBe(true);
+    expect(evenementPartageable(evt({ type: "monument_debloque", valeur: 20 }))).toBe(true); // un mégaprojet débloqué
     expect(evenementPartageable(evt({ type: "technologie_debloquee", valeur: 0 }))).toBe(true);
     expect(evenementPartageable(evt({ type: "megaprojet_construit", activite: "energie" }))).toBe(true);
     expect(evenementPartageable(evt({ type: "attaque_recue", type_action: "greve", valeur: 2 }))).toBe(false);

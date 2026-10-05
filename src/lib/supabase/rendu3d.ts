@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Activite } from "@/lib/game/activites";
-import { typeMonument } from "@/lib/game/monuments";
+import { repartirBatiments } from "@/lib/game/monuments";
 import { premierRangZone, type VocationsBlocs } from "@/lib/ville3d/generer";
 import type { VocationQuartier } from "@/lib/ville3d/quartiers";
 import type { MegaprojetConstruit, MonumentDebloque } from "@/lib/ville3d/terrain";
@@ -21,13 +21,13 @@ export interface DonneesRendu3D {
  * mégaprojets — ce qui n'est pas encore calculé apparaît à la prochaine visite
  * du maire). Sert aux pages qui doivent dessiner la VRAIE ville sans la
  * modifier : la page publique `/v/<id>` et la Boutique (aperçu d'un pack sur sa
- * propre ville). Les six lectures partent ensemble.
+ * propre ville). Les quatre lectures partent ensemble. Monuments et mégaprojets
+ * viennent de la même table (catalogue unifié, A-INTEGRER §41).
  */
 export async function lireDonneesRendu3D(supabase: SupabaseClient, villeId: string): Promise<DonneesRendu3D> {
-  const [blocs, jauges, megaprojetsBruts, technologies, monumentsBruts] = await Promise.all([
+  const [blocs, jauges, technologies, batimentsBruts] = await Promise.all([
     supabase.from("city_blocks").select("rang, vocation, zonee").eq("ville_id", villeId),
     supabase.rpc("jauges_ville", { p_ville_id: villeId }),
-    supabase.rpc("etat_megaprojets", { p_ville_id: villeId }),
     supabase.from("technologies").select("id", { count: "exact", head: true }).eq("ville_id", villeId),
     supabase.from("monuments").select("palier").eq("ville_id", villeId),
   ]);
@@ -38,16 +38,7 @@ export async function lireDonneesRendu3D(supabase: SupabaseClient, villeId: stri
   const zonageDepuisRang = premierRangZone((blocs.data ?? []) as { rang: number; zonee: boolean }[]);
   const elanEnergie =
     ((jauges.data ?? []) as { activite: Activite; elan: number }[]).find((j) => j.activite === "energie")?.elan ?? 0;
-  const megaprojets: MegaprojetConstruit[] = (
-    (megaprojetsBruts.data ?? []) as { palier: number; type: string; activite: string; statut: string }[]
-  )
-    .filter((c) => c.statut === "construit")
-    .map((c) => ({ palier: c.palier, type: c.type, activite: c.activite }));
-  const monuments: MonumentDebloque[] = [];
-  for (const m of monumentsBruts.data ?? []) {
-    const type = typeMonument(m.palier as number);
-    if (type) monuments.push({ palier: m.palier as number, type });
-  }
+  const { monuments, megaprojets } = repartirBatiments((batimentsBruts.data ?? []).map((b) => b.palier as number));
 
   return {
     vocations,
