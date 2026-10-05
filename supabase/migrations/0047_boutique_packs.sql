@@ -15,13 +15,13 @@
 --   * `possede_pack()` — la règle de droit d'usage, utilisée par
 --     `definir_theme_ville()`, qui refuse désormais un pack que le joueur ne possède pas.
 --
--- Décision par défaut (à contester par Adrien) : le pack Haussmannien reste GRATUIT
--- pour tous, comme depuis la migration 0034 (« la restriction viendra avec la
--- boutique »). La boutique existe maintenant, mais aucun paiement n'est branché ni
--- validé : retirer à tout le monde un pack qu'ils utilisent déjà serait une décision
--- commerciale, pas une décision technique. Pour en faire un pack payant :
---     update public.packs set gratuit = false where id = 'haussmannien';
--- (les joueurs qui l'utilisent déjà le gardent, voir le rattrapage plus bas).
+-- Décision d'Adrien (05/10/2026) : le pack Haussmannien est un pack PAYANT (« la
+-- restriction viendra avec la boutique », migration 0034). Le Classique, pack de base,
+-- reste gratuit pour tous. Le paiement lui-même n'est pas branché : en attendant, seuls
+-- ceux qui l'ont déjà (rattrapage plus bas) ou à qui on l'attribue le possèdent. Pour le
+-- redonner à tous : update public.packs set gratuit = true where id = 'haussmannien';
+-- Pour l'offrir à un joueur : insert into public.joueur_packs (joueur_id, pack)
+-- values ('<id>', 'haussmannien');
 --
 -- Nouveau code d'erreur : P0030 = pack non possédé.
 -- Réutilisés : P0004 (ville introuvable), P0007 (joueur non autorisé), P0022 (thème invalide).
@@ -33,7 +33,7 @@ create table public.packs (
 
 insert into public.packs (id, gratuit) values
   ('classique', true),
-  ('haussmannien', true);
+  ('haussmannien', false);
 
 alter table public.packs enable row level security;
 
@@ -62,7 +62,7 @@ create policy "joueur_packs_lecture_propre"
 -- Aucune policy insert/update/delete : tout passe par des fonctions security definer.
 
 -- Rattrapage : qui utilise déjà un pack avant l'ouverture de la boutique le garde,
--- même si le pack devient payant plus tard (on ne retire jamais à quelqu'un ce que sa
+-- bien que Haussmannien soit désormais payant (on ne retire jamais à quelqu'un ce que sa
 -- ville porte déjà).
 insert into public.joueur_packs (joueur_id, pack, source)
 select owner_id, theme, 'avant_boutique'

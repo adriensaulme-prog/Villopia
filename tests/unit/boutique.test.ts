@@ -202,6 +202,15 @@ describe("migration 0047 : le serveur fait respecter le droit d'usage", () => {
     expect(ids).toEqual([...THEMES]);
   });
 
+  it("Classique, le pack de base, est gratuit pour tous ; Haussmannien est payant (décision d'Adrien, 05/10/2026)", () => {
+    const insertion = sql.match(/insert into public\.packs[^;]+;/i)?.[0] ?? "";
+    const gratuits = Object.fromEntries(
+      [...insertion.matchAll(/\('([a-z_]+)',\s*(true|false)\)/g)].map((m) => [m[1], m[2] === "true"])
+    );
+    expect(gratuits.classique).toBe(true);
+    expect(gratuits.haussmannien).toBe(false);
+  });
+
   it("la liste de thèmes acceptés par definir_theme_ville suit celle du code", () => {
     const corps = sql.slice(sql.search(/function\s+public\.definir_theme_ville/i));
     const liste = corps.match(/p_theme not in \(([^)]+)\)/i)?.[1] ?? "";

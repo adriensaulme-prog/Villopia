@@ -164,7 +164,8 @@ journal existant, puis ce fichier peut être supprimé.*
 > « Thèmes de la ville » dans Ma ville + onglet Boutique `/boutique`, avec
 > catalogue, aperçu sur sa propre ville et bouton « Acheter » désactivé ;
 > droit d'usage côté serveur, **migration `0047` à appliquer par Adrien** ;
-> **le paiement n'est pas branché**, aucun pack n'est payant). Les trois
+> **le paiement n'est pas branché** ; **Haussmannien est un pack PAYANT depuis le
+> 05/10/2026**, décision d'Adrien, attribuable à la main en attendant). Les trois
 > points ouverts ont été tranchés par Claude Code, détail et raisonnement :
 > `DECISIONS.md` §4 « La boutique de packs de thèmes », recette
 > `docs/recette-boutique.md`.
@@ -1866,8 +1867,8 @@ maquette plutôt que de les découvrir après coup.
   jeu — vérifié par des tests (fiche de pack sans champ de jeu, migration sans
   colonne de jeu, un changement de thème ne modifie que `cities.theme`).
 - **En attente d'Adrien** : appliquer la migration `0047` ; décider si
-  Haussmannien devient payant (reste gratuit pour l'instant) et quand brancher
-  le paiement (`DECISIONS.md` §10 point 37). **Non fait, volontairement** :
+  quand brancher le paiement (Haussmannien est payant depuis le 05/10/2026,
+  décision d'Adrien : sans paiement, personne ne peut encore l'obtenir) (`DECISIONS.md` §10 point 37). **Non fait, volontairement** :
   le paiement lui-même (statut légal d'abord, `BATIMENTS-ET-PACKS.md` §5).
   Détail : `DECISIONS.md` §4 « La boutique de packs de thèmes ».
 

@@ -42,25 +42,21 @@ d'usage d'un pack.
    (rouvre-le avec la poignée pour retrouver le bandeau).
 7. Les packs sont **purement cosmétiques** : la phrase est écrite en haut de la page.
    Vérifie que changer de thème ne bouge ni habitants, ni influence, ni activité.
-8. **Pas de bouton « Acheter » visible aujourd'hui**, parce qu'aucun pack n'est payant.
-   Pour le voir, passe un pack en payant (voir ci-dessous) : il apparaît **désactivé**,
-   avec « L'achat n'est pas encore ouvert… » à côté.
+8. **Haussmannien est payant** (ta décision du 05/10/2026), une fois la migration appliquée :
+   avec un compte qui ne l'avait pas, la fiche affiche « Pack payant », « Aperçu » reste
+   possible, « Acheter » est **désactivé** avec « L'achat n'est pas encore ouvert… » à côté,
+   et il n'y a pas de bouton « Appliquer ». Un compte qui l'utilisait déjà le garde
+   (rattrapage de la migration). Dans « Ma ville », seuls les packs possédés sont listés.
 
-**Voir l'état « non possédé » (facultatif, éditeur SQL, migration appliquée)**
+**Gérer l'accès (éditeur SQL, migration appliquée)**
 
-```sql
-update public.packs set gratuit = false where id = 'haussmannien';
-```
-
-Recharge la Boutique avec un compte qui n'utilisait pas le pack : « Pack payant »,
-« Aperçu » possible, « Acheter » désactivé, pas de « Appliquer ». Un compte qui avait
-déjà Haussmannien le garde (rattrapage de la migration). Pour le redonner à tous :
+Pour redonner Haussmannien à tous :
 
 ```sql
 update public.packs set gratuit = true where id = 'haussmannien';
 ```
 
-Pour offrir un pack payant à un joueur précis :
+Pour l'offrir à un joueur précis (seule façon de l'obtenir tant que le paiement n'existe pas) :
 
 ```sql
 insert into public.joueur_packs (joueur_id, pack) values ('<id du joueur>', 'haussmannien');
@@ -68,24 +64,26 @@ insert into public.joueur_packs (joueur_id, pack) values ('<id du joueur>', 'hau
 
 ## ⚠ Points à trancher
 
-1. **Haussmannien reste gratuit** pour tous (statut quo depuis la `0034`). Faut-il en faire
-   le premier pack payant, et quand ? C'est une ligne SQL (voir plus haut) ; je n'ai pas voulu
-   le décider à ta place (`DECISIONS.md` §10 point 37).
+1. **Haussmannien est payant, mais personne ne peut l'acheter** : le paiement n'est pas
+   branché. Tant que c'est le cas, un nouveau joueur ne peut pas l'obtenir (hors attribution
+   à la main, voir plus haut). C'est voulu, mais à garder en tête avant d'ouvrir le jeu à
+   d'autres joueurs (`DECISIONS.md` §10 point 37).
 2. **Le paiement n'est pas branché** — c'est volontaire (statut légal à régler d'abord,
    `BATIMENTS-ET-PACKS.md` §5, et toute dépense passe par toi). Le bouton « Acheter » est
    l'unique endroit à brancher.
-3. **L'onglet Boutique existe dès maintenant**, avec les packs gratuits, pour habituer les
-   joueurs. Si tu préfères le cacher jusqu'aux vrais packs payants, c'est une ligne dans
-   `NavTabs.tsx` et l'icône de `Nav.tsx`.
+3. **L'onglet Boutique existe dès maintenant**, pour habituer les joueurs. Si tu préfères le
+   cacher jusqu'à ce que le paiement soit branché, c'est une ligne dans `NavTabs.tsx` et
+   l'icône de `Nav.tsx`.
 4. **Barre du haut resserrée** entre 641 et 1040 px (logo seul, marges réduites) : elle
    débordait déjà à 820 px avant ce jalon (le 6ᵉ onglet aggravait le problème). À regarder
    sur ta tablette ou ta fenêtre réduite.
-5. Pas de pack « premium débloqué pour les comptes de test » (`BATIMENTS-ET-PACKS.md` §5) :
-   aucun pack premium n'existe encore. À faire dès qu'on en crée un.
+5. Pas de compte « premium » général pour les comptes de test (`BATIMENTS-ET-PACKS.md` §5) :
+   les tests automatiques s'attribuent Haussmannien un par un. À faire si tu veux offrir tous
+   les packs à tes comptes de test.
 
 ## Tests automatisés couvrant ce jalon
 
 ```bash
-npm test  # dont tests/unit/boutique.test.ts (30)
-npm run test:e2e  # dont tests/e2e/boutique-packs.spec.ts (7, dont 2 qui exigent la migration 0047)
+npm test  # dont tests/unit/boutique.test.ts
+npm run test:e2e  # dont tests/e2e/boutique-packs.spec.ts (10, dont 3 qui exigent la migration 0047)
 ```

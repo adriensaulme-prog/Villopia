@@ -122,8 +122,8 @@ de vue du joueur — le titre dit ce qui change pour lui.
   page) et onglet **Boutique** (`/boutique`) avec le catalogue complet,
   l'aperçu d'un pack sur sa propre ville et le bouton « Acheter »
   (désactivé, raison écrite). Droit d'usage côté serveur (migration
-  `0047`, **à appliquer par Adrien**). Haussmannien reste gratuit ; **le
-  paiement n'est pas branché** (statut légal d'abord,
+  `0047`, **à appliquer par Adrien**). **Haussmannien est payant depuis le
+  05/10/2026** (décision d'Adrien) ; **le paiement n'est pas branché** (statut légal d'abord,
   `docs/BATIMENTS-ET-PACKS.md` §5) — voir `DECISIONS.md` §4 et §10 point 37.
 
 ## Phase 2 — Rivalités entre villes *(terminée)*

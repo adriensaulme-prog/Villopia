@@ -41,6 +41,15 @@ async function creerCompteAvecVille(prefixe: string) {
   return { userId, email, motDePasse, villeId: ville.id as string };
 }
 
+/**
+ * Haussmannien est un pack PAYANT depuis la migration 0047 (décision d'Adrien, 05/10/2026) :
+ * le maire de test le reçoit comme s'il l'avait acheté, sinon `definir_theme_ville` le
+ * refuserait (P0030). Avant la migration la table n'existe pas : l'erreur est ignorée.
+ */
+async function accorderHaussmannien(userId: string) {
+  await supabaseAdmin.from("joueur_packs").insert({ joueur_id: userId, pack: "haussmannien", source: "attribution" });
+}
+
 async function supprimerCompte(userId: string) {
   await supabaseAdmin.auth.admin.deleteUser(userId);
 }
@@ -57,6 +66,7 @@ test.describe.configure({ mode: "serial" });
 test.describe("Bibliothèque de bâtiments (4/4) — thème Haussmannien", () => {
   test("sabotage : definir_theme_ville réservée au maire, refuse un thème invalide, par défaut classique", async () => {
     const maire = await creerCompteAvecVille("j-theme-maire");
+    await accorderHaussmannien(maire.userId);
     const intrus = await creerCompteAvecVille("j-theme-intrus");
     try {
       const { data: villeInitiale } = await supabaseAdmin
@@ -109,6 +119,7 @@ test.describe("Bibliothèque de bâtiments (4/4) — thème Haussmannien", () =>
   test("Ma ville : le vrai clic sur « Thèmes de la ville » (PacksVille) applique Haussmannien, puis revient au classique (A-INTEGRER §38)", async ({ page }) => {
     test.setTimeout(150_000);
     const maire = await creerCompteAvecVille("j-theme-ui");
+    await accorderHaussmannien(maire.userId);
     // L'enregistrement passe par une action serveur : Next les met en file (derrière la visite
     // automatique) et en dev /ville se re-rend à chaque fois, d'où des délais de plusieurs secondes
     // (voir playwright.config.ts). L'écran, lui, change tout de suite (changement optimiste).

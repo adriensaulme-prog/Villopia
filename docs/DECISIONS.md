@@ -4704,12 +4704,13 @@ contester d'un mot).
   La barre du bas du mobile reste à **5 onglets** : à 375 px un 6ᵉ onglet laisserait ~60 px
   chacun, or « Jumelages » et « Classement » en demandent ~66. On y arrive aussi depuis le
   lien « Voir tous les packs dans la Boutique » de Ma ville.
-- **Haussmannien reste gratuit pour tous**, comme depuis la migration `0034` (« la
-  restriction viendra avec la boutique »). Rendre payant, du jour au lendemain, un pack que
-  des joueurs utilisent est une décision commerciale, pas technique, et le paiement n'est
-  ni branché ni validé (statut légal, `BATIMENTS-ET-PACKS.md` §5). La structure est prête :
-  `update public.packs set gratuit = false where id = 'haussmannien';` suffit, et ceux qui
-  l'utilisent déjà le gardent (rattrapage `avant_boutique`). → point ouvert §10 n°37.
+- **[Remplacé le 05/10/2026 : Adrien a décidé qu'Haussmannien est PAYANT, voir « Mise à
+  jour » en fin d'entrée.] Choix d'origine, gardé pour mémoire : Haussmannien reste gratuit
+  pour tous**, comme depuis la migration `0034` (« la restriction viendra avec la
+  boutique »). Rendre payant, du jour au lendemain, un pack que des joueurs utilisent est
+  une décision commerciale, pas technique, et le paiement n'est ni branché ni validé (statut
+  légal, `BATIMENTS-ET-PACKS.md` §5). La structure était prête : une ligne SQL, et ceux qui
+  l'utilisent déjà le gardent (rattrapage `avant_boutique`).
 - **L'aperçu est la VRAIE ville du joueur**, redessinée avec le pack dans la scène 3D de
   fond. Aucune image, aucun modèle, aucune dépendance : poids inchangé. Rien n'est
   enregistré ; c'est permis sur un pack qu'on ne possède pas (c'est tout l'intérêt de
@@ -4717,8 +4718,9 @@ contester d'un mot).
   panneau pour qu'on voie la ville (même mécanisme que « voir où il est »).
 - **Le bouton « Acheter » est désactivé, avec sa raison écrite** (principe des maquettes :
   « boutons désactivés avec la raison écrite »). Il n'apparaît que pour un pack payant non
-  possédé ; comme aucun pack n'est payant aujourd'hui, **il n'est visible nulle part pour
-  l'instant**. C'est le seul endroit à brancher le jour où le paiement existe.
+  possédé ; **[depuis la mise à jour du 05/10/2026, Haussmannien étant payant, il s'affiche
+  pour tout joueur qui ne l'a pas]**. C'est le seul endroit à brancher le jour où le paiement
+  existe.
 
 **Fait.**
 - **Migration `0047_boutique_packs.sql` (pas encore appliquée)** : tables `packs` (gratuit
@@ -4768,13 +4770,29 @@ contester d'un mot).
 - **La migration `0047` n'est pas appliquée** (je n'ai pas d'accès SQL) : le chemin
   « pack payant non possédé refusé » n'est donc couvert que par le test statique du SQL et les
   tests de rendu, pas encore sur la vraie base. Les deux e2e concernés s'activeront seuls une
-  fois la migration appliquée. **Aucun test ne passe `haussmannien` en payant**, même un
-  instant : c'est une décision commerciale d'Adrien, qu'une suite de tests ne doit pas
-  renverser (le pack jetable `e2e-payant` sert à tester le droit d'usage).
+  fois la migration appliquée. **Aucun test ne modifie la ligne `haussmannien` de `packs`**,
+  même un instant : « gratuit ou payant » est une décision commerciale d'Adrien, qu'une suite
+  de tests ne doit pas renverser (le pack jetable `e2e-payant` sert à tester le droit d'usage).
 - **Le paiement n'est pas branché**, volontairement (§5 : statut légal d'abord). Pas non plus
   de « pack premium débloqué pour les comptes de test » (§5) : aucun pack premium n'existe.
 - Sur mobile, un aperçu replie le panneau : le bandeau « Terminer l'aperçu » se retrouve en
   le dépliant avec la poignée.
+
+**Mise à jour — Haussmannien devient payant (décision d'Adrien, 05/10/2026).** La graine de
+`packs` dans la migration `0047` (**toujours pas appliquée** : la modification s'est donc faite
+dans la migration plutôt que dans une `0048`) donne `haussmannien` à `gratuit = false` ;
+Classique reste gratuit pour tous. Conséquences : (1) tant que la `0047` n'est pas appliquée,
+rien ne change (la boutique retombe sur « tout thème libre ») ; une fois appliquée, quiconque
+n'a pas Haussmannien voit « Pack payant », « Aperçu » possible, « Acheter » désactivé, et le
+serveur refuse l'application (P0030) ; (2) **ceux qui l'utilisent déjà le gardent** (rattrapage
+`avant_boutique` de la migration, une ville en base l'utilisait) ; (3) comme **le paiement n'est
+pas branché, personne ne peut l'obtenir** hormis par attribution : `insert into
+public.joueur_packs (joueur_id, pack) values ('<id>', 'haussmannien');` ; (4) les comptes de
+test e2e le reçoivent comme un achat (`accorderHaussmannien`), et un nouveau e2e vérifie l'état
+« payant, pas possédé » sur la valeur réelle de la base (ignoré tant que la migration n'est pas
+appliquée, ou si le pack redevenait gratuit) ; un test unitaire garde « Classique gratuit,
+Haussmannien payant » dans la graine SQL. Pour revenir en arrière : `update public.packs set
+gratuit = true where id = 'haussmannien';`.
 
 ---
 
@@ -5375,11 +5393,12 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
 37. **Boutique de packs (A-INTEGRER §30, 05/10/2026) : quand rendre un pack payant,
     et brancher le paiement.** Les deux surfaces (section « Thèmes de la ville » dans
     Ma ville, onglet Boutique) et le droit d'usage côté serveur (migration `0047`,
-    **à appliquer par Adrien**) sont construits, mais **aucun pack n'est payant** :
-    Haussmannien reste gratuit pour tous comme depuis la `0034` (§4, journal « La
-    boutique de packs de thèmes »). → **À trancher par Adrien** : (a) Haussmannien
-    doit-il devenir un pack payant, et à partir de quand (une ligne SQL, ceux qui
-    l'utilisent déjà le gardent) ? (b) le paiement : statut légal et service
+    **à appliquer par Adrien**) sont construits, mais **le paiement n'est pas branché** :
+    Haussmannien était gratuit pour tous comme depuis la `0034` (§4, journal « La
+    boutique de packs de thèmes »). **(a) Tranché le 05/10/2026 : Haussmannien est PAYANT** (graine
+    de la `0047` à `gratuit = false`, ceux qui l'utilisent déjà le gardent) — seulement
+    attribuable à la main tant que le paiement n'existe pas. → **Reste à trancher par Adrien** :
+    (b) le paiement : statut légal et service
     (`BATIMENTS-ET-PACKS.md` §5), toute dépense passant d'abord par Adrien (§1 point 1) ;
     (c) un pack « premium » débloqué pour les comptes de test (§5) — utile dès qu'un
     pack payant existe. Le bouton « Acheter » (désactivé, avec sa raison) est le seul

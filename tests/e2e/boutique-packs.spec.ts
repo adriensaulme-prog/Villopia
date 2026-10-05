@@ -11,10 +11,13 @@ import { createClient } from "@supabase/supabase-js";
  * comme après, puisque sans la migration la boutique retombe sur « tout thème
  * connu est libre » (comportement de la migration 0034).
  *
- * Aucun test ne modifie la ligne `haussmannien` de `packs` : « gratuit ou
- * payant » est une décision commerciale d'Adrien, qu'une suite de tests ne doit
- * jamais renverser, même un instant. Le droit d'usage se teste avec un pack
- * jetable (`e2e-payant`).
+ * Haussmannien est un pack PAYANT (décision d'Adrien, 05/10/2026) : les comptes de
+ * test le reçoivent comme s'ils l'avaient acheté (`accorderHaussmannien`), sinon ils
+ * ne pourraient pas l'appliquer. Aucun test ne modifie la ligne `haussmannien` de
+ * `packs` : « gratuit ou payant » est une décision commerciale d'Adrien, qu'une
+ * suite de tests ne doit jamais renverser, même un instant. Le droit d'usage se
+ * teste avec un pack jetable (`e2e-payant`), et l'état « payant, pas possédé » avec
+ * un compte neuf, sur la valeur réelle de la base.
  */
 const URL_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAdmin = createClient(URL_SUPABASE, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -69,12 +72,21 @@ async function migration0047Appliquee() {
   return !error;
 }
 
+/**
+ * Offre Haussmannien à un compte de test, comme un achat. Avant la migration 0047 la
+ * table n'existe pas : l'erreur est ignorée, tout thème connu est libre.
+ */
+async function accorderHaussmannien(userId: string) {
+  await supabaseAdmin.from("joueur_packs").insert({ joueur_id: userId, pack: "haussmannien", source: "attribution" });
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe("La boutique de packs de thèmes (§30)", () => {
   test("l'onglet Boutique : catalogue complet, aperçu sans rien enregistrer, application", async ({ page }) => {
     test.setTimeout(120_000);
     const maire = await creerCompteAvecVille("j-boutique-ui");
+    await accorderHaussmannien(maire.userId);
     try {
       await connecter(page, maire.email, maire.motDePasse);
 
@@ -116,6 +128,7 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
   test("Ma ville : section « Thèmes de la ville », changement de thème sans quitter la page", async ({ page }) => {
     test.setTimeout(120_000);
     const maire = await creerCompteAvecVille("j-boutique-ville");
+    await accorderHaussmannien(maire.userId);
     try {
       await connecter(page, maire.email, maire.motDePasse);
 
@@ -172,6 +185,7 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
 
   test("un thème est purement cosmétique : changer de thème ne modifie aucune autre donnée de la ville", async () => {
     const maire = await creerCompteAvecVille("j-boutique-cosmetique");
+    await accorderHaussmannien(maire.userId);
     try {
       const { data: avant } = await supabaseAdmin.from("cities").select("*").eq("id", maire.villeId).single();
       const { data: apres, error } = await supabaseAdmin.rpc("definir_theme_ville", {
@@ -184,6 +198,55 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
       expect(apres).toEqual({ ...avant, theme: "haussmannien" });
     } finally {
       await supprimerCompte(maire.userId);
+    }
+  });
+
+  test("migration 0047 : Haussmannien (payant) sans l'avoir — refusé par le serveur, aperçu possible, « Acheter » désactivé", async ({
+    page,
+  }) => {
+    test.setTimeout(150_000);
+    test.skip(!(await migration0047Appliquee()), "migration 0047 pas encore appliquée à la base");
+    const { data: pack } = await supabaseAdmin.from("packs").select("gratuit").eq("id", "haussmannien").single();
+    test.skip(pack?.gratuit !== false, "Haussmannien n'est pas (ou plus) un pack payant dans cette base");
+    const joueur = await creerCompteAvecVille("j-boutique-payant");
+    try {
+      // Le serveur refuse : pack payant non possédé (P0030), thème inchangé.
+      const { error } = await supabaseAdmin.rpc("definir_theme_ville", {
+        p_owner_id: joueur.userId,
+        p_ville_id: joueur.villeId,
+        p_theme: "haussmannien",
+      });
+      expect(error?.code).toBe("P0030");
+      expect(await themeEnBase(joueur.villeId)).toBe("classique");
+
+      await connecter(page, joueur.email, joueur.motDePasse);
+      await page.goto("/boutique");
+      const haussmannien = fiche(page, "Haussmannien");
+      await expect(haussmannien).toContainText("Pack payant", { timeout: 30_000 });
+      // Le point d'entrée de l'achat est là, désactivé, avec sa raison ; pas d'« Appliquer ».
+      await expect(haussmannien.getByRole("button", { name: "Acheter : Haussmannien" })).toBeDisabled();
+      await expect(haussmannien).toContainText("L'achat n'est pas encore ouvert");
+      await expect(haussmannien.getByRole("button", { name: "Appliquer : Haussmannien" })).toHaveCount(0);
+
+      // L'aperçu reste possible (essayer avant d'acheter) et n'enregistre rien.
+      await haussmannien.getByRole("button", { name: "Aperçu : Haussmannien" }).click();
+      await expect(page.locator(".pack-apercu")).toContainText("Aperçu sur ta ville");
+      await page.waitForTimeout(1500);
+      expect(await themeEnBase(joueur.villeId)).toBe("classique");
+
+      // Une fois obtenu (achat ou attribution), le pack s'applique.
+      await accorderHaussmannien(joueur.userId);
+      await page.goto("/boutique");
+      await expect(fiche(page, "Haussmannien")).toContainText("Possédé", { timeout: 30_000 });
+      await expect(fiche(page, "Haussmannien").getByRole("button", { name: "Appliquer : Haussmannien" })).toBeVisible();
+      const { error: erreurApres } = await supabaseAdmin.rpc("definir_theme_ville", {
+        p_owner_id: joueur.userId,
+        p_ville_id: joueur.villeId,
+        p_theme: "haussmannien",
+      });
+      expect(erreurApres).toBeNull();
+    } finally {
+      await supprimerCompte(joueur.userId);
     }
   });
 

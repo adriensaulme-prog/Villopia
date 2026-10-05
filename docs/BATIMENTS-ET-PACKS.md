@@ -191,8 +191,9 @@ avant de brancher le paiement, les points suivants.
 > complet, aperçu sur sa propre ville, bouton « Acheter » désactivé).
 > Les tables `packs` et `joueur_packs` du §5 existent (migration
 > `0047`, à appliquer), avec le droit d'usage vérifié côté serveur.
-> **Le paiement lui-même n'est pas branché**, et aucun pack n'est encore
-> payant (Haussmannien reste gratuit). Le détail et les décisions sont
+> **Le paiement lui-même n'est pas branché** ; **Haussmannien est un pack
+> payant depuis le 05/10/2026** (décision d'Adrien), attribuable à la main en
+> attendant. Le détail et les décisions sont
 > dans `DECISIONS.md` §4 « La boutique de packs de thèmes » et §10
 > point 37.
 
