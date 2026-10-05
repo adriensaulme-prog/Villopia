@@ -4482,6 +4482,53 @@ automatique suspendue au premier geste (horloge simulée). `jalon11` et
 
 ---
 
+### Services, Commerce, Recherche et arbres de jardin (A-INTEGRER §36) — 05/10/2026
+
+**Demande d'Adrien** : (A) les bâtiments Services, Commerce et Recherche
+(`quartiers.ts`) restaient de simples boîtes à toit plat gris — seuls Énergie et
+Industrie avaient été repris (défaut déjà signalé au §20 A) ; (B) l'arbre de
+jardin était placé avec un décalage latéral fixe ±3,5 m, indépendant de la largeur
+réelle de la maison, et touchait parfois le mur.
+
+**A. Quartiers (aucune migration, aucun changement de règle).** Silhouettes
+distinctes par stade, tirées de la graine de la parcelle (même parcelle = même
+bâtiment) :
+- **Services** — stade 0 : *école* (briques chaudes, toit à pignon, aile de classes
+  derrière, cour pavée, mât de drapeau) ou *mairie* (pierre claire, perron à deux
+  marches, deux drapeaux) ; stade 1 : *collège* (gymnase derrière,
+  porche coloré) ou *clinique* (croix de façade, bandeau turquoise, auvent des
+  urgences, ambulance) ; stade 2 :
+  *hôpital* (aile latérale, grande croix, auvent des urgences, ambulance,
+  hélistation sur le toit).
+- **Commerce** — stade 0 : *boutique* de quartier (toit de tuiles, auvent rayé,
+  terrasse avec parasols) ou *supérette* (vitrine, enseigne dressée sur le toit,
+  voitures) ; stade 1 : grand magasin (second bandeau, marquise d'entrée sur piliers,
+  gradin en retrait, lanterneau vitré) ; stade 2 : centre commercial (parvis pavé,
+  voitures, climatiseurs).
+- **Recherche** — façade vitrée côté rue, annexe, panneaux solaires, dôme ; stade 1 :
+  rotonde cylindrique dans 45 % des cas ; stade 2 : aile de campus.
+- Industrie et Stade inchangés. Couleurs nouvelles dans `constantes.ts`
+  (`SERVICES_ECOLE_WALLS`, `SERVICES_PIERRE_WALLS`, `SERVICES_BANDEAU`,
+  `RECHERCHE_PANNEAU`). Nouveaux petits assistants dans `quartiers.ts` (repère local
+  de parcelle, acrotère, drapeau, auvent rayé, terrasse, croix, panneaux solaires).
+- Toujours dans la parcelle (largeur ≤ 9,8 m, marge de 1,2 m testée) et une seule
+  empreinte d'ombre par bâtiment.
+
+**B. Arbre de jardin.** `placerArbreJardin()` (`batiments.ts`) choisit la plus
+grande bande libre autour de la maison (hors côté rue), exige **2,0 m** entre le
+mur et le bord du feuillage et **0,9 m** du bord de parcelle, et réduit l'arbre
+(échelle ≥ 0,65) si la bande est étroite ; s'il n'y a vraiment pas de place, pas
+d'arbre. Plus de décalage fixe : la marge dépend de la largeur réelle du bâtiment.
+
+**Vérifié.** `arbreJardin.test.ts` (4) et `quartiersServicesCommerceRecherche.test.ts`
+(12) : dans la parcelle, pas de valeur absurde, déterminisme, silhouettes variées,
+plus riche qu'une boîte de 24 sommets. Section « Quartiers » ajoutée au showroom de
+développement (`/dev/showroom`, 36 vignettes) ; revue visuelle : le commerce de stade 1
+était encore une boîte avec une enseigne, d'où la marquise, le gradin et le lanterneau.
+La géométrie des autres bâtiments est inchangée.
+
+---
+
 ### Palmarès fusionné dans Classement (A-INTEGRER §35) — 05/10/2026
 
 **Demande d'Adrien** : « retirer l'onglet historique et ajouter l'historique des

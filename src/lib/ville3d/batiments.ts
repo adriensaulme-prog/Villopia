@@ -66,6 +66,68 @@ export function placeInLot(
   }
 }
 
+/** Marge entre le tronc d'un arbre de jardin et le mur, par unité d'échelle (rayon du feuillage ≈ 1,7 à 2,5 × échelle). */
+export const MARGE_ARBRE_MUR = 2.0;
+/** Marge entre le tronc et le bord de la parcelle (le feuillage peut dépasser chez le voisin, pas le tronc). */
+export const MARGE_ARBRE_BORD = 0.9;
+/** Échelle minimale d'un arbre réduit pour tenir dans une bande étroite. */
+const ECHELLE_ARBRE_MIN = 0.65;
+
+/**
+ * Place l'arbre du jardin d'une maison (A-INTEGRER §36 B) : dans la plus
+ * grande bande libre autour de l'emprise `fp` (côtés et arrière, jamais
+ * côté rue), à au moins MARGE_ARBRE_MUR × échelle du mur et
+ * MARGE_ARBRE_BORD du bord de la parcelle. Si la bande est trop étroite
+ * pour l'échelle tirée, l'arbre est réduit (jusqu'à ECHELLE_ARBRE_MIN) ;
+ * sinon pas d'arbre (null). `u` et `t` (0..1) répartissent la position dans
+ * la bande, perpendiculairement puis le long du mur. Pure, testée.
+ */
+export function placerArbreJardin(
+  rect: Rect,
+  fp: Rect,
+  front: Facade,
+  echelle: number,
+  u: number,
+  t: number
+): { x: number; z: number; echelle: number } | null {
+  const [x0, z0, x1, z1] = rect;
+  type Bande = { w: number; axe: "x" | "z"; interieur: number; sens: 1 | -1 };
+  const bandes: Bande[] = [];
+  if (front !== "-x") bandes.push({ w: fp[0] - x0, axe: "x", interieur: fp[0], sens: -1 });
+  if (front !== "+x") bandes.push({ w: x1 - fp[2], axe: "x", interieur: fp[2], sens: 1 });
+  if (front !== "-z") bandes.push({ w: fp[1] - z0, axe: "z", interieur: fp[1], sens: -1 });
+  if (front !== "+z") bandes.push({ w: z1 - fp[3], axe: "z", interieur: fp[3], sens: 1 });
+  let meilleure: Bande | null = null;
+  for (const b of bandes) if (!meilleure || b.w > meilleure.w) meilleure = b;
+  if (!meilleure) return null;
+
+  const echelleMax = (meilleure.w - MARGE_ARBRE_BORD) / MARGE_ARBRE_MUR;
+  const sc = Math.min(echelle, echelleMax);
+  if (sc < ECHELLE_ARBRE_MIN) return null;
+  const mur = MARGE_ARBRE_MUR * sc;
+  const normale = meilleure.interieur + meilleure.sens * (mur + u * (meilleure.w - mur - MARGE_ARBRE_BORD));
+
+  // Le long de la bande : toute la longueur de la parcelle pour la bande opposée à la rue ; pour
+  // une bande latérale, seulement la moitié éloignée de la rue (là où se garent les voitures).
+  const me = MARGE_ARBRE_BORD;
+  let a0: number, a1: number;
+  if (meilleure.axe === "z") {
+    a0 = x0 + me;
+    a1 = x1 - me;
+    if (front === "-x") a0 = x0 + (x1 - x0) / 2;
+    if (front === "+x") a1 = x0 + (x1 - x0) / 2;
+  } else {
+    a0 = z0 + me;
+    a1 = z1 - me;
+    if (front === "-z") a0 = z0 + (z1 - z0) / 2;
+    if (front === "+z") a1 = z0 + (z1 - z0) / 2;
+  }
+  const tangente = a0 + t * Math.max(0, a1 - a0);
+  return meilleure.axe === "x"
+    ? { x: normale, z: tangente, echelle: sc }
+    : { x: tangente, z: normale, echelle: sc };
+}
+
 /**
  * Décor de jardin partagé par les modèles de maisons : allée jusqu'à la
  * porte, haies (pas toujours), arbre au fond, voiture garée (une fois
@@ -96,8 +158,16 @@ function decorJardin(g: Geo, rect: Rect, fp: Rect, front: Facade, r: RNG, ao: Ta
       }
     }
   }
-  const back = placeInLot(rect, front, 2, 2, LOT - 3.2, rr(r, -3.5, 3.5));
-  tree(g, (back[0] + back[2]) / 2, (back[1] + back[3]) / 2, 0.15, rr(r, 0.8, 1.05), r, ao);
+  // Arbre de jardin (A-INTEGRER §36 B) : placé dans la plus grande bande libre autour de la
+  // maison, avec une marge au mur proportionnelle à son feuillage. L'ancien décalage latéral
+  // fixe (±3,5 m, avec un fond de jardin à 11,3 m) ignorait la largeur et la profondeur réelles
+  // du bâtiment : l'arbre pouvait se retrouver collé au mur arrière, voire dedans. Les tirages
+  // sont toujours faits (même nombre qu'avant) pour ne pas décaler le flux aléatoire du lot.
+  const echelleArbre = rr(r, 0.8, 1.05),
+    u = r(),
+    t = r();
+  const arbre = placerArbreJardin(rect, fp, front, echelleArbre, u, t);
+  if (arbre) tree(g, arbre.x, arbre.z, 0.15, arbre.echelle, r, ao);
   if (r() < 0.5) {
     const sideOff = alongX ? (fp[2] + 2.0 < x1 - 1.5 ? 1 : -1) : fp[3] + 2.0 < z1 - 1.5 ? 1 : -1;
     if (front === "-z") car(g, sideOff > 0 ? fp[2] + 1.6 : fp[0] - 1.6, z0 + 2.6, false, r, 0.16);

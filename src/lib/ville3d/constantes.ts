@@ -165,6 +165,11 @@ export const COMMERCE_WALLS = ["#e7d9b8", "#d9c9a0", "#e3cbb0", "#cfd8d4"].map(h
 export const COMMERCE_ENSEIGNE = ["#c23b2c", "#1f6fb2", "#2f7d4f", "#a86400"].map(hex);
 export const SERVICES_WALLS = ["#e8dfd3", "#dcd0c4", "#e3d9cc"].map(hex);
 export const SERVICES_CROIX = hex("#c23b2c");
+// A-INTEGRER §36 A : des couleurs qui ne se lisent plus « blanc sans détail » à côté des maisons.
+export const SERVICES_ECOLE_WALLS = ["#b4694d", "#c58f63", "#a85a42", "#d3b27a"].map(hex); // briques, ocre, sable
+export const SERVICES_PIERRE_WALLS = ["#d6cbb4", "#cdbf9f", "#c9c2b4"].map(hex); // pierre de mairie
+export const SERVICES_BANDEAU = hex("#2f8f9d"); // turquoise des cliniques et hôpitaux
+export const RECHERCHE_PANNEAU = hex("#33495c"); // bardage et vitrage sombres des laboratoires
 export const RECHERCHE_WALLS = ["#d7dee3", "#c9d3da", "#dde4e8"].map(hex);
 export const RECHERCHE_DOME = hex("#8fb9ea");
 export const INDUSTRIE_FENCE = hex("#8a8f93");

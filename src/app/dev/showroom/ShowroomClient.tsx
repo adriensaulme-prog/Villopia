@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { Geo } from "@/lib/ville3d/geometrie";
 import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { MODELES_IMMEUBLES, MODELES_MAISONS, MODELES_TOURS } from "@/lib/ville3d/batiments";
+import { buildCommerce, buildIndustrie, buildRecherche, buildServices } from "@/lib/ville3d/quartiers";
 
 /**
  * Showroom (outil de développement, jamais dans le jeu publié — voir
@@ -28,12 +29,14 @@ interface Fiche {
   construire: (...args: never[]) => unknown;
 }
 
-type TypeFamille = "maison" | "immeuble" | "tour";
+type TypeFamille = "maison" | "immeuble" | "tour" | "quartier";
 
 interface Entree {
   fiche: Fiche;
   type: TypeFamille;
   taille: [number, number, number, number];
+  /** Stade (0 à 2) d'un bâtiment de quartier. */
+  niveau?: number;
 }
 
 const TAILLE_VIGNETTE = 220;
@@ -65,14 +68,16 @@ function versGeometrieSimple(g: Geo): THREE.BufferGeometry {
   return geometry;
 }
 
-function construireGeometrie({ fiche, type, taille }: Entree): THREE.BufferGeometry {
+function construireGeometrie({ fiche, type, taille, niveau }: Entree): THREE.BufferGeometry {
   const geo = new Geo();
   const r = rngFrom("showroom|" + fiche.id);
   // Tours montrées terminées (F = cap), pas en chantier : c'est la silhouette finale qu'on veut juger.
   const args =
     type === "tour"
       ? [taille as unknown as never, "+z", 24, 24, r, [], 1]
-      : type === "immeuble"
+      : type === "quartier"
+        ? [taille as unknown as never, "+z", niveau ?? 0, r, [], 1]
+        : type === "immeuble"
         ? [taille as unknown as never, "-z", 5, r, [], 1]
         : [taille as unknown as never, "-z", r, [], 1];
   (fiche.construire as (...a: unknown[]) => unknown)(geo, ...(args as unknown[]));
@@ -131,7 +136,25 @@ const ENTREES_TOURS: Entree[] = MODELES_TOURS.map((fiche) => ({
   type: "tour",
   taille: [0, 0, 29, 29],
 }));
-const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS];
+// Bâtiments de quartier (A-INTEGRER §36 A) : trois stades, deux tirages par stade pour voir les variantes.
+const ENTREES_QUARTIERS: Entree[] = (
+  [
+    ["services", buildServices],
+    ["commerce", buildCommerce],
+    ["recherche", buildRecherche],
+    ["industrie", buildIndustrie],
+  ] as const
+).flatMap(([nom, construire]) =>
+  [0, 1, 2].flatMap((niveau) =>
+    ["a", "b", "c"].map((variante) => ({
+      fiche: { id: `${nom}-stade${niveau}-${variante}`, construire: construire as unknown as Fiche["construire"] },
+      type: "quartier" as const,
+      taille: [0, 0, 14.5, 14.5] as [number, number, number, number],
+      niveau,
+    }))
+  )
+);
+const TOUTES_LES_ENTREES = [...ENTREES_MAISONS, ...ENTREES_IMMEUBLES, ...ENTREES_TOURS, ...ENTREES_QUARTIERS];
 
 export function ShowroomClient() {
   const [nuit, setNuit] = useState(false);
@@ -230,6 +253,7 @@ export function ShowroomClient() {
       <Section titre="Maisons" entrees={ENTREES_MAISONS} enregistrer={enregistrer} />
       <Section titre="Immeubles" entrees={ENTREES_IMMEUBLES} enregistrer={enregistrer} />
       <Section titre="Tours" entrees={ENTREES_TOURS} enregistrer={enregistrer} />
+      <Section titre="Quartiers (services, commerce, recherche, industrie)" entrees={ENTREES_QUARTIERS} enregistrer={enregistrer} />
     </div>
   );
 }

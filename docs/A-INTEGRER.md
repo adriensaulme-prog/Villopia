@@ -204,12 +204,27 @@ journal existant, puis ce fichier peut être supprimé.*
 > comme visant très probablement l'onglet "Palmarès" (classements par
 > période), à confirmer avec lui.
 
+> **§36 — fait le 05/10/2026** (Services/Commerce/Recherche + arbres de jardin).
 > **§36 (bâtiments Services/Commerce trop simples, arbres trop proches
 > des maisons, 05/10/2026) : nouveau, capture d'écran à l'appui** —
 > confirme un défaut déjà signalé au §20 A et jamais corrigé pour
 > Services/Commerce/Recherche (seuls Industrie et Énergie ont été
 > repris) ; plus un nouveau défaut sur le placement des arbres de
 > jardin, sans marge minimale avec la maison.
+
+> **§37 (décision finale Énergie/mégaprojets + bug centrale sur une
+> route, 05/10/2026) : nouveau** — Adrien confirme qu'Énergie reste à
+> l'extérieur (rien à changer là), demande que les mégaprojets viennent
+> à la bordure de la ville plutôt qu'à 450 m+, demande explicitement de
+> NE PAS retirer le bouton « voir où il est » pour Énergie, et signale
+> un bug : la centrale électrique apparaît parfois à moitié sur une
+> route.
+
+> **§38 (bouton « Appliquer » du thème haussmannien sans effet, 05/10/2026) :
+> nouveau, cause probable identifiée** — pas un bug de la boutique
+> elle-même (§30, déjà construite et fonctionnelle) mais un vieux
+> formulaire resté en double sur « Ma ville », jamais retiré quand la
+> boutique a été construite.
 
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
@@ -2123,3 +2138,104 @@ les rapproche. Détail d'implémentation laissé à Claude Code.
 **Portée** : les deux points sont des ajustements visuels (silhouettes
 de bâtiments, placement d'un élément de décor) — aucun changement de
 règle de jeu, aucune migration attendue.
+
+**Traité le 05/10/2026 (Claude Code)** : (A) Services, Commerce et Recherche
+redessinés (silhouettes par stade) ; (B) arbre de jardin avec marge minimale
+de 2,0 m au mur — détail dans `DECISIONS.md` §4 « Services, Commerce,
+Recherche et arbres de jardin ».
+## 37. Décision finale Énergie/mégaprojets (suite du §33) + bug : centrale électrique à moitié sur une route (retour d'Adrien, 05/10/2026)
+
+**Rappel du contexte (§25, §33)** : Énergie et mégaprojets sont posés dans
+la campagne, hors de la ville, chacun dans son secteur fixe de 60°
+(`src/lib/ville3d/emplacements.ts`) — Énergie sur l'axe +x
+(`AXE_ENERGIE = 0`), mégaprojets sur l'axe +z (`AXE_MEGAPROJETS = 90`) —
+à partir d'une « ceinture » fixe à 450 m du centre (`CEINTURE = 450`),
+jamais relative au rayon courant de la ville, pour qu'un objet déjà
+construit ne bouge jamais même quand la ville grandit. Les monuments,
+eux, ont déjà été ramenés dans la ville (§33, fait).
+
+### A. Décision finale d'Adrien sur Énergie et les mégaprojets
+
+- **Énergie reste à l'extérieur, comme aujourd'hui** — confirmé, rien à
+  changer sur ce point.
+- **Les mégaprojets doivent venir à la bordure de la ville**, pas loin
+  dans la campagne à 450 m et plus comme aujourd'hui.
+- **Le bouton « voir où il est » pour Énergie doit être conservé** — à
+  ne surtout pas retirer (Énergie restant hors de la ville, le besoin
+  de le repérer dans la vue 3D reste entier).
+
+**Point à trancher par Claude Code** pour les mégaprojets : la position
+actuelle est délibérément FIXE et indépendante du rayon courant de la
+ville, justement pour qu'un mégaprojet déjà construit ne bouge jamais
+quand la ville grandit (voir le commentaire au-dessus
+d'`emplacementMegaprojet()`). Si les mégaprojets doivent être « à la
+bordure » plutôt qu'à 450 m+, il faut décider comment concilier ça avec
+une ville qui grandit — par exemple fixer leur position à la bordure
+*au moment de leur construction* puis ne plus jamais la recalculer même
+si la ville les dépasse ensuite (cohérent avec le principe actuel), ou
+une autre approche. Seule contrainte imposée par Adrien : un mégaprojet
+déjà construit ne doit pas se déplacer une fois posé.
+
+### B. Bug : la centrale électrique à moitié sur une route
+
+**Confirmé en lisant le code.** `emplacementCentrale()` tire un point
+dans le secteur d'Énergie avec un angle aléatoire pouvant tomber tout
+près du centre du secteur, donc tout près de l'axe +x lui-même
+(`fraction` proche de 0 → point proche de z = 0). Or
+`buildRoadsAndTraffic()` (`terrain.ts`) prolonge les deux grands axes
+routiers de la ville (dont celui à z ≈ 0) très loin au-delà de la ville
+elle-même, jusqu'à `rayonEnCases`. Quand le tirage place la centrale
+près de l'axe, elle tombe pile sur ce prolongement de route — d'où la
+centrale « à moitié sur une route » signalée par Adrien. Les
+installations secondaires (éoliennes/panneaux solaires,
+`emplacementEnergie()`) sont exposées au même risque, dans une moindre
+mesure puisqu'elles sont réparties sur toute la largeur du secteur et
+pas seulement près de son centre.
+
+**À corriger**, au choix de Claude Code : décaler légèrement le secteur
+Énergie pour qu'il ne soit plus centré exactement sur l'axe de route
+prolongé, ou arrêter de prolonger les grands axes routiers aussi loin
+dans la campagne, ou vérifier/exclure la bande de route au moment du
+tirage de position. Le choix est laissé à Claude Code, comme d'usage
+pour ce niveau de détail d'implémentation.
+## 38. Bouton « Appliquer » sans effet pour le thème haussmannien (retour d'Adrien, 05/10/2026)
+
+**Retour d'Adrien** : en cliquant sur « Appliquer » pour le bâtiment
+haussmannien, rien ne change.
+
+**Bonne nouvelle d'abord** : la boutique de packs (§30) est bel et bien
+construite — migration `0047_boutique_packs.sql` (tables `packs`/
+`joueur_packs`, fonction `possede_pack()`), composant `PacksVille.tsx`
+(section « Thèmes de la ville » dans Ma ville) et `CatalogueBoutique.tsx`
+(onglet `/boutique`), tous les deux basés sur `useChoixTheme()`
+(`src/components/ChoixTheme.tsx`) qui applique le thème TOUT DE SUITE à
+l'écran (changement optimiste de la scène 3D) et revient en arrière
+avec un message d'erreur si le serveur refuse. Le pack haussmannien est
+gratuit pour tout le monde (`insert into packs ... ('haussmannien',
+true)`), donc pas un problème de droit d'accès.
+
+**Cause probable du bug** : `src/app/ville/page.tsx` contient encore
+DEUX contrôles séparés pour changer de thème. Le premier, en haut de
+page (juste après le sélecteur d'activité recommandée) : un vieux
+formulaire HTML brut (`<form action={definirTheme}>`, un `<select>` et
+un bouton « Appliquer ») — visiblement oublié là depuis avant la
+construction de la boutique, puisqu'il appelle directement la même
+action serveur que l'ancien système à l'ère pré-boutique. Le second,
+plus bas (ligne ~435) : le composant `<PacksVille>`, le vrai système de
+la boutique, réduit par défaut sous un `<details>` repliable
+(« Thèmes de la ville »), donc pas visible tout de suite. Il est très
+probable qu'Adrien clique sur le premier bouton (le seul visible
+d'emblée) : celui-ci ne donne AUCUN retour visuel ni message d'erreur
+en cas d'échec (contrairement à `PacksVille`/`useChoixTheme`, qui ont
+un état `erreur` dédié) — d'où l'impression que « rien ne se passe »,
+que l'action réussisse silencieusement ou échoue silencieusement.
+
+**À faire** : retirer ce vieux formulaire en double dans
+`src/app/ville/page.tsx` (le bloc autour de `theme.titre`/
+`theme.appliquer`, juste avant le bloc `region.actuelle`) — il est
+entièrement remplacé par `PacksVille`, qui fait la même chose en mieux
+(retour visuel immédiat, message d'erreur, gestion propre du cas
+« pack non possédé »). Vérifier ensuite, en testant réellement le clic
+sur `PacksVille`, que le changement de thème s'applique bien et se
+reflète dans le rendu 3D — si un vrai bug subsiste une fois le doublon
+retiré, le creuser à ce moment-là plutôt que de deviner à l'avance.

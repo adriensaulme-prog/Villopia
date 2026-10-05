@@ -322,7 +322,8 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§35 fait** (Palmarès fusionné dans
+*Dernière mise à jour : 05/10/2026. **§36 fait** (Services/Commerce/Recherche
+redessinés, arbres de jardin avec marge au mur). **§35 fait** (Palmarès fusionné dans
 Classement, barre à 5 onglets, `/palmares` redirige). Avant : **notes §29 à §34
 d'Adrien traitées**
 (présidence à la semaine — migration `0046` —, monuments dans les cours des
