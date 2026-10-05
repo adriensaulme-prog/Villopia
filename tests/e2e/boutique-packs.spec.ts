@@ -250,6 +250,23 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
     }
   });
 
+  test("migration 0048 : un pack du §40 est refusé tant qu'il n'est pas obtenu (P0030), puis s'applique ; un thème inconnu reste refusé (P0022)", async () => {
+    test.skip(!(await migration0048Appliquee()), "migration 0048 pas encore appliquée à la base");
+    const joueur = await creerCompteAvecVille("j-boutique-0048");
+    const appliquer = (theme: string) =>
+      supabaseAdmin.rpc("definir_theme_ville", { p_owner_id: joueur.userId, p_ville_id: joueur.villeId, p_theme: theme });
+    try {
+      expect((await appliquer("nordique")).error?.code).toBe("P0030");
+      expect((await appliquer("pack-qui-n-existe-pas")).error?.code).toBe("P0022");
+      expect(await themeEnBase(joueur.villeId)).toBe("classique");
+      await supabaseAdmin.from("joueur_packs").insert({ joueur_id: joueur.userId, pack: "nordique", source: "attribution" });
+      expect((await appliquer("nordique")).error).toBeNull();
+      expect(await themeEnBase(joueur.villeId)).toBe("nordique");
+    } finally {
+      await supprimerCompte(joueur.userId);
+    }
+  });
+
   test("migration 0047 : Haussmannien (payant) sans l'avoir — refusé par le serveur, aperçu possible, « Acheter » désactivé", async ({
     page,
   }) => {
