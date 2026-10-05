@@ -184,7 +184,13 @@ export default async function VillePage() {
   // logique que ci-dessus) puis lit les paliers débloqués, pour l'affichage
   // et le rendu 3D. Catalogue fini et connu côté client (monuments.ts) : pas
   // besoin d'une fonction de lecture dédiée, une simple liste suffit.
-  await supabaseAdmin.rpc("avancer_monuments", { p_ville_id: ville.id });
+  // A-INTEGRER §47/§48 : le pays peut réduire les seuils (Technologie n°1, Avance technologique) ;
+  // lue avec le déblocage, sans attendre (0 tant que la migration 0052 n'est pas appliquée).
+  const [, { data: reductionBrute }] = await Promise.all([
+    supabaseAdmin.rpc("avancer_monuments", { p_ville_id: ville.id }),
+    supabaseAdmin.rpc("reduction_seuil_pays", { p_country_id: ville.country_id }),
+  ]);
+  const reductionSeuil = Number(reductionBrute ?? 0);
   const { data: batimentsBruts } = await supabase.from("monuments").select("palier").eq("ville_id", ville.id);
   const paliersDebloques = (batimentsBruts ?? []).map((b) => b.palier as number);
   const { monuments: monumentsDebloques, megaprojets: megaprojetsDebloques } = repartirBatiments(paliersDebloques);
@@ -381,7 +387,13 @@ export default async function VillePage() {
           pointsRecherche={pointsRecherche}
           enCrise={rechercheEnCrise(jauges.find((j) => j.activite === "recherche")?.jauge ?? 1)}
         />
-        <Monuments locale={locale} cleVille={ville.id} paliersDebloques={paliersDebloques} influenceMax={ville.influence_max} />
+        <Monuments
+          locale={locale}
+          cleVille={ville.id}
+          paliersDebloques={paliersDebloques}
+          influenceMax={ville.influence_max}
+          reductionSeuil={reductionSeuil}
+        />
         <PacksVille locale={locale} villeId={ville.id} themeApplique={ville.theme} packs={packsDuJoueur} />
         <div className="act">
           <span className="h3">{traduire(locale, "villes.visiter")}</span>

@@ -154,6 +154,10 @@ test.describe("Jalon 9 — naissance d'un pays", () => {
       await page.getByRole("link", { name: /Mon pays/ }).click();
       await expect(page).toHaveURL(/\/pays$/, { timeout: 20_000 });
       await expect(page.getByRole("heading", { name: "France" })).toBeVisible();
+      // Refonte de /pays en onglets (A-INTEGRER §48) : la liste des villes principales et le lien
+      // « Voir toutes les villes » sont dans l'onglet « Pays ».
+      await page.getByRole("navigation", { name: "Pays" }).getByRole("link", { name: "Pays", exact: true }).click();
+      await expect(page).toHaveURL(/onglet=pays/);
       // Le nom de ville apparaît aussi sur la carte du pays (pastille
       // "ma ville", Jalon 9 ter) et dans "Président actuel" (Jalon 11,
       // cette ville a la plus haute population) : on vise le lien de la

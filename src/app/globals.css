@@ -1156,3 +1156,134 @@ body {
     display: inline-flex;
   }
 }
+
+/* ---------- Pays : onglets, classement, développements (A-INTEGRER §47 et §48) ---------- */
+.dock-left.dock-pays {
+  width: min(520px, calc(100% - 32px));
+}
+@media (max-width: 640px) {
+  .dock-left.dock-pays {
+    width: auto;
+  }
+}
+.tiles-pays {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 460px) {
+  /* Quatre chiffres sur une ligne : l'en-tête du pays ne doit pas manger tout le panneau réduit. */
+  .tiles-pays {
+    gap: 5px;
+  }
+  .tiles-pays .tile {
+    padding: 6px 7px;
+    min-width: 0;
+  }
+  .tiles-pays .tile b {
+    font-size: 14px;
+  }
+  .tiles-pays .tile span {
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+.sous-onglets {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.sous-onglets::-webkit-scrollbar {
+  display: none;
+}
+.sous-onglet {
+  flex: none;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+.sous-onglet:hover {
+  color: var(--ink);
+}
+.sous-onglet[aria-current="page"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.famille-attaque {
+  --famille: var(--bad);
+}
+.famille-defense {
+  --famille: var(--focus);
+}
+.famille-developpement {
+  --famille: var(--good);
+}
+.options-dev,
+.famille-dev {
+  display: grid;
+  gap: 8px;
+}
+.option-dev,
+.dev-carte {
+  border-left: 4px solid var(--famille, var(--line));
+}
+.dev-carte.acquis {
+  border-color: var(--good);
+  background: var(--good-soft);
+}
+.famille-titre {
+  margin: 6px 0 0;
+  color: var(--famille);
+}
+.puces-cout {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: middle;
+}
+.puce-cout {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.puce-cout.ok {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.puce-cout.manque {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.classement-pays {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.ligne-classement.premier {
+  border-color: var(--good);
+  box-shadow: inset 0 0 0 1px var(--good);
+}
+.effet-premier {
+  margin: 0;
+}
+/* .meta est réservée aux lignes de liste (grid-column 2 / 4) : ses sœurs pour les cartes. */
+.ligne-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}

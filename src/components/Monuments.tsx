@@ -1,5 +1,6 @@
 import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 import { CATALOGUE_BATIMENTS, catalogueParSeuil } from "@/lib/game/monuments";
+import { seuilEffectif } from "@/lib/game/classementPays";
 import { EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import { cleDe } from "@/lib/ville3d/emplacements";
 import { placesMonuments } from "@/lib/ville3d/monumentsVille";
@@ -24,11 +25,14 @@ export function Monuments({
   cleVille,
   paliersDebloques,
   influenceMax,
+  reductionSeuil = 0,
 }: {
   locale: Locale;
   cleVille: string;
   paliersDebloques: readonly number[];
   influenceMax: number;
+  /** A-INTEGRER §47/§48 : part (0 à 1) retirée des seuils par le pays (Technologie n°1, Avance technologique). */
+  reductionSeuil?: number;
 }) {
   const cle = cleDe(cleVille);
   const debloques = new Set(paliersDebloques);
@@ -84,7 +88,8 @@ export function Monuments({
               </span>
               <span>
                 {prochain?.palier === entree.palier ? `${nf.format(influenceMax)} / ` : ""}
-                {nf.format(entree.seuil)} {traduire(locale, "monument.influence")}
+                {nf.format(seuilEffectif(entree.seuil, reductionSeuil))} {traduire(locale, "monument.influence")}
+                {reductionSeuil > 0 ? ` (${new Intl.NumberFormat(locale, { style: "percent" }).format(-reductionSeuil)})` : ""}
               </span>
             </li>
           );

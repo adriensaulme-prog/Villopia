@@ -220,7 +220,8 @@ test.describe("Refonte de l'onglet Pays — statut et historique hebdomadaire", 
     await page.getByRole("button", { name: "Se connecter" }).click();
     await expect(page).toHaveURL(/\/ville$/);
 
-    await page.goto("/pays");
+    // Onglet « Historique » (A-INTEGRER §48) ; le statut de la semaine reste dans l'en-tête, sur tous les onglets.
+    await page.goto("/pays?onglet=historique");
     await expect(page.getByText("En paix")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Historique hebdomadaire" })).toBeVisible();
     await expect(page.getByText("Ressource votée")).toBeVisible();

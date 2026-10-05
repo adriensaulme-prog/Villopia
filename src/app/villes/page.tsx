@@ -353,8 +353,13 @@ export default async function VillesPage({
   // logique qu'au-dessus) puis lit les paliers débloqués, pour la ville
   // affichée en 3D.
   let paliersDebloques3D: number[] = [];
+  let reductionSeuil3D = 0; // A-INTEGRER §47/§48 : réduction des seuils du pays de la ville affichée
   if (villeAffichee3D) {
-    await supabaseAdmin.rpc("avancer_monuments", { p_ville_id: villeAffichee3D.id });
+    const [, { data: reductionBrute }] = await Promise.all([
+      supabaseAdmin.rpc("avancer_monuments", { p_ville_id: villeAffichee3D.id }),
+      supabaseAdmin.rpc("reduction_seuil_pays", { p_country_id: villeAffichee3D.country_id }),
+    ]);
+    reductionSeuil3D = Number(reductionBrute ?? 0);
     const { data: batimentsBruts } = await supabase
       .from("monuments")
       .select("palier")
@@ -532,7 +537,13 @@ export default async function VillesPage({
                   paliersDebloques={nbTechnologiesDebloquees3D}
                   pointsRecherche={pointsRecherche3D}
                 />
-                <Monuments locale={locale} cleVille={c.id} paliersDebloques={paliersDebloques3D} influenceMax={c.influence_max} />
+                <Monuments
+                  locale={locale}
+                  cleVille={c.id}
+                  paliersDebloques={paliersDebloques3D}
+                  influenceMax={c.influence_max}
+                  reductionSeuil={reductionSeuil3D}
+                />
 
                 <div className="actions">
                   <div className="act">

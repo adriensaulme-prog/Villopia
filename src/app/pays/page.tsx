@@ -1,110 +1,47 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLocale, traduire } from "@/lib/i18n";
-import type { DictionaryKey } from "@/lib/i18n/dictionaries";
 import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
-import { debutSemaineIso } from "@/lib/game/semaineIso";
-import { palierGuerre } from "@/lib/game/conflits";
 import { SelecteurPays } from "./SelecteurPays";
 import { PanneauFlottant } from "@/components/PanneauFlottant";
-import { voterPays, proposerDecisionDiplomatique, soutenirDecisionDiplomatique } from "./actions";
+import { SousOnglets } from "./composants";
+import { OngletSemaine } from "./onglets/Semaine";
+import { OngletClassement } from "./onglets/Classement";
+import { OngletDeveloppement } from "./onglets/Developpement";
+import { OngletApercuPays } from "./onglets/ApercuPays";
+import { OngletHistorique } from "./onglets/Historique";
+import {
+  ONGLETS_PAYS,
+  premiereLigne,
+  type ContextePays,
+  type Mandat,
+  type MandatBrut,
+  type OngletPays,
+  type StatsPays,
+  type StatutSemaine,
+  type VillePrincipale,
+} from "./types";
 
 const TAILLE_TOP = 10;
 
-type StatsPays = {
-  nb_villes: number;
-  population_totale: number;
-  influence_totale: number;
-  activite_moyenne: number;
-};
-
-type VillePrincipale = { id: string; nom: string; population: number };
-
-type Categorie = "industrie" | "techno" | "culture" | "commerce";
-const CATEGORIES: Categorie[] = ["industrie", "techno", "culture", "commerce"];
-const LABEL_CATEGORIE: Record<Categorie, DictionaryKey> = {
-  industrie: "pays.categorie.industrie",
-  techno: "pays.categorie.techno",
-  culture: "pays.categorie.culture",
-  commerce: "pays.categorie.commerce",
-};
-
-type ResultatVote = { categorie: Categorie; nb_votes: number; pourcentage: number };
-type RessourcePays = { categorie: Categorie; total: number };
-
-type CategorieDiplomatie = "alliance" | "paix" | "rivalite" | "embargo";
-const CATEGORIES_DIPLOMATIE: CategorieDiplomatie[] = ["alliance", "paix", "rivalite", "embargo"];
-const LABEL_DIPLOMATIE: Record<CategorieDiplomatie, DictionaryKey> = {
-  alliance: "pays.diplomatie.alliance",
-  paix: "pays.diplomatie.paix",
-  rivalite: "pays.diplomatie.rivalite",
-  embargo: "pays.diplomatie.embargo",
-};
-type ResultatDecision = {
-  proposition_id: string;
-  pays_cible_id: string;
-  categorie: CategorieDiplomatie;
-  proposee_par_ville_id: string;
-  nb_pour: number;
-  nb_contre: number;
-};
-
-type StatutConflit = "en_cours" | "termine";
-type ResultatConflit = "attaquant" | "defenseur" | "egalite";
-type ConflitPays = {
-  id: string;
-  pays_attaquant_id: string;
-  pays_defenseur_id: string;
-  debut: string;
-  fin: string;
-  statut: StatutConflit;
-  resultat: ResultatConflit | null;
-  effort_attaquant: number;
-  effort_defenseur: number;
-  jours_gagnes_attaquant: number;
-  jours_gagnes_defenseur: number;
-  cout_ressources: Partial<Record<Categorie, number>>;
-};
-
-type StatutSemaine = "paix" | "guerre" | "allie";
-type LigneHistorique = {
-  semaine: string;
-  vote_categorie: Categorie | null;
-  vote_nb: number | null;
-  decision_categorie: CategorieDiplomatie | null;
-  decision_cible: string | null;
-  decision_adoptee: boolean | null;
-  decision_pour: number | null;
-  decision_contre: number | null;
-  conflit_id: string | null;
-  conflit_role: "attaquant" | "defenseur" | null;
-  conflit_adversaire: string | null;
-  conflit_statut: StatutConflit | null;
-  conflit_resultat: ResultatConflit | null;
-  pertes_pays: number | null;
-  pertes_adversaire: number | null;
-  /** Ville présidente de cette semaine (A-INTEGRER §31), null avant la présidence hebdomadaire. */
-  president_ville_id: string | null;
-  president_ville_nom: string | null;
-};
-
-type MandatBrut = {
-  ville_id: string;
-  debut: string;
-  fin: string | null;
-  ville: { nom: string } | { nom: string }[] | null;
-};
-type Mandat = { villeId: string; nom: string; debut: string; fin: string | null };
-
+/**
+ * /pays : l'en-tête du pays (statut, président, chiffres) reste toujours visible ; dessous, cinq
+ * onglets (docs/A-INTEGRER.md §48, refonte de la page pour accueillir le classement des pays du §47
+ * et le vote de développement du §48) : « Cette semaine » (par défaut), « Classement »,
+ * « Développement », « Pays », « Historique ». Chaque onglet est une page rendue côté serveur
+ * (?onglet=), comme les sections de /classement : il ne charge que ses propres données.
+ */
 export default async function PaysPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pays?: string }>;
+  searchParams: Promise<{ pays?: string; onglet?: string }>;
 }) {
   const locale = await getLocale();
-  const { pays: paysDemande } = await searchParams;
+  const { pays: paysDemande, onglet: ongletDemande } = await searchParams;
+  const onglet: OngletPays = (ONGLETS_PAYS as readonly string[]).includes(ongletDemande ?? "")
+    ? (ongletDemande as OngletPays)
+    : "semaine";
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -138,19 +75,44 @@ export default async function PaysPage({
     .from("countries")
     .select(`id, nom:${colonneNomPays}`)
     .order(colonneNomPays);
-  const idsValides = new Set((listePays ?? []).map((p) => p.id));
+  const pays = (listePays ?? []) as { id: string; nom: string }[];
+  const idsValides = new Set(pays.map((p) => p.id));
   const countryId = paysDemande && idsValides.has(paysDemande) ? paysDemande : maVille.country_id;
-  const nomPaysAffiche = (listePays ?? []).find((p) => p.id === countryId)?.nom ?? countryId;
+  const nomDe = (id: string | null) => (id ? (pays.find((p) => p.id === id)?.nom ?? id) : "");
+  const nomPaysAffiche = nomDe(countryId);
+  const estMonPays = countryId === maVille.country_id;
 
-  // Tient à jour l'historique des présidences pour le pays consulté
-  // (Jalon 11) — idempotente, voir le commentaire dans /ville/page.tsx.
-  await supabaseAdmin.rpc("verifier_president", { p_country_id: countryId });
+  // Mises à jour paresseuses du pays consulté, toutes idempotentes (comme verifier_president au
+  // Jalon 11) : la présidence de la semaine, la décision diplomatique de la semaine passée, le vote
+  // de développement de la semaine passée (migration 0054 : l'appel est ignoré tant qu'elle n'est pas
+  // appliquée). La résolution des conflits vient APRÈS : une rivalité adoptée vient d'en créer un.
+  await Promise.all([
+    supabaseAdmin.rpc("verifier_president", { p_country_id: countryId }),
+    supabaseAdmin.rpc("resoudre_decision_diplomatique", { p_country_id: countryId }),
+    supabaseAdmin.rpc("resoudre_developpement_pays", { p_country_id: countryId }),
+  ]);
+  await supabaseAdmin.rpc("resoudre_conflits_en_cours");
 
-  const { data: mandatsBrutes } = await supabase
-    .from("presidents")
-    .select("ville_id, debut, fin, ville:cities(nom)")
-    .eq("country_id", countryId)
-    .order("debut", { ascending: false });
+  const [{ data: mandatsBrutes }, { data: statsBrutes, error: erreurStats }, { data: villesBrutes }, { data: statutBrut }] =
+    await Promise.all([
+      supabase
+        .from("presidents")
+        .select("ville_id, debut, fin, ville:cities(nom)")
+        .eq("country_id", countryId)
+        .order("debut", { ascending: false }),
+      supabase.rpc("stats_pays", { p_country_id: countryId }),
+      onglet === "pays"
+        ? supabase
+            .from("cities")
+            .select("id, nom, population")
+            .eq("country_id", countryId)
+            .order("population", { ascending: false })
+            .limit(TAILLE_TOP)
+        : Promise.resolve({ data: [] }),
+      supabase.rpc("statut_pays_semaine", { p_country_id: countryId }),
+    ]);
+  if (erreurStats) console.error("Chargement des statistiques du pays a échoué :", erreurStats.message);
+
   const mandats: Mandat[] = ((mandatsBrutes ?? []) as MandatBrut[]).map((m) => ({
     villeId: m.ville_id,
     nom: (Array.isArray(m.ville) ? m.ville[0] : m.ville)?.nom ?? "",
@@ -158,111 +120,29 @@ export default async function PaysPage({
     fin: m.fin,
   }));
   const mandatActuel = mandats.find((m) => m.fin === null) ?? null;
-
-  const { data: statsBrutes, error: erreurStats } = await supabase.rpc("stats_pays", {
-    p_country_id: countryId,
-  });
-  if (erreurStats) console.error("Chargement des statistiques du pays a échoué :", erreurStats.message);
-  const stats = (Array.isArray(statsBrutes) ? statsBrutes[0] : statsBrutes) as StatsPays | undefined;
-
-  const { data: villesPrincipalesBrutes } = await supabase
-    .from("cities")
-    .select("id, nom, population")
-    .eq("country_id", countryId)
-    .order("population", { ascending: false })
-    .limit(TAILLE_TOP);
-  const villesPrincipales = (villesPrincipalesBrutes ?? []) as VillePrincipale[];
-
-  const { data: resultatsBrutes } = await supabase.rpc("resultats_vote_semaine", {
-    p_country_id: countryId,
-    p_semaine: null,
-  });
-  const resultats = (resultatsBrutes ?? []) as ResultatVote[];
-
-  const { data: ressourcesBrutes } = await supabase.rpc("ressources_pays", { p_country_id: countryId });
-  const ressources = (ressourcesBrutes ?? []) as RessourcePays[];
-
-  // Le vote n'est proposé que pour son propre pays — voter pour un pays
-  // qu'on ne représente pas n'aurait pas de sens.
-  const estMonPays = countryId === maVille.country_id;
-  let monVoteCetteSemaine: Categorie | null = null;
-  if (estMonPays) {
-    const { data: monVote } = await supabase
-      .from("votes_pays")
-      .select("categorie")
-      .eq("joueur_id", user.id)
-      .eq("semaine", debutSemaineIso())
-      .maybeSingle();
-    monVoteCetteSemaine = (monVote?.categorie as Categorie | undefined) ?? null;
-  }
-
-  // Décision diplomatique (Jalon 12) : seule la présidente en exercice
-  // de son propre pays peut proposer une cible + une catégorie cette
-  // semaine ; n'importe quel citoyen peut ensuite soutenir. Ce que la
-  // décision *fait* une fois soutenue n'est pas encore défini (point
-  // ouvert, DECISIONS.md §10) — laissé au Jalon 13.
-  const jeSuisPresident = estMonPays && mandatActuel?.villeId === maVilleId;
-  const { data: resultatDecisionBrut } = await supabase.rpc("resultat_decision_semaine", {
-    p_country_id: countryId,
-    p_semaine: null,
-  });
-  const resultatDecision = (
-    Array.isArray(resultatDecisionBrut) ? resultatDecisionBrut[0] : resultatDecisionBrut
-  ) as ResultatDecision | undefined;
-  const nomPaysCible = resultatDecision
-    ? ((listePays ?? []).find((p) => p.id === resultatDecision.pays_cible_id)?.nom ?? resultatDecision.pays_cible_id)
-    : null;
-
-  let monVoteDiplomatieCetteSemaine: "pour" | "contre" | null = null;
-  if (estMonPays && resultatDecision) {
-    const { data: monVoteDiplomatie } = await supabase
-      .from("votes_diplomatie")
-      .select("position")
-      .eq("joueur_id", user.id)
-      .eq("semaine", debutSemaineIso())
-      .maybeSingle();
-    monVoteDiplomatieCetteSemaine = (monVoteDiplomatie?.position as "pour" | "contre" | undefined) ?? null;
-  }
-
-  // Résolution du conflit (Jalon 13) : idempotentes comme verifier_president
-  // ci-dessus — clôt la proposition de la semaine passée du pays consulté
-  // (déclenche un conflit si "rivalité" adoptée à la majorité), puis clôt
-  // tout conflit arrivé à échéance (7 jours), tous pays confondus.
-  await supabaseAdmin.rpc("resoudre_decision_diplomatique", { p_country_id: countryId });
-  await supabaseAdmin.rpc("resoudre_conflits_en_cours");
-
-  const { data: conflitBrut } = await supabase.rpc("conflit_pays", { p_country_id: countryId });
-  const conflit = (Array.isArray(conflitBrut) ? conflitBrut[0] : conflitBrut) as ConflitPays | undefined;
-  const nomPaysAttaquant = conflit
-    ? ((listePays ?? []).find((p) => p.id === conflit.pays_attaquant_id)?.nom ?? conflit.pays_attaquant_id)
-    : null;
-  const nomPaysDefenseur = conflit
-    ? ((listePays ?? []).find((p) => p.id === conflit.pays_defenseur_id)?.nom ?? conflit.pays_defenseur_id)
-    : null;
-  const palierConflit = conflit
-    ? palierGuerre(Math.max(conflit.jours_gagnes_attaquant, conflit.jours_gagnes_defenseur))
-    : null;
-
-  // Refonte de l'onglet Pays (docs/A-INTEGRER.md §23) : statut de la
-  // semaine + historique hebdomadaire, calculés à la demande
-  // (migration 0036, pas de table de synthèse).
-  const { data: statutBrut } = await supabase.rpc("statut_pays_semaine", { p_country_id: countryId });
-  const statutLigne = (Array.isArray(statutBrut) ? statutBrut[0] : statutBrut) as
-    | { statut: StatutSemaine; pays_lie: string | null }
-    | undefined;
+  const stats = premiereLigne<StatsPays>(statsBrutes);
+  const villesPrincipales = (villesBrutes ?? []) as VillePrincipale[];
+  const statutLigne = premiereLigne<{ statut: StatutSemaine; pays_lie: string | null }>(statutBrut);
   const statutSemaine: StatutSemaine = statutLigne?.statut ?? "paix";
-  const nomDe = (id: string | null) => (id ? ((listePays ?? []).find((p) => p.id === id)?.nom ?? id) : "");
   const nomPaysLie = nomDe(statutLigne?.pays_lie ?? null);
 
-  const { data: historiqueBrut } = await supabase.rpc("historique_pays", {
-    p_country_id: countryId,
-    p_nb_semaines: 12,
-  });
-  const historique = (historiqueBrut ?? []) as LigneHistorique[];
+  const ctx: ContextePays = {
+    locale,
+    supabase,
+    userId: user.id,
+    maVilleId,
+    monPaysId: maVille.country_id,
+    countryId,
+    estMonPays,
+    listePays: pays,
+    nomDe,
+    jeSuisPresident: estMonPays && mandatActuel?.villeId === maVilleId,
+  };
+  const nf = new Intl.NumberFormat(locale);
 
   return (
     <main className="screen" aria-label={traduire(locale, "pays.eyebrow")}>
-      <PanneauFlottant locale={locale} className="dock dock-float dock-left">
+      <PanneauFlottant locale={locale} className="dock dock-float dock-left dock-pays">
         <div className="head-row">
           <span className="eyebrow">{traduire(locale, "pays.eyebrow")}</span>
         </div>
@@ -277,357 +157,42 @@ export default async function PaysPage({
         </p>
 
         <div className="row">
-          <SelecteurPays locale={locale} paysActuel={countryId} pays={(listePays ?? []) as { id: string; nom: string }[]} />
+          <SelecteurPays locale={locale} paysActuel={countryId} pays={pays} onglet={onglet} />
         </div>
 
         {mandatActuel ? (
           <p className="note">
-            <span className="badge pres">{traduire(locale, "classement.president")}</span>{" "}
-            <b>{mandatActuel.nom}</b> · {traduire(locale, "pays.president.depuis")}{" "}
-            {new Intl.DateTimeFormat(locale).format(new Date(mandatActuel.debut))}
+            <span className="badge pres">{traduire(locale, "classement.president")}</span> <b>{mandatActuel.nom}</b> ·{" "}
+            {traduire(locale, "pays.president.depuis")} {new Intl.DateTimeFormat(locale).format(new Date(mandatActuel.debut))}
           </p>
         ) : null}
 
-        <div className="tiles">
+        <div className="tiles tiles-pays">
           <div className="tile">
-            <b>{new Intl.NumberFormat(locale).format(stats?.population_totale ?? 0)}</b>
+            <b>{nf.format(stats?.population_totale ?? 0)}</b>
             <span>{traduire(locale, "ville.population")}</span>
           </div>
           <div className="tile">
-            <b>{new Intl.NumberFormat(locale).format(stats?.influence_totale ?? 0)}</b>
+            <b>{nf.format(stats?.influence_totale ?? 0)}</b>
             <span>{traduire(locale, "ville.influence")}</span>
           </div>
           <div className="tile">
-            <b>{new Intl.NumberFormat(locale).format(stats?.activite_moyenne ?? 0)}</b>
+            <b>{nf.format(stats?.activite_moyenne ?? 0)}</b>
             <span>{traduire(locale, "ville.activite")}</span>
           </div>
           <div className="tile">
-            <b>{new Intl.NumberFormat(locale).format(stats?.nb_villes ?? 0)}</b>
+            <b>{nf.format(stats?.nb_villes ?? 0)}</b>
             <span>{traduire(locale, "pays.nbVilles")}</span>
           </div>
         </div>
 
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.villesPrincipales")}</h2>
-        </div>
-        {villesPrincipales.length === 0 ? (
-          <p className="empty">{traduire(locale, "pays.aucuneVille")}</p>
-        ) : (
-          <ol className="list">
-            {villesPrincipales.map((v, i) => {
-              const estMoi = v.id === maVilleId;
-              const href = estMoi ? "/ville" : `/villes?ville=${v.id}`;
-              return (
-                <li key={v.id}>
-                  <Link href={href} className="rowbtn" aria-current={estMoi}>
-                    <span className="rk">{i + 1}</span>
-                    <span className="nm">{v.nom}</span>
-                    <span className="pp">{new Intl.NumberFormat(locale).format(v.population)}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        <p className="note">
-          <Link href={`/villes?pays=${countryId}`}>{traduire(locale, "pays.voirToutesLesVilles")}</Link>
-        </p>
+        <SousOnglets locale={locale} actif={onglet} paysConsulte={estMonPays ? null : countryId} />
 
-        {estMonPays ? (
-          <>
-            <div className="head-row">
-              <h2 className="h3">{traduire(locale, "pays.vote.titre")}</h2>
-            </div>
-            {monVoteCetteSemaine ? (
-              <p className="note">
-                {traduire(locale, "pays.vote.dejaVote")} <b>{traduire(locale, LABEL_CATEGORIE[monVoteCetteSemaine])}</b>.
-              </p>
-            ) : (
-              <>
-                <p className="note">{traduire(locale, "pays.vote.instruction")}</p>
-                <div className="row">
-                  {CATEGORIES.map((c) => (
-                    <form key={c} action={voterPays}>
-                      <input type="hidden" name="categorie" value={c} />
-                      <button className="btn small" type="submit">
-                        {traduire(locale, LABEL_CATEGORIE[c])}
-                      </button>
-                    </form>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        ) : null}
-
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.diplomatie.titre")}</h2>
-        </div>
-        {resultatDecision ? (
-          <div className="card">
-            <div className="spread">
-              <span className="h3">
-                {traduire(locale, LABEL_DIPLOMATIE[resultatDecision.categorie])} · {nomPaysCible}
-              </span>
-            </div>
-            <div className="row">
-              <span className="badge">
-                {new Intl.NumberFormat(locale).format(resultatDecision.nb_pour)} {traduire(locale, "pays.diplomatie.pour")}
-              </span>
-              <span className="badge">
-                {new Intl.NumberFormat(locale).format(resultatDecision.nb_contre)} {traduire(locale, "pays.diplomatie.contre")}
-              </span>
-            </div>
-            {estMonPays ? (
-              monVoteDiplomatieCetteSemaine ? (
-                <p className="note">
-                  {traduire(locale, "pays.diplomatie.dejaVote")}{" "}
-                  <b>
-                    {traduire(
-                      locale,
-                      monVoteDiplomatieCetteSemaine === "pour" ? "pays.diplomatie.pour" : "pays.diplomatie.contre",
-                    )}
-                  </b>
-                  .
-                </p>
-              ) : (
-                <div className="row">
-                  <form action={soutenirDecisionDiplomatique}>
-                    <input type="hidden" name="position" value="pour" />
-                    <button className="btn small" type="submit">
-                      {traduire(locale, "pays.diplomatie.pour")}
-                    </button>
-                  </form>
-                  <form action={soutenirDecisionDiplomatique}>
-                    <input type="hidden" name="position" value="contre" />
-                    <button className="btn small" type="submit">
-                      {traduire(locale, "pays.diplomatie.contre")}
-                    </button>
-                  </form>
-                </div>
-              )
-            ) : null}
-          </div>
-        ) : (
-          <p className="empty">{traduire(locale, "pays.diplomatie.aucunePropositionCetteSemaine")}</p>
-        )}
-        {jeSuisPresident && !resultatDecision ? (
-          <form action={proposerDecisionDiplomatique} className="row" style={{ flexWrap: "wrap" }}>
-            <select name="paysCibleId" className="select" aria-label={traduire(locale, "pays.diplomatie.choisirCible")} required>
-              <option value="">{traduire(locale, "pays.diplomatie.choisirCible")}</option>
-              {(listePays ?? [])
-                .filter((p) => p.id !== countryId)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nom}
-                  </option>
-                ))}
-            </select>
-            <select name="categorie" className="select" aria-label={traduire(locale, "pays.diplomatie.choisirCategorie")} required>
-              <option value="">{traduire(locale, "pays.diplomatie.choisirCategorie")}</option>
-              {CATEGORIES_DIPLOMATIE.map((c) => (
-                <option key={c} value={c}>
-                  {traduire(locale, LABEL_DIPLOMATIE[c])}
-                </option>
-              ))}
-            </select>
-            <button className="btn small" type="submit">
-              {traduire(locale, "pays.diplomatie.proposer")}
-            </button>
-          </form>
-        ) : null}
-
-        {conflit ? (
-          <>
-            <div className="head-row">
-              <h2 className="h3">{traduire(locale, "pays.conflit.titre")}</h2>
-            </div>
-            <div className="card">
-              <div className="spread">
-                <span className="h3">
-                  {nomPaysAttaquant} {traduire(locale, "pays.conflit.contre")} {nomPaysDefenseur}
-                </span>
-                <span className="badge">
-                  {traduire(locale, conflit.statut === "en_cours" ? "pays.conflit.enCours" : "pays.conflit.termine")}
-                </span>
-              </div>
-              {palierConflit ? (
-                <p className="note">
-                  <span className="badge">{traduire(locale, `pays.conflit.palier.${palierConflit}`)}</span>
-                </p>
-              ) : null}
-              <div className="tiles">
-                <div className="tile">
-                  <b>{new Intl.NumberFormat(locale).format(conflit.jours_gagnes_attaquant)}</b>
-                  <span>{traduire(locale, "pays.conflit.joursGagnesAttaquant")}</span>
-                </div>
-                <div className="tile">
-                  <b>{new Intl.NumberFormat(locale).format(conflit.jours_gagnes_defenseur)}</b>
-                  <span>{traduire(locale, "pays.conflit.joursGagnesDefenseur")}</span>
-                </div>
-                <div className="tile">
-                  <b>{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(conflit.effort_attaquant)}</b>
-                  <span>{traduire(locale, "pays.conflit.effortAttaquant")}</span>
-                </div>
-                <div className="tile">
-                  <b>{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(conflit.effort_defenseur)}</b>
-                  <span>{traduire(locale, "pays.conflit.effortDefenseur")}</span>
-                </div>
-              </div>
-              {conflit.statut === "en_cours" ? (
-                <p className="note">{traduire(locale, "pays.conflit.effetQuotidien")}</p>
-              ) : null}
-              {conflit.statut === "termine" && conflit.resultat ? (
-                <p className="note">
-                  {traduire(locale, "pays.conflit.resultat")}{" "}
-                  <b>
-                    {conflit.resultat === "egalite"
-                      ? traduire(locale, "pays.conflit.egalite")
-                      : conflit.resultat === "attaquant"
-                        ? nomPaysAttaquant
-                        : nomPaysDefenseur}
-                  </b>
-                </p>
-              ) : (
-                <p className="note">
-                  {traduire(locale, "pays.conflit.finLe")}{" "}
-                  {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(conflit.fin))}
-                </p>
-              )}
-              {Object.keys(conflit.cout_ressources).length > 0 ? (
-                <>
-                  <p className="note">{traduire(locale, "pays.conflit.cout")}</p>
-                  <div className="tiles">
-                    {CATEGORIES.filter((c) => conflit.cout_ressources[c] !== undefined).map((c) => (
-                      <div key={c} className="tile">
-                        <b>{new Intl.NumberFormat(locale).format(conflit.cout_ressources[c] ?? 0)}</b>
-                        <span>{traduire(locale, LABEL_CATEGORIE[c])}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </>
-        ) : null}
-
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.resultats.titre")}</h2>
-        </div>
-        <ol className="list">
-          {resultats.map((r, i) => (
-            <li key={r.categorie}>
-              <span className="rowbtn">
-                <span className="rk">{i + 1}</span>
-                <span className="nm">{traduire(locale, LABEL_CATEGORIE[r.categorie])}</span>
-                <span className="pp">{r.pourcentage}%</span>
-                <span className="meta">{new Intl.NumberFormat(locale).format(r.nb_votes)}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.ressources.titre")}</h2>
-        </div>
-        <div className="tiles">
-          {ressources.map((r) => (
-            <div key={r.categorie} className="tile">
-              <b>{new Intl.NumberFormat(locale).format(r.total)}</b>
-              <span>{traduire(locale, LABEL_CATEGORIE[r.categorie])}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.historique.titre")}</h2>
-        </div>
-        {historique.length === 0 ? (
-          <p className="empty">{traduire(locale, "pays.historique.aucun")}</p>
-        ) : (
-          <ol className="list">
-            {historique.map((h, i) => {
-              const issue =
-                h.conflit_resultat === null
-                  ? "enCours"
-                  : h.conflit_resultat === "egalite"
-                    ? "egalite"
-                    : h.conflit_resultat === h.conflit_role
-                      ? "victoire"
-                      : "defaite";
-              return (
-                <li key={`${h.semaine}-${h.conflit_id ?? i}`}>
-                  <div className="card">
-                    <div className="spread">
-                      <span className="h3">
-                        {traduire(locale, "pays.historique.semaineDu")}{" "}
-                        {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(h.semaine))}
-                      </span>
-                    </div>
-                    {h.president_ville_nom ? (
-                      <p className="note">
-                        <span className="badge pres">{traduire(locale, "classement.president")}</span>{" "}
-                        <b>{h.president_ville_nom}</b>
-                      </p>
-                    ) : null}
-                    {h.vote_categorie ? (
-                      <p className="note">
-                        {traduire(locale, "pays.historique.vote")} :{" "}
-                        <b>{traduire(locale, LABEL_CATEGORIE[h.vote_categorie])}</b> ({h.vote_nb})
-                      </p>
-                    ) : null}
-                    {h.decision_categorie ? (
-                      <p className="note">
-                        {traduire(locale, "pays.historique.decision")} :{" "}
-                        <b>
-                          {traduire(locale, LABEL_DIPLOMATIE[h.decision_categorie])} · {nomDe(h.decision_cible)}
-                        </b>{" "}
-                        — {traduire(locale, h.decision_adoptee ? "pays.historique.adoptee" : "pays.historique.rejetee")} (
-                        {h.decision_pour} {traduire(locale, "pays.diplomatie.pour").toLowerCase()} /{" "}
-                        {h.decision_contre} {traduire(locale, "pays.diplomatie.contre").toLowerCase()})
-                      </p>
-                    ) : null}
-                    {h.conflit_id && h.conflit_role ? (
-                      <p className="note">
-                        {traduire(locale, "pays.historique.conflit")} {traduire(locale, "pays.conflit.contre")}{" "}
-                        <b>{nomDe(h.conflit_adversaire)}</b> ({traduire(locale, `pays.historique.role.${h.conflit_role}`)}) :{" "}
-                        <b>{traduire(locale, `pays.historique.issue.${issue}`)}</b>
-                        {" · "}
-                        {traduire(locale, "pays.historique.pertes")} {new Intl.NumberFormat(locale).format(h.pertes_pays ?? 0)} /{" "}
-                        {new Intl.NumberFormat(locale).format(h.pertes_adversaire ?? 0)}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-
-        <div className="head-row">
-          <h2 className="h3">{traduire(locale, "pays.president.historique")}</h2>
-        </div>
-        {mandats.length === 0 ? (
-          <p className="empty">{traduire(locale, "pays.president.aucunHistorique")}</p>
-        ) : (
-          <ol className="list">
-            {mandats.map((m, i) => (
-              <li key={`${m.villeId}-${m.debut}`}>
-                <span className="rowbtn">
-                  <span className="rk">{mandats.length - i}</span>
-                  <span className="nm">{m.nom}</span>
-                  <span className="meta">
-                    {new Intl.DateTimeFormat(locale).format(new Date(m.debut))}
-                    {m.fin ? ` – ${new Intl.DateTimeFormat(locale).format(new Date(m.fin))}` : null}
-                    {m.fin === null ? (
-                      <span className="badge pres">{traduire(locale, "pays.president.enCours")}</span>
-                    ) : null}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
+        {onglet === "semaine" ? <OngletSemaine ctx={ctx} /> : null}
+        {onglet === "classement" ? <OngletClassement ctx={ctx} /> : null}
+        {onglet === "developpement" ? <OngletDeveloppement ctx={ctx} /> : null}
+        {onglet === "pays" ? <OngletApercuPays ctx={ctx} villesPrincipales={villesPrincipales} mandats={mandats} /> : null}
+        {onglet === "historique" ? <OngletHistorique ctx={ctx} /> : null}
       </PanneauFlottant>
     </main>
   );

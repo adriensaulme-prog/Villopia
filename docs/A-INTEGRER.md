@@ -330,6 +330,36 @@ journal existant, puis ce fichier peut être supprimé.*
 > ni l'or/bronze des monuments : chaque mégaprojet doit avoir la
 > couleur/matière NATURELLE du bâtiment qu'il représente.
 
+> **§47 et §48 — faits le 05/10/2026** (traités ensemble : un seul système, les ressources
+> nationales se classent entre pays ET se dépensent en développements). Quatre étapes, **trois
+> migrations à appliquer par Adrien, dans l'ordre** : **`0052`** (classement hebdomadaire des pays figé
+> par semaine, sans table ; bonus du n°1 : Industrie +15 % d'effort de guerre, Commerce +10 % de
+> croissance par visite, Technologie −10 % sur les seuils des monuments), **`0053`** (avis pondéré du
+> pays visé par une décision diplomatique : l'effet « Culture n°1 », en interprétation à valider),
+> **`0054`** (catalogue de 9 développements, vote hebdomadaire un par famille, déblocage automatique si
+> le stock couvre le coût sinon reconduit, stock = production − dépense, effets branchés dans la guerre,
+> AntiVille, croissance, seuils) ; puis la **refonte de `/pays` en cinq onglets** (Cette semaine,
+> Classement, Développement, Pays, Historique), première proposition dont Adrien jugera. Le SQL a été
+> **exécuté** dans un Postgres local jetable (111 vérifications) ; la spec e2e s'ignore tant que la
+> `0054` n'est pas appliquée. **Points à trancher par Adrien** (`DECISIONS.md` §10 points 38 à 41) :
+> classement au total (grands pays favorisés) ou à la moyenne ; interprétation des avis ; chiffres à
+> calibrer ; PGlite comme dépendance de développement. **Deux écarts avec le texte du §48** : « Mobilisation
+> éclair » = effort ×2 le premier jour (pas de « montée en puissance » à supprimer) ; « Bouclier civil »
+> divise les pertes quotidiennes (le plafond de 5 % n'est jamais atteint). Détail : `DECISIONS.md` §4
+> « Classement des pays et développements nationaux » ; recette
+> `docs/recette-pays-classement-developpements.md`.
+> **§47 (classement hebdomadaire des pays + bonus au n°1 par catégorie,
+> 05/10/2026) : nouveau, décision d'Adrien** — donne enfin un effet de
+> jeu aux ressources nationales (aucun aujourd'hui, voir point 27 de
+> `DECISIONS.md` §10), sur un principe de compétition hebdomadaire.
+> **§48 (catalogue de développements nationaux, financés par les
+> ressources, débloqués par vote hebdomadaire, 05/10/2026) : nouveau,
+> décision d'Adrien** — attaque/défense/développement, sur le même
+> principe démocratique que le reste du pays (vote, pas un chef qui
+> choisit) ; nécessite une refonte du visuel de `/pays` pour accueillir
+> les deux nouvelles sections des §47/§48.
+
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).
@@ -2715,3 +2745,112 @@ d'influence (§41) ne changent pas. Détail exact des formes et palettes
 laissé à Claude Code, dans le même esprit créatif que pour les packs
 (§40) et les monuments (§43) : point de départ, pas spécification
 figée.
+## 47. Classement hebdomadaire des pays + bonus au n°1 de chaque catégorie (décision d'Adrien, 05/10/2026)
+
+**Constat de départ, déjà consigné** (`DECISIONS.md` §10 point 27) :
+les ressources nationales (Industrie/Technologie/Culture/Commerce,
+`ressources_pays()`, Jalon 10) n'ont strictement aucun effet de jeu
+aujourd'hui — seul leur total brut, sans distinction de catégorie,
+entre dans `effort_national()`.
+
+**Décision d'Adrien** : ajouter un classement mondial, recalculé
+chaque semaine au même rythme que le vote et la diplomatie (lundi 00 h
+UTC, `src/lib/game/semaineIso.ts`), comparant TOUS les pays sur chacune
+des 4 catégories. Le pays n°1 de chaque catégorie, pour la semaine en
+cours, reçoit un effet concret jusqu'au recalcul suivant :
+
+- **Industrie n°1** : bonus permanent (tant qu'il garde la 1ère place)
+  à l'effort national en guerre, en plus de ce que la formule
+  (`effort_national()`, migration `0037`) calcule déjà à partir du
+  total brut des ressources.
+- **Commerce n°1** : croissance de population légèrement accélérée
+  dans toutes les villes du pays pendant la semaine (même famille de
+  mécanique que le point fort de Résidentiel, §42 — chance
+  supplémentaire d'un habitant par visite).
+- **Culture n°1** : son vote (pour ou contre) pèse double dans les
+  décisions diplomatiques des AUTRES pays qui le concernent
+  (`soutenir_decision_diplomatique()`, Jalon 12).
+- **Technologie n°1** : seuil d'influence réduit pour débloquer le
+  prochain monument/mégaprojet (`monument_catalogue()`, §41) dans
+  toutes les villes du pays.
+
+**Implémentation** : pas de nouvelle table — un classement est une
+simple requête de lecture, triant tous les pays par leur total dans
+chaque catégorie de `ressources_pays()`, recalculée à la demande comme
+`classement_mondial()` le fait déjà pour les villes. Chiffres exacts
+des bonus (ampleur du bonus Industrie, pourcentage de croissance
+Commerce, poids exact du vote Culture, réduction de seuil Technologie)
+laissés à Claude Code, dans l'esprit de ce qui existe déjà pour des
+effets comparables (point fort/crise des activités, §42).
+
+**Affichage** : une nouvelle section sur `/pays`, un petit tableau de 4
+lignes (une par catégorie) montrant le rang du pays du joueur et qui
+est en tête, avec l'effet actif signalé clairement — voir §48 pour la
+refonte visuelle d'ensemble de la page, qui doit accueillir cette
+section en plus de celle du §48.
+## 48. Catalogue de développements nationaux : attaque / défense / développement, débloqués par vote (décision d'Adrien, 05/10/2026)
+
+**Décision d'Adrien** : les ressources nationales accumulées
+(`ressources_pays()`) doivent aussi pouvoir être DÉPENSÉES, pour
+développer des choses qui permettent au pays d'attaquer, de se
+défendre, ou de se développer — sur le même principe démocratique que
+le reste du pays (vote, pas un chef qui choisit : il n'existe pas
+d'équivalent "maire" à l'échelle du pays, seulement une présidence
+honorifique, Jalon 11).
+
+**Mécanisme proposé, à préciser par Claude Code** :
+- Un catalogue fixe de développements nationaux, répartis en trois
+  familles — attaque, défense, développement — chacun avec un coût en
+  ressources (une combinaison des 4 catégories, dans l'esprit de
+  l'ancien coût des mégaprojets en matériaux/revenus/points de thème,
+  mais à l'échelle du pays).
+- Un NOUVEAU vote hebdomadaire, sur le même rythme ISO-semaine que le
+  vote de ressource et la décision diplomatique (lundi 00 h UTC) :
+  chaque semaine, 3 développements sont proposés au vote (un tirage
+  parmi le catalogue, ou un par famille pour garder le choix varié —
+  au choix de Claude Code), les joueurs du pays votent pour celui
+  qu'ils veulent financer.
+- Le développement qui reçoit le plus de voix est débloqué
+  AUTOMATIQUEMENT si le stock de ressources du pays couvre son coût
+  cette semaine-là (comme un monument/mégaprojet qui se débloque seul,
+  §41 — pas de "chantier" alimenté visite par visite, ce mécanisme a
+  disparu avec les ressources de ville). S'il n'est pas finançable
+  cette semaine, il repasse au vote la semaine suivante pendant que le
+  stock continue de grossir.
+- Un développement déjà débloqué ne se perd jamais, même si les
+  ressources redescendent ensuite (même principe que
+  `influence_max`/les monuments : un acquis ne régresse pas).
+
+**Exemples de développements par famille**, point de départ créatif
+pour Claude Code, pas une spécification figée (même esprit que les
+packs du §40 et les monuments du §43) :
+- **Attaque** : Arsenal national (bonus permanent à l'effort national
+  en attaque) ; Mobilisation éclair (effort de guerre au maximum dès
+  le premier jour, sans montée en puissance) ; Service de
+  renseignement (voir l'effort national réel d'un adversaire avant de
+  voter une rivalité contre lui).
+- **Défense** : Fortifications (bonus défensif de guerre renforcé,
+  au-delà du ×1,5 actuel) ; Bouclier civil (plafond de perte de
+  population en guerre réduit, en dessous des 5 % actuels) ;
+  Résistance à la propagande (réduit l'effet des attaques AntiVille
+  sur toutes les villes du pays).
+- **Développement** : Expansion urbaine (croissance de population
+  légèrement accélérée dans tout le pays) ; Rayonnement diplomatique
+  (le vote de ce pays pèse plus dans les décisions diplomatiques des
+  autres pays) ; Avance technologique (seuil d'influence réduit pour
+  débloquer le prochain monument/mégaprojet dans toutes les villes du
+  pays).
+
+**Refonte visuelle de `/pays`, nécessaire pour accueillir le §47 et ce
+§48** : la page a aujourd'hui 5 sections (statut du président, villes
+principales, vote de ressource, proposition diplomatique, conflit en
+cours). Il faut au moins deux sections de plus (le classement du §47,
+le vote de développement de ce §48) — portée exacte de la refonte
+(ajouter ces sections à la suite, ou repenser l'organisation générale
+de la page) laissée à Claude Code ; Adrien n'a pas encore tranché entre
+les deux et pourra donner son avis sur une première proposition.
+
+**Portée** : un nouveau système de jeu complet (nouveau vote, nouveau
+catalogue, nouveaux effets permanents), pas un petit ajustement — à
+découper en plusieurs étapes si plus simple pour Claude Code, comme
+l'a été le système des 7 activités en son temps (Jalons 17 à 20).

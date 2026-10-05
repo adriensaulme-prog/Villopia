@@ -5411,6 +5411,139 @@ les 18 se lisent, le Grand stade est devenu un stade.
 
 ---
 
+### Classement des pays et développements nationaux (A-INTEGRER §47 et §48) — 05/10/2026
+
+**Demande d'Adrien** : implémenter ensemble le §47 (classement hebdomadaire des pays par catégorie de
+ressource, bonus au n°1) et le §48 (vote hebdomadaire de développement national : attaque / défense /
+développement, débloqué quand le stock couvre le coût), et refaire le visuel de `/pays` pour accueillir
+les deux. Un seul système : les ressources nationales (une ressource = un vote de ressource d'un joueur,
+Jalon 10) **se classent** entre pays ET **se dépensent**. Découpé en quatre étapes, comme le système des
+7 activités : migration `0052` (classement et effets, §47), `0053` (avis des pays visés : l'effet
+Culture n°1 et le Rayonnement), `0054` (développements, §48), puis la refonte de `/pays`. **Trois
+migrations à appliquer par Adrien, dans l'ordre.** Tant qu'elles ne le sont pas, `/pays` fonctionne comme
+avant (les nouvelles sections restent vides ou absentes : tous les appels échouent proprement).
+
+**Méthode : le SQL a été EXÉCUTÉ, pour la première fois.** Le dépôt n'a pas de base locale, donc le SQL
+des jalons précédents n'était vérifié que par relecture et par des gardes sur son texte. Cette fois, un
+Postgres local jetable (PGlite, du Postgres en WebAssembly, installé hors du projet) rejoue les 51
+migrations existantes puis les trois nouvelles, et fait tourner des scénarios : **111 vérifications
+vertes** (28 pour `0052`, 16 pour `0053`, 49 pour `0054`, 18 pour le rejeu de la spec e2e). Les scénarios
+et le harnais sont dans `scripts/postgres-local/` (pas une dépendance du projet : voir §10 point 41).
+Cette exécution a aussi trouvé un défaut de la spec e2e avant qu'elle ne parte (deux dépôts de ressources
+d'un même joueur sur les mêmes semaines : unicité d'un vote par semaine).
+
+**Étape 1 — Classement et effets du §47 (`0052`).**
+- *Le classement n'a pas de table* (§47). Le classement de la semaine S se calcule sur les ressources
+  accumulées **avant** S (votes de ressource de semaines strictement passées) : il est **figé toute la
+  semaine** (rien ne le déplace en cours de semaine), identique quel que soit le moment où on le lit, et
+  reproductible pour n'importe quelle semaine passée. Conséquences assumées : la première semaine d'un
+  monde neuf n'a pas de n°1 ; un pays sans ressource dans une catégorie n'y est jamais classé. Égalité :
+  le code de pays le plus petit passe devant.
+- *Chiffres* (laissés à Claude Code par le §47, **à contester**) : Industrie n°1 **+15 %** d'effort
+  national en guerre (attaquant comme défenseur) ; Commerce n°1 **+10 %** de chance d'un habitant de plus
+  par visite, dans toutes les villes du pays ; Technologie n°1 **−10 %** sur les seuils d'influence des
+  monuments et mégaprojets ; Culture n°1 : avis ×2 (voir étape 2). Volontairement plus modestes que les
+  points forts d'activité (+25 %) : un n°1 hebdomadaire est un effet de palier, pas une jauge qui se mérite.
+- *Branchements* : `resoudre_conflits_en_cours()` (effort, bonus défensif et pertes passent par trois
+  petites fonctions de réglage ; le bonus est évalué pour la semaine de chaque jour du conflit, donc la
+  résolution paresseuse ne change pas le verdict), `visiter_ville()` (une chance de plus, tirée
+  indépendamment de celles du Commerce et du Résidentiel), `avancer_monuments()` (seuil effectif =
+  plafond(seuil × (1 − réduction)) ; un monument débloqué reste acquis si la réduction disparaît). Chaque
+  fonction lourde est recopiée à l'identique de sa dernière version, aux lignes marquées §47 près.
+
+**Étape 2 — Avis des pays visés (`0053`). Interprétation à valider.** Le §47 dit « Culture n°1 : son
+vote pèse double dans les décisions diplomatiques des AUTRES pays qui le concernent » ; le §48 dit, pour
+Rayonnement diplomatique, « le vote de ce pays pèse plus dans les décisions diplomatiques des autres pays ».
+Or une décision diplomatique n'est votée **que par les citoyens du pays qui la propose** (Jalons 12-13) : le
+pays visé n'a aucun vote, et doubler le poids des citoyens d'un pays dans SA PROPRE décision ne change rien à
+une majorité pour/contre. **Interprétation retenue** : le pays visé obtient une voix, mais seulement s'il a de
+l'influence culturelle (c'est ce que les deux bonus récompensent). Un citoyen d'un pays qui a « voix au
+chapitre » peut donner un **avis** pour ou contre, pendant la semaine, sur une décision d'un autre pays qui
+vise le sien ; l'avis pèse le poids du pays (2 pour Culture n°1, 1,5 avec le Rayonnement, 2,5 avec les deux) et
+s'ajoute au décompte des citoyens du pays proposant à la clôture (adoptée si pour + avis pour > contre + avis
+contre). Sans avis, la règle est celle d'avant. Un pays sans influence culturelle n'a pas de voix : on n'a pas
+créé un vote de la cible pour tous les pays, qui changerait l'équilibre de la diplomatie bien au-delà des §47
+et §48. Poids figé à l'avis ; un avis par joueur et par décision ; `resultat_decision_semaine()` n'est pas
+modifiée (les avis ont leur fonction), pour ne pas changer des colonnes dont `/pays` et les tests dépendent.
+
+**Étape 3 — Développements nationaux (`0054`).**
+- *Catalogue fixe de 9* (les exemples du §48, repris), 3 par famille, coût en 2 catégories au plus, de 10 à
+  16 ressources (`developpements_catalogue()`, seule source ; `developpements.ts` le reflète, un test les
+  compare). Coûts **à calibrer** avec de vrais pays : une ressource = un vote d'un joueur, un pays de 10
+  joueurs en produit 10 par semaine.
+- *Le vote, chaque semaine* : **un développement par famille** est proposé (choix de Claude Code ; le §48
+  laissait le choix avec un tirage dans tout le catalogue — un par famille garantit un vrai choix entre
+  attaque, défense et développement). Tirage déterministe (hachage du pays, de la semaine, du
+  développement), qui exclut les acquis. Un vote par joueur et par semaine. En fin de semaine, le plus voté
+  (égalité : ordre du catalogue) est **débloqué automatiquement** si le stock couvre son coût **dans chaque
+  catégorie** ; sinon il **repasse au vote la semaine suivante** à la place du tirage de sa famille.
+- *Stock = production − dépense.* Le stock pris en compte est celui de la **fin de la semaine du vote**
+  (pas celui du moment où la page est lue : la clôture est paresseuse). **Le classement et l'effort de
+  guerre restent sur la PRODUCTION cumulée** : dépenser ne fait ni perdre la 1ère place ni baisser l'effort
+  (sinon débloquer une attaque affaiblirait l'effort). Un acquis ne se retire jamais (aucune migration ne le
+  supprime ni ne le modifie : le garde de schéma y veille).
+- *Clôture paresseuse et idempotente* (comme la présidence et la diplomatie) : à l'affichage de `/pays`, au
+  vote, et par chaque réglage de jeu qui lit les développements (croissance, seuils, guerre, AntiVille, rendus
+  `volatile` pour cela). Un développement débloqué le lundi s'applique donc dès qu'on s'en sert, sans attendre
+  qu'on ouvre `/pays`. Pas de double dépense entre deux lectures simultanées : le résultat est inséré d'abord,
+  et seul celui qui l'a inséré débloque. Date d'effet = lundi suivant la semaine du vote.
+- *Effets* (chiffres laissés à Claude Code, **à contester**) : Arsenal national +20 % d'effort quand le pays
+  attaque ; **Mobilisation éclair** effort ×2 le premier jour d'un conflit où le pays attaque ;
+  **Service de renseignement** voir l'effort national d'un pays visé avant de voter une rivalité ;
+  Fortifications bonus défensif ×1,5 → ×1,75 ; **Bouclier civil** pertes de population quotidiennes de la
+  guerre ÷2 (arrondi inférieur : une ville qui perdait 1 habitant par jour n'en perd plus) ; Résistance à la
+  propagande attaques AntiVille subies ×0,75 (les trois types) ; Expansion urbaine +10 % de croissance
+  (cumulable avec Commerce n°1 : +20 % au plus) ; Rayonnement diplomatique voix au chapitre et +0,5 de poids
+  d'avis ; Avance technologique −10 % des seuils (cumulable avec Technologie n°1 : −20 %). **Deux écarts
+  avec le texte du §48, à connaître** : (a) « Mobilisation éclair : effort au maximum dès le premier jour, sans
+  montée en puissance » — il n'y a pas de montée en puissance dans la mécanique (l'effort est recalculé chaque
+  jour, sans rampe) ; j'ai retenu une impulsion initiale (×2 le jour 1) ; (b) « Bouclier civil : plafond de
+  perte réduit en dessous de 5 % » — ce plafond n'est **jamais atteint** (7 jours à 0,1 % font 0,7 %), l'abaisser
+  n'aurait eu aucun effet : l'effet porte sur la perte quotidienne.
+- `historique_pays()` gagne le développement voté de chaque semaine (et s'il a été financé) et les catégories
+  où le pays était n°1 mondial (type de retour modifié : `drop` puis `create`).
+
+**Étape 4 — Refonte de `/pays`.** Le §48 laissait le choix entre « ajouter à la suite » et « repenser
+l'organisation » ; **première proposition** (Adrien donnera son avis) : l'en-tête du pays reste toujours
+visible (statut, président, quatre chiffres), puis **cinq onglets** (`?onglet=`, rendus côté serveur comme
+les sections de `/classement`, chacun ne charge que ses données) : **Cette semaine** (par défaut : les trois
+décisions hebdomadaires — ressource, développement, diplomatie —, les décisions des autres pays qui visent le
+nôtre avec l'avis pondéré, le renseignement, le conflit), **Classement** (4 lignes : rang, en tête, effet
+actif signalé), **Développement** (stock produit/dépensé/disponible, catalogue des 9 par famille avec coûts
+colorés selon que le stock couvre, acquis), **Pays** (villes principales, présidents), **Historique**. Le
+panneau est plus large sur ordinateur, les quatre chiffres de l'en-tête tiennent sur une ligne sur mobile,
+`page.tsx` passe de 635 à 199 lignes (un composant par onglet dans `src/app/pays/onglets/`). Le panneau des
+monuments (`/ville`, `/villes`) affiche le seuil **réduit** (« −10 % ») quand le pays en a un.
+
+**Testé.** `developpements.test.ts` (14 : catalogue du code identique au SQL, 9 développements 3 par famille,
+`peutFinancer`/`manque`, chaque chiffre d'effet retrouvé dans le SQL, i18n fr/en), `classementPays.test.ts`
+(11 : chiffres du n°1 retrouvés dans le SQL, `seuilEffectif`, poids de voix, cumuls), `paysSchema.test.ts`
+(24 : le garde passe, et **23 sabotages le font passer au rouge** — branchements retirés, recopies d'anciennes
+migrations qui les perdraient, classement qui compte la semaine en cours, effort lu sur le stock, clôture sans
+garde de double dépense, acquis supprimés...). Deux sabotages avaient d'abord une ancre fausse (fins de ligne
+CRLF, remplacement de la première occurrence seulement) : corrigés, c'est précisément ce que ces tests devaient
+attraper. E2E : les trois specs qui lisaient `/pays` (jalons 9 et 11, refonte de l'historique) changent
+d'onglet cible ; **les 26 tests des specs existantes sur `/pays`, le vote, la diplomatie et la guerre passent** avec la
+nouvelle page, migrations non appliquées (preuve que la dégradation est propre). Nouvelle spec
+`classement-developpements-pays.spec.ts` (4 tests : classement figé et effets, avis, développements
+financé/reconduit, écran) : **s'ignore** tant que la `0054` n'est pas appliquée ; sa logique a été rejouée
+dans le Postgres local. **Vérifié à l'œil** (Playwright sur une page de maquette à fausses données, supprimée) :
+les cinq onglets sur ordinateur, trois sur mobile ; deux défauts trouvés et corrigés (la classe `.meta`,
+réservée aux lignes de liste, cassait les cartes en grille ; un badge trop long).
+
+**Limites.** Les trois migrations ne sont pas appliquées à la base de dev (je n'ai aucun moyen d'y exécuter du
+SQL) ; la spec e2e et l'écran avec de vraies données n'ont donc pas tourné. Un monument à seuil réduit
+n'apparaît qu'à l'affichage de la ville (le déblocage est paresseux, comme avant). Les règles du jeu
+(`/regles`) ne décrivent toujours pas les pays (« dans une prochaine version »). Les notifications (cloche)
+ne signalent pas un développement débloqué : suite possible.
+
+**À appliquer par Adrien** (éditeur SQL de Supabase, dans l'ordre) : `0052_classement_pays.sql`,
+`0053_avis_pays_vises.sql`, `0054_developpements_nationaux.sql`, puis relancer
+`npx playwright test tests/e2e/classement-developpements-pays.spec.ts`. Recette :
+`docs/recette-pays-classement-developpements.md`.
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,
@@ -5779,9 +5912,11 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     Jalon 10). **Partiellement touché au Jalon 13** : le "coût en
     ressources" d'un conflit est désormais un instantané informatif
     (`conflits.cout_ressources`), affiché mais jamais déduit — voir point
-    30 ci-dessous. → **Toujours à trancher par Adrien** : une vraie
-    dépense/consommation de ces ressources (par les décisions
-    diplomatiques ou ailleurs) reste à faire si souhaitée.
+    30 ci-dessous. → **TRANCHÉ le 05/10/2026 par Adrien (A-INTEGRER §47 et §48)** : les
+    ressources nationales servent désormais à deux choses — un classement
+    hebdomadaire des pays qui récompense le n°1 de chaque catégorie, et une vraie
+    dépense (les développements nationaux, votés chaque semaine). Détail : §4,
+    journal « Classement des pays et développements nationaux ».
 28. **Carte du pays (Jalon 9 ter) : détails laissés de côté faute de
     temps ou de données.** Pas de scintillement nocturne des grandes
     villes, pas de repères de jumelages en bord de carte (les deux
@@ -5812,17 +5947,21 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     une vraie monnaie dépensable aurait été un jalon à part entière ;
     décision prise sans attendre Adrien pour ne pas bloquer ce jalon.
     → **À confirmer par Adrien** : simplification acceptée telle quelle,
-    ou faut-il un vrai coût déduit ?
+    ou faut-il un vrai coût déduit ? *(05/10/2026 : la vraie dépense existe maintenant,
+    mais ailleurs — les développements du §48 ; le coût d'un conflit reste
+    informatif, rien n'a changé pour lui.)*
 31. **"Avantages nationaux" (dont Défense, cahier des charges §13) :
     système pas encore construit.** Signalé par Adrien lui-même comme un
     ingrédient attendu de l'effort national en temps de guerre
     (`docs/A-INTEGRER.md` §12, 25/09/2026) — `effort_national()` du
     Jalon 13 s'appuie pour l'instant seulement sur l'activité (Jalon 9)
     et les ressources nationales (Jalon 10), les deux seuls ingrédients
-    qui existent déjà, plutôt que d'inventer un substitut. → **À
-    trancher par Adrien** : vaut-il un jalon dédié (quels avantages,
-    quelles conditions pour les débloquer, quel effet chiffré), et à
-    quel moment par rapport aux autres priorités ?
+    qui existent déjà, plutôt que d'inventer un substitut. → **TRANCHÉ le 05/10/2026
+    (A-INTEGRER §48)** : ce sont les développements nationaux (Arsenal national,
+    Mobilisation éclair, Fortifications, Bouclier civil...), débloqués par un vote
+    hebdomadaire et financés par les ressources ; leurs effets sont dans la résolution
+    des conflits. Détail : §4, journal « Classement des pays et développements
+    nationaux ».
 32. **Visites multiples par jour (Jalon 13 bis) : Influence et AntiVille
     pas étendus au même système.** Seule l'action Visiter permet
     désormais plusieurs fois par jour (délai d'une heure, plafond de 3) ;
@@ -5890,3 +6029,30 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     (c) un pack « premium » débloqué pour les comptes de test (§5) — utile dès qu'un
     pack payant existe. Le bouton « Acheter » (désactivé, avec sa raison) est le seul
     endroit à brancher.
+38. **Mesure du classement des pays (A-INTEGRER §47, 05/10/2026) : total ou moyenne ?** Le §47 classe
+    les pays sur leur **total** de ressources accumulées, et c'est ce qui est codé. Risque connu : à
+    total brut, un grand pays (beaucoup de joueurs, donc beaucoup de votes) domine mécaniquement les
+    quatre catégories — exactement le défaut que le §24 a corrigé pour l'effort de guerre (passage à la
+    moyenne par ville). → **À trancher par Adrien** : total (tel quel), total par ville, ou total par
+    joueur actif. Le changement tient dans une seule fonction SQL (`valeur_classement_pays()`, migration
+    `0052`) : tout le reste la lit.
+39. **Avis des pays visés (§47 « Culture n°1 », §48 « Rayonnement diplomatique », migration `0053`) :
+    interprétation de Claude Code.** Le texte parle du « vote » d'un pays dans les décisions diplomatiques
+    des autres, qui n'existe pas dans le jeu (seuls les citoyens du pays proposant votent). Retenu : un
+    pays qui a de l'influence culturelle peut donner un avis pondéré (2 / 1,5 / 2,5) sur les décisions qui
+    le visent. → **À valider ou à réorienter par Adrien** : est-ce bien l'idée ? Autre lecture possible :
+    ouvrir ce vote de la cible à TOUS les pays (poids 1), la Culture le doublant — plus large, plus
+    risqué pour l'équilibre.
+40. **Chiffres des développements et des effets (§48), à calibrer.** Coûts de 10 à 16 ressources,
+    effets de +10 % à +20 %, bonus du n°1 à 10-15 % : tous posés par Claude Code sans donnée de jeu réelle.
+    Deux écarts avec le texte (§4, journal : « Mobilisation éclair » = ×2 le premier jour, faute de montée
+    en puissance à supprimer ; « Bouclier civil » agit sur la perte quotidienne, le plafond de 5 % n'étant
+    jamais atteint). → **À ajuster après essai** : les coûts (une ligne de `developpements_catalogue()`
+    et de `developpements.ts`) et les effets (une petite fonction SQL chacun).
+41. **Postgres local jetable (PGlite) : en faire une dépendance de développement ?** Il a permis
+    d'exécuter 111 vérifications SQL sur les migrations `0052` à `0054` (§4, journal « Classement des pays
+    et développements nationaux »), ce que le dépôt ne permettait pas. Il est utilisé hors de
+    `package.json` (`npm install --no-save @electric-sql/pglite`, voir `scripts/postgres-local/`). Règle de
+    poids (§1 point 6) : une dépendance de **développement** ne pèse rien sur l'application livrée, mais
+    pèse sur `node_modules` (~25 Mo). → **À trancher par Adrien** : l'ajouter à `devDependencies` et en
+    faire une suite (`npm run test:sql`), ou rester en usage ponctuel.

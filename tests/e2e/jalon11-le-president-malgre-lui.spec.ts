@@ -189,7 +189,8 @@ test.describe("Jalon 11 — le président malgré lui", () => {
       await connecter(page, joueur.email, joueur.motDePasse);
       await expect(page).toHaveURL(/\/ville$/, { timeout: 40_000 });
 
-      await page.goto("/pays?pays=CA");
+      // Onglet « Pays » (A-INTEGRER §48) : l'historique des présidents y est.
+      await page.goto("/pays?pays=CA&onglet=pays");
       await expect(page.getByRole("heading", { name: "Canada" })).toBeVisible({ timeout: 20_000 });
       // Le nom de ville apparaît aussi dans un <title> SVG (pastille de
       // la carte, Jalon 9 ter) — jamais visible par nature, on vise la
