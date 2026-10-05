@@ -185,6 +185,17 @@ avant de brancher le paiement, les points suivants.
    paiement par carte sur le site, puis achats intégrés dans les
    applis des stores.
 
+> **État au 05/10/2026 (Claude Code, `A-INTEGRER.md` §30)** : les deux
+> **surfaces** de la boutique sont construites — la section « Thèmes de
+> la ville » dans Ma ville et l'onglet Boutique (`/boutique`, catalogue
+> complet, aperçu sur sa propre ville, bouton « Acheter » désactivé).
+> Les tables `packs` et `joueur_packs` du §5 existent (migration
+> `0047`, à appliquer), avec le droit d'usage vérifié côté serveur.
+> **Le paiement lui-même n'est pas branché**, et aucun pack n'est encore
+> payant (Haussmannien reste gratuit). Le détail et les décisions sont
+> dans `DECISIONS.md` §4 « La boutique de packs de thèmes » et §10
+> point 37.
+
 Les bâtiments des quartiers d'activité et des mégaprojets entreront
 dans le catalogue au moment des jalons du système de développement.
 

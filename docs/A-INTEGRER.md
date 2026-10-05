@@ -160,6 +160,14 @@ journal existant, puis ce fichier peut être supprimé.*
 > réel signalé côté Claude chat, avec des pistes alternatives plus
 > sûres. Ne rien coder qui nomme ou reproduise une vraie marque sans
 > validation explicite d'Adrien au cas par cas.
+> **§30 — fait le 05/10/2026** (les deux surfaces : section repliable
+> « Thèmes de la ville » dans Ma ville + onglet Boutique `/boutique`, avec
+> catalogue, aperçu sur sa propre ville et bouton « Acheter » désactivé ;
+> droit d'usage côté serveur, **migration `0047` à appliquer par Adrien** ;
+> **le paiement n'est pas branché**, aucun pack n'est payant). Les trois
+> points ouverts ont été tranchés par Claude Code, détail et raisonnement :
+> `DECISIONS.md` §4 « La boutique de packs de thèmes », recette
+> `docs/recette-boutique.md`.
 > **§30 (section Packs/Skins dans "Ma ville" + onglet Boutique,
 > 02/10/2026) : nouveau** — précise et avance le jalon "La boutique"
 > déjà prévu dans `BATIMENTS-ET-PACKS.md` §6 point 3 : deux surfaces
@@ -191,7 +199,8 @@ journal existant, puis ce fichier peut être supprimé.*
 > déclencher quand l'intention du joueur est d'attaquer une ville, pas
 > de la soutenir.
 > **État §29 à §34 (02/10/2026, Claude Code)** : §29 règle permanente
-> ajoutée à `CLAUDE.md` ; §30 noté pour le jalon « La boutique », pas codé ;
+> ajoutée à `CLAUDE.md` ; §30 noté alors pour le jalon « La boutique »
+> (fait depuis, le 05/10/2026, voir plus haut) ;
 > §31 fait (migration `0046`, bascule lundi 00 h UTC choisie par Adrien) ;
 > §32 gardé tel quel (décision d'Adrien) ; §33 fait (monuments dans les
 > cours des blocs, Énergie et mégaprojets restent dehors) ; §34 fait
@@ -1837,6 +1846,28 @@ un changement de design des packs eux-mêmes ni du modèle économique —
 à construire au moment du jalon "La boutique" de `BATIMENTS-ET-PACKS.md`
 §6, en gardant ces deux emplacements distincts en tête dès la première
 maquette plutôt que de les découvrir après coup.
+
+**Traité le 05/10/2026 (Claude Code) — fait, section par section :**
+- **Surface 1, dans « Ma ville » : fait.** Section repliable « Thèmes de la
+  ville · *thème appliqué* » après « Monuments » (packs possédés, celui qui
+  est appliqué, changement immédiat sans quitter la page, lien vers la
+  Boutique). *Emplacement tranché* : repliable plutôt qu'un tiroir, dans la
+  famille des autres catalogues du panneau ; elle remplace l'ancien
+  sélecteur qui était tout en haut.
+- **Surface 2, onglet « Boutique » : fait.** `/boutique` : catalogue complet
+  (possédés ou non), aperçu d'un pack sur sa propre ville dans la scène 3D,
+  bouton « Acheter » désactivé avec sa raison. *Onglet avant le paiement
+  tranché* : il existe dès maintenant, avec les packs gratuits. *Navigation
+  mobile tranchée* : la barre du bas garde ses 5 onglets, la Boutique y est
+  remplacée par une icône 🛍️ dans la barre du haut (aussi sous 900 px).
+- **Principe respecté** : packs purement cosmétiques, jamais d'avantage de
+  jeu — vérifié par des tests (fiche de pack sans champ de jeu, migration sans
+  colonne de jeu, un changement de thème ne modifie que `cities.theme`).
+- **En attente d'Adrien** : appliquer la migration `0047` ; décider si
+  Haussmannien devient payant (reste gratuit pour l'instant) et quand brancher
+  le paiement (`DECISIONS.md` §10 point 37). **Non fait, volontairement** :
+  le paiement lui-même (statut légal d'abord, `BATIMENTS-ET-PACKS.md` §5).
+  Détail : `DECISIONS.md` §4 « La boutique de packs de thèmes ».
 
 ---
 

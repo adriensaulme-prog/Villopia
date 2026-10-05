@@ -116,6 +116,15 @@ de vue du joueur — le titre dit ce qui change pour lui.
   restent hors scope** (après le MVP, une fois le statut légal réglé —
   `docs/BATIMENTS-ET-PACKS.md` §5-6) : le thème est libre d'accès pour
   l'instant, aucune restriction de paiement.
+- [x] **La boutique de packs de thèmes — les deux surfaces (A-INTEGRER
+  §30, 05/10/2026).** Section repliable « Thèmes de la ville » dans « Ma
+  ville » (packs possédés, thème appliqué, changement sans quitter la
+  page) et onglet **Boutique** (`/boutique`) avec le catalogue complet,
+  l'aperçu d'un pack sur sa propre ville et le bouton « Acheter »
+  (désactivé, raison écrite). Droit d'usage côté serveur (migration
+  `0047`, **à appliquer par Adrien**). Haussmannien reste gratuit ; **le
+  paiement n'est pas branché** (statut légal d'abord,
+  `docs/BATIMENTS-ET-PACKS.md` §5) — voir `DECISIONS.md` §4 et §10 point 37.
 
 ## Phase 2 — Rivalités entre villes *(terminée)*
 
@@ -317,19 +326,22 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 - Journal mondial des événements.
 - Viralité / partage (pages publiques de ville, liens d'événements).
 - Amis et suivi.
-- Publicités et premium.
+- Publicités et premium (dont le paiement des packs de la Boutique : les
+  surfaces existent depuis le 05/10/2026, reste le branchement du paiement).
 - Éventuelle présence App Store / Play Store.
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§36 fait** (Services/Commerce/Recherche
+*Dernière mise à jour : 05/10/2026. **§30 fait** (section « Thèmes de la ville » dans
+Ma ville + onglet Boutique, migration `0047` à appliquer, paiement non branché).
+**§36 fait** (Services/Commerce/Recherche
 redessinés, arbres de jardin avec marge au mur). **§35 fait** (Palmarès fusionné dans
 Classement, barre à 5 onglets, `/palmares` redirige). Avant : **notes §29 à §34
 d'Adrien traitées**
 (présidence à la semaine — migration `0046` —, monuments dans les cours des
 blocs, une attaque AntiVille annule la visite — migration `0045` ; règle « pas
-de vraie marque » dans `CLAUDE.md` ; la boutique du §30 reste au jalon « La
-boutique »). Avant : **« Petits points » traités**
+de vraie marque » dans `CLAUDE.md` ; la boutique du §30, alors seulement
+notée, est faite depuis, voir plus haut). Avant : **« Petits points » traités**
 (« voir où il est » pour mégaprojets et Énergie, monuments ×2,5,
 notification de crise AntiVille — migration `0044` —, données de carte
 supprimées ; §10 points 33 à 35 tranchés par Adrien). Avant : **Mise en ligne préparée** (build de

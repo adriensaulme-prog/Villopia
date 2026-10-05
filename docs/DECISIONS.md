@@ -4408,7 +4408,8 @@ explicite d'Adrien au cas par cas. Ajoutée à `CLAUDE.md` (règles permanentes)
 À rattacher à la section monétisation (§9, §10 point 4) le jour où elle est
 prise.
 
-**§30 — boutique : noté, pas codé.** Deux surfaces distinctes prévues pour le
+**§30 — boutique : noté ici, FAIT le 05/10/2026 (voir « La boutique de packs de
+thèmes », plus bas).** Deux surfaces distinctes prévues pour le
 jalon « La boutique » de `BATIMENTS-ET-PACKS.md` §6 (après le MVP et le statut
 légal du paiement) : une section secondaire dans « Ma ville » (thèmes possédés,
 changement rapide — le sélecteur de thème actuel en est l'embryon) et un onglet
@@ -4674,6 +4675,108 @@ Suite unitaire complète verte, `tsc` propre. Vérifié à l'œil sur une page t
 centrale est nettement à l'écart de la route. `voir-ou-megaprojets-energie.spec.ts`
 adapté (nouvelle fonction de place, et vérifie maintenant que la jauge Énergie n'a
 plus de bouton) mais **pas rejoué** (il demande Supabase).
+
+---
+
+### La boutique de packs de thèmes : « Thèmes de la ville » dans Ma ville + onglet Boutique (A-INTEGRER §30) — 05/10/2026
+
+**Demande d'Adrien** (§30, 02/10/2026) : deux surfaces distinctes — (1) dans « Ma ville »,
+une section secondaire qui montre les packs possédés, celui qui est appliqué et un moyen de
+changer de thème sans quitter la page ; (2) un onglet « Boutique » séparé, pas forcément
+mis en avant, avec le catalogue complet (possédés ou non), les aperçus et le point d'entrée
+de l'achat. Packs cosmétiques, jamais d'avantage de jeu (`BATIMENTS-ET-PACKS.md` §4). Les
+trois points laissés ouverts par la note ont été tranchés par Claude Code (ci-dessous, à
+contester d'un mot).
+
+**Décisions prises (raisonnement).**
+- **Emplacement dans Ma ville.** Une section repliable « Thèmes de la ville · *thème
+  appliqué* », placée après « Monuments » : c'est la même famille que Mégaprojets,
+  Technologies et Monuments (catalogues repliables du panneau) et elle est repliée par
+  défaut, donc jamais au premier plan. Elle remplace le sélecteur de thème qui, lui, était
+  tout en haut du panneau — l'inverse de ce que demandait Adrien.
+- **L'onglet existe dès maintenant, avec les packs gratuits.** Il n'y a rien à cacher
+  (l'aperçu et le changement de thème marchent déjà) et les joueurs prennent l'habitude de
+  l'endroit avant que le paiement n'arrive. Pas de pack inventé pour remplir la vitrine, et
+  aucun nom de pack futur annoncé : seulement « d'autres packs arriveront ici, les payants
+  ne s'ouvriront qu'avec le paiement ».
+- **Navigation.** Ordinateur : « Boutique » est le 6ᵉ et dernier onglet. Sous 900 px et sur
+  mobile, l'onglet laisse la place à une icône 🛍️ dans la barre du haut, à côté de la cloche.
+  La barre du bas du mobile reste à **5 onglets** : à 375 px un 6ᵉ onglet laisserait ~60 px
+  chacun, or « Jumelages » et « Classement » en demandent ~66. On y arrive aussi depuis le
+  lien « Voir tous les packs dans la Boutique » de Ma ville.
+- **Haussmannien reste gratuit pour tous**, comme depuis la migration `0034` (« la
+  restriction viendra avec la boutique »). Rendre payant, du jour au lendemain, un pack que
+  des joueurs utilisent est une décision commerciale, pas technique, et le paiement n'est
+  ni branché ni validé (statut légal, `BATIMENTS-ET-PACKS.md` §5). La structure est prête :
+  `update public.packs set gratuit = false where id = 'haussmannien';` suffit, et ceux qui
+  l'utilisent déjà le gardent (rattrapage `avant_boutique`). → point ouvert §10 n°37.
+- **L'aperçu est la VRAIE ville du joueur**, redessinée avec le pack dans la scène 3D de
+  fond. Aucune image, aucun modèle, aucune dépendance : poids inchangé. Rien n'est
+  enregistré ; c'est permis sur un pack qu'on ne possède pas (c'est tout l'intérêt de
+  « essayer avant d'acheter », `BATIMENTS-ET-PACKS.md` §4). Sur mobile l'aperçu replie le
+  panneau pour qu'on voie la ville (même mécanisme que « voir où il est »).
+- **Le bouton « Acheter » est désactivé, avec sa raison écrite** (principe des maquettes :
+  « boutons désactivés avec la raison écrite »). Il n'apparaît que pour un pack payant non
+  possédé ; comme aucun pack n'est payant aujourd'hui, **il n'est visible nulle part pour
+  l'instant**. C'est le seul endroit à brancher le jour où le paiement existe.
+
+**Fait.**
+- **Migration `0047_boutique_packs.sql` (pas encore appliquée)** : tables `packs` (gratuit
+  pour tous ou non) et `joueur_packs` (RLS : chacun ne voit que ses lignes, aucune policy
+  d'écriture), `possede_pack()`, et `definir_theme_ville()` qui refuse un pack non possédé
+  (nouveau code **P0030**) en gardant ses contrôles de la `0034` (maire seul, thème connu).
+  Rattrapage : qui utilisait déjà un pack le garde. Elle ne touche à aucune colonne de jeu.
+- **Front.** `src/lib/game/themes.ts` (catalogue `PACKS`, `packsDuJoueur()`, `etatPack()`,
+  purs) ; `lirePacksDuJoueur()` (retombe sur « tout thème connu est libre » tant que la table
+  n'existe pas — jamais une ville verrouillée sur une erreur de lecture) ; `lireDonneesRendu3D()`
+  (les lectures de la page publique `/v/<id>`, extraites et lancées en parallèle ; `/v/<id>`
+  l'utilise désormais) ; `useChoixTheme()` (changement immédiat à l'écran, retour en arrière +
+  message si le serveur refuse) ; `PacksVille`, `CatalogueBoutique`/`CartePack`, page `/boutique`
+  (protégée par le middleware) ; `definirTheme(villeId, theme)` renvoie maintenant un résultat
+  au lieu d'être une action de formulaire muette ; la scène a `definirTheme()` pour l'aperçu.
+  Textes fr/en ; `theme.titre` supprimée.
+- **Barre du haut.** La barre débordait déjà à 820 px **avant** ce jalon (zone de droite hors
+  de l'écran, « Ma ville » sur deux lignes) et le 6ᵉ onglet repoussait la limite d'environ
+  90 px. Onglets en `white-space: nowrap`, barre resserrée entre 641 et 1040 px (logo seul,
+  marges réduites) : plus aucun débordement mesuré à 820 px, 1024 px et 375 px.
+
+**Testé.**
+- `tests/unit/boutique.test.ts` (30) : droit d'usage (gratuit pour tous, payant seulement
+  une fois obtenu, repli sans catalogue) ; états d'un pack ; le catalogue TypeScript colle au
+  catalogue réel de bâtiments (familles annoncées = familles où le pack a de vrais modèles) ;
+  **cosmétique** : la fiche d'un pack n'a que `id`, `familles`, `palette` (un champ de jeu
+  casse le test), la migration ne mentionne ni population, ni influence, ni activité, ni
+  défense, et `definir_theme_ville` ne modifie que `cities.theme` ; la migration fait
+  respecter le droit d'usage (P0030 avant l'écriture, aucune policy d'écriture, listes de
+  thèmes SQL = `THEMES`) ; rendu de `CartePack` dans ses trois états (« Acheter » désactivé
+  avec sa raison, pas d'« Appliquer » sans droit, aperçu possible). Vitest rend maintenant
+  le JSX (`esbuild.jsx: "automatic"` dans `vitest.config.ts`, tsconfig étant en `preserve`).
+- **Sabotages vérifiés rouges (5/5)** : un pack payant possédé par tout le monde ; retirer
+  `possede_pack` de `definir_theme_ville` ; un champ de jeu sur un pack ; l'aperçu qui
+  enregistre le thème ; la Boutique qui reste dans la barre du bas mobile.
+- `tests/e2e/boutique-packs.spec.ts` (7) : l'onglet (catalogue, aperçu sans rien enregistrer,
+  application, base à jour), la section de Ma ville (repliée, changement sans quitter la page,
+  lien vers la Boutique), mobile (5 onglets visibles, icône, pas de débordement), accès
+  protégé, un thème ne modifie **aucune autre colonne** de la ville ; et deux tests qui
+  s'ignorent tant que `0047` n'est pas appliquée (droit d'usage avec un pack jetable, RLS :
+  pas d'auto-attribution, pas de modification du catalogue, pas de lecture des packs d'autrui).
+  **5 passés, 2 ignorés.** Suite unitaire complète 276 verts, `tsc` et `lint` propres,
+  `partage-ville.spec.ts` (4) vert après l'extraction de `/v/<id>`. Vérifié à l'œil à
+  1024 px, 820 px et 375 px.
+
+**Pas vérifié, à savoir.**
+- **La migration `0047` n'est pas appliquée** (je n'ai pas d'accès SQL) : le chemin
+  « pack payant non possédé refusé » n'est donc couvert que par le test statique du SQL et les
+  tests de rendu, pas encore sur la vraie base. Les deux e2e concernés s'activeront seuls une
+  fois la migration appliquée. **Aucun test ne passe `haussmannien` en payant**, même un
+  instant : c'est une décision commerciale d'Adrien, qu'une suite de tests ne doit pas
+  renverser (le pack jetable `e2e-payant` sert à tester le droit d'usage).
+- **Le paiement n'est pas branché**, volontairement (§5 : statut légal d'abord). Pas non plus
+  de « pack premium débloqué pour les comptes de test » (§5) : aucun pack premium n'existe.
+- Sur mobile, un aperçu replie le panneau : le bandeau « Terminer l'aperçu » se retrouve en
+  le dépliant avec la poignée.
+
+---
 
 ### Bouton « Appliquer » du thème sans effet : doublon retiré (A-INTEGRER §38) — 05/10/2026
 
@@ -5230,3 +5333,15 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     d'Adrien. → **Chiffres des paliers et liste des bâtiments à
     ajuster avec les villes de test**, comme d'habitude — pas encore
     codé.
+37. **Boutique de packs (A-INTEGRER §30, 05/10/2026) : quand rendre un pack payant,
+    et brancher le paiement.** Les deux surfaces (section « Thèmes de la ville » dans
+    Ma ville, onglet Boutique) et le droit d'usage côté serveur (migration `0047`,
+    **à appliquer par Adrien**) sont construits, mais **aucun pack n'est payant** :
+    Haussmannien reste gratuit pour tous comme depuis la `0034` (§4, journal « La
+    boutique de packs de thèmes »). → **À trancher par Adrien** : (a) Haussmannien
+    doit-il devenir un pack payant, et à partir de quand (une ligne SQL, ceux qui
+    l'utilisent déjà le gardent) ? (b) le paiement : statut légal et service
+    (`BATIMENTS-ET-PACKS.md` §5), toute dépense passant d'abord par Adrien (§1 point 1) ;
+    (c) un pack « premium » débloqué pour les comptes de test (§5) — utile dès qu'un
+    pack payant existe. Le bouton « Acheter » (désactivé, avec sa raison) est le seul
+    endroit à brancher.
