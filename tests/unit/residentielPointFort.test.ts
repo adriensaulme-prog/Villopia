@@ -109,24 +109,25 @@ describe("point fort du Résidentiel (A-INTEGRER §42) : garde de schéma", () =
 
   describe("sabotages : chacun fait passer le garde au rouge", () => {
     const schema = lireSchema();
+    // replaceAll : visiter_ville() est recopiée dans plusieurs migrations, le sabotage doit toucher la DERNIÈRE aussi.
     const tirage = "if random() < public.bonus_croissance_residentiel(v_jauge_residentiel) then";
 
     it("le tirage du point fort est retiré de visiter_ville()", () => {
       expect(schema).toContain(tirage);
-      const saboteur = schema.replace(tirage, "if false then");
+      const saboteur = schema.replaceAll(tirage, "if false then");
       expect(garantiesManquantes(saboteur)).not.toEqual([]);
     });
 
     it("le tirage est branché sur la jauge du Commerce au lieu de celle du Résidentiel", () => {
-      const saboteur = schema.replace(tirage, "if random() < public.bonus_croissance_residentiel(v_jauge_commerce) then");
+      const saboteur = schema.replaceAll(tirage, "if random() < public.bonus_croissance_residentiel(v_jauge_commerce) then");
       expect(garantiesManquantes(saboteur)).not.toEqual([]);
     });
 
     it("le tirage sort du bloc de gain (la crise et le point fort se mélangeraient)", () => {
       const saboteur = schema
-        .replace(tirage, "if false then")
+        .replaceAll(tirage, "if false then")
         // Même ligne, mais après la solidarité : hors du bloc où la visite rapporte l'habitant.
-        .replace(
+        .replaceAll(
           "update public.visites set gain = v_gain where id = v_visite_id;",
           `${tirage} v_gain := v_gain + 1; end if; update public.visites set gain = v_gain where id = v_visite_id;`
         );

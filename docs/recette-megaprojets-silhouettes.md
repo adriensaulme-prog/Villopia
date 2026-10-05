@@ -24,20 +24,20 @@ npm run dev
    (piste, terminal en voûte, tour de contrôle, avion), stades (cuvettes ovales, mâts), etc.
 2. **La couleur** : chaque mégaprojet a maintenant la matière de l'ouvrage réel (pierre, verre, brique, fonte
    verte, bardage, béton, cuivre patiné), plus de teinte d'activité ni d'or de monument.
-3. **Les modèles d'Énergie réutilisés** : la centrale solaire (trois rangées de la ferme de panneaux), le parc
-   éolien (trois éoliennes à bande rouge) et la centrale (hall à bandeau jaune, deux réservoirs) sont bien les
-   mêmes modèles que les installations d'Énergie de la campagne, en plus petit. La centrale « nouvelle
-   génération » est une version enrichie dessinée à part (dôme, deux tours de refroidissement, batteries).
-4. **La taille — le point à trancher.** Je ne l'ai pas changée : un mégaprojet de stade 0 ou 1 (école, parc des
-   sports, marché, hôpital, stade, centrale solaire, logistique) mesure 5 à 6 m, donc **moins qu'un arbre** dans
-   la vraie scène, même au zoom maximal. Les détails y sont fins. Faut-il les agrandir ? Dis-moi de combien ;
-   c'est deux fonctions (`rayonMegaprojet`, `hauteurMegaprojet` dans `megaprojets.ts`), avec une limite : la
-   plus petite cour d'un bloc fait 14,5 m de large, donc 7 m de demi-côté au maximum.
+3. **Les modèles d'Énergie réutilisés** : la centrale solaire (un champ de rangées de la ferme de panneaux, à
+   leur taille d'origine), le parc éolien (trois éoliennes à bande rouge, pistes d'accès, poste) et la centrale
+   (hall à bandeau jaune, deux réservoirs, panaches de vapeur) sont bien les mêmes modèles que les
+   installations d'Énergie de la campagne. La centrale « nouvelle génération » est une version enrichie
+   dessinée à part (dôme, deux tours de refroidissement, batteries, poste).
+4. **Les abords et le détail** (retour du 05/10/2026 : « très peu développés ») : chaque site a maintenant sa
+   pelouse, ses allées, ses arbres, du mobilier et, selon le cas, un parking avec des voitures, des
+   ambulances, des camions, des trains, des avions. Le **Grand stade** est refait : bas et large, façade à
+   bannières bleu et rouge, toit-couronne blanc. Est-ce assez fourni ? Lesquels te paraissent encore pauvres ?
 5. **Le Siège international** : les mâts à fanions utilisent des couleurs unies neutres, volontairement sans
    aucun drapeau réel (aucune vraie marque ni emblème, `CLAUDE.md`).
 
 ## Tests automatisés couvrant ce jalon
 
 ```bash
-npm test  # dont tests/unit/megaprojetsSilhouettes.test.ts (14 tests) et megaprojetsVille.test.ts (15)
+npm test  # dont tests/unit/megaprojetsSilhouettes.test.ts (16 tests) et megaprojetsVille.test.ts
 ```

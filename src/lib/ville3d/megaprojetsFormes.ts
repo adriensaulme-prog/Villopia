@@ -9,9 +9,9 @@
  */
 import type { RNG } from "./aleatoire";
 import type { Rect } from "./catalogue";
-import { COL, MAT, PANNEAU_CADRE, PANNEAU_CELLULE, type Couleur } from "./constantes";
-import { box, cylinder, norm, type Geo } from "./geometrie";
-import { ellipsoide } from "./monumentsFormes";
+import { COL, MAT, PANNEAU_CADRE, PANNEAU_CELLULE, hex, type Couleur } from "./constantes";
+import { box, cylinder, flat, norm, type Geo } from "./geometrie";
+import { car, tree } from "./mobilier";
 
 export type V3 = [number, number, number];
 
@@ -193,10 +193,27 @@ export function murOvale(g: Geo, cx: number, cz: number, rx: number, rz: number,
  * l'ellipse extérieure haute) ou toit-couronne (le contraire). Une couleur par tronçon si `col`
  * est une fonction (alternance de sièges).
  */
-export function anneauPente(g: Geo, cx: number, cz: number, rxI: number, rzI: number, yI: number, rxO: number, rzO: number, yO: number, seg: number, col: CouleurOuFn, m: number, seed = 0) {
+export function anneauPente(
+  g: Geo,
+  cx: number,
+  cz: number,
+  rxI: number,
+  rzI: number,
+  yI: number,
+  rxO: number,
+  rzO: number,
+  yO: number,
+  seg: number,
+  col: CouleurOuFn,
+  m: number,
+  seed = 0,
+  /** Secteur d'angles (radians, 0 = +x, π/2 = +z) : tout l'anneau par défaut. */
+  debut = 0,
+  fin = Math.PI * 2
+) {
   for (let i = 0; i < seg; i++) {
-    const a0 = (i / seg) * Math.PI * 2,
-      a1 = ((i + 1) / seg) * Math.PI * 2;
+    const a0 = debut + ((fin - debut) * i) / seg,
+      a1 = debut + ((fin - debut) * (i + 1)) / seg;
     quad(
       g,
       [cx + Math.cos(a0) * rxI, yI, cz + Math.sin(a0) * rzI],
@@ -211,17 +228,142 @@ export function anneauPente(g: Geo, cx: number, cz: number, rxI: number, rzI: nu
   }
 }
 
-/** Mât d'éclairage (stades, pistes, parkings) : fût métallique et tête en `MAT.LAMP`, qui s'allume la nuit. */
+/** Mât d'éclairage (stades, pistes, parkings) : fût métallique de 18 cm et couronne de projecteurs en `MAT.LAMP`, qui s'allument la nuit. */
 export function matLumineux(g: Geo, x: number, z: number, y0: number, h: number, seed = 0) {
-  box(g, x - 0.06, y0, z - 0.06, x + 0.06, y0 + h, z + 0.06, { c: COL.metal, m: MAT.PLAIN, seed });
-  box(g, x - 0.22, y0 + h, z - 0.09, x + 0.22, y0 + h + 0.13, z + 0.09, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed });
+  box(g, x - 0.09, y0, z - 0.09, x + 0.09, y0 + h, z + 0.09, { c: COL.metal, m: MAT.PLAIN, seed });
+  box(g, x - 0.9, y0 + h - 0.1, z - 0.12, x + 0.9, y0 + h + 0.55, z + 0.12, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed });
+  box(g, x - 0.12, y0 + h - 0.1, z - 0.9, x + 0.12, y0 + h + 0.55, z + 0.9, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed });
 }
 
-/** Petit arbre (tronc et houppier lisse) : verdure des abords. */
-export function arbre(g: Geo, x: number, z: number, h: number, feuillage: Couleur, seed = 0) {
-  cylinder(g, x, BASE, z, Math.max(0.05, h * 0.05), h * 0.5, 6, COL.trunk, MAT.TRUNK, null, null);
-  ellipsoide(g, x, BASE + h * 0.72, z, h * 0.3, h * 0.3, h * 0.3, feuillage, MAT.FOLIAGE);
-  void seed;
+/** Hauteur d'un étage de bâtiment, en mètres (FLOOR_H de constantes.ts) : les fenêtres du shader suivent ce pas. */
+export const ETAGE = 3.6;
+
+/** Arbre de ville aux vraies proportions (4,5 à 7 m, comme ceux des parcelles), au pied de la plateforme. `echelle` 1 = normal. */
+export function arbre(g: Geo, x: number, z: number, echelle = 1, r: RNG = () => 0.5) {
+  tree(g, x, z, BASE, echelle, r, []);
+}
+
+/**
+ * Rangée d'arbres de `depuis` à `vers` (le long de X ou de Z) avec un pas d'environ `pas` mètres, sur la
+ * ligne `fixe`. Les arbres rapetissent avec la plateforme (un houppier de 2,5 m ne tient pas sur 22 m) et
+ * leur pied est ramené à l'intérieur de l'emprise : aucun feuillage ne sort du carré du site.
+ */
+export function rangeeArbres(s: Site, depuis: number, vers: number, fixe: number, alongX: boolean, pas = 7, echelle = 1) {
+  const e = echelle * Math.min(1, s.R / 19);
+  const marge = 3.0 * e + 0.2; // houppier principal (≤ 2,5 m) et second houppier décalé (jusqu'à 2,7 m du tronc)
+  const dans = (v: number, c: number) => Math.min(c + s.R - marge, Math.max(c - s.R + marge, v));
+  const n = Math.max(1, Math.round(Math.abs(vers - depuis) / pas));
+  for (let i = 0; i <= n; i++) {
+    const t = depuis + ((vers - depuis) * i) / n;
+    if (alongX) arbre(s.g, dans(t, s.cx), dans(fixe, s.cz), e, s.r);
+    else arbre(s.g, dans(fixe, s.cx), dans(t, s.cz), e, s.r);
+  }
+}
+
+const eclaircir = (c: Couleur, f: number): Couleur => [Math.min(1, c[0] * f), Math.min(1, c[1] * f), Math.min(1, c[2] * f)];
+
+/** Pelouse tondue à plat sur un rectangle, à peine au-dessus de la plateforme. */
+export function pelouse(g: Geo, r: Rect, seed = 0, c: Couleur = COL.lawn, dy = 0.012) {
+  flat(g, r[0], r[1], r[2], r[3], BASE + dy, c, MAT.LAWN, seed);
+}
+
+/** Pelouse rayée par la tonte : `n` bandes alternées de deux verts, le long de X ou de Z. */
+export function pelouseRayee(g: Geo, r: Rect, n: number, alongX: boolean, seed = 0, dy = 0.02) {
+  const a = COL.lawn,
+    b = eclaircir(COL.lawn, 1.1);
+  for (let i = 0; i < n; i++) {
+    const t0 = i / n,
+      t1 = (i + 1) / n;
+    const bande: Rect = alongX
+      ? [r[0], r[1] + (r[3] - r[1]) * t0, r[2], r[1] + (r[3] - r[1]) * t1]
+      : [r[0] + (r[2] - r[0]) * t0, r[1], r[0] + (r[2] - r[0]) * t1, r[3]];
+    flat(g, bande[0], bande[1], bande[2], bande[3], BASE + dy, i % 2 ? b : a, MAT.LAWN, seed);
+  }
+}
+
+/** Allée dallée (plus claire que la plateforme) : chemins, parvis, trottoirs du site. */
+export function allee(g: Geo, r: Rect, seed = 0, c: Couleur = hex("#e6dfcf")) {
+  flat(g, r[0], r[1], r[2], r[3], BASE + 0.02, c, MAT.PAVING, seed);
+}
+
+/**
+ * Escalier large : `nb` marches (contremarche 0,17 m, giron 0,34 m) qui descendent depuis la façade
+ * (`faceCoord`, sur l'axe z si `sens` est "+z"/"-z", sur l'axe x sinon) vers `sens`, entre `a0` et `a1`.
+ */
+export function escalier(g: Geo, a0: number, a1: number, faceCoord: number, sens: "+z" | "-z" | "+x" | "-x", nb: number, c: Couleur, seed = 0) {
+  const sg = sens[0] === "+" ? 1 : -1;
+  for (let i = 0; i < nb; i++) {
+    const prof = (nb - i) * 0.34;
+    const [d0, d1] = sg > 0 ? [faceCoord, faceCoord + prof] : [faceCoord - prof, faceCoord];
+    const yTop = BASE + (nb - i) * 0.17;
+    const o = { c, m: MAT.PLAIN, topM: MAT.PAVING, topC: eclaircir(c, 1.05), seed, base: BASE };
+    if (sens[1] === "z") box(g, a0, BASE, d0, a1, yTop, d1, o);
+    else box(g, d0, BASE, a0, d1, yTop, a1, o);
+  }
+}
+
+/** Colonne droite à base et chapiteau, de la hauteur `y0` sur `h` mètres. */
+export function colonne(g: Geo, x: number, z: number, y0: number, h: number, rayon: number, c: Couleur, seed = 0) {
+  box(g, x - rayon * 1.5, y0, z - rayon * 1.5, x + rayon * 1.5, y0 + rayon, z + rayon * 1.5, { c: eclaircir(c, 0.97), m: MAT.PLAIN, seed });
+  cylinder(g, x, y0 + rayon, z, rayon, h - 2.4 * rayon, 12, c, MAT.PLAIN, null, null, rayon * 0.88);
+  box(g, x - rayon * 1.6, y0 + h - 1.4 * rayon, z - rayon * 1.6, x + rayon * 1.6, y0 + h, z + rayon * 1.6, { c: eclaircir(c, 0.97), m: MAT.PLAIN, seed });
+}
+
+/** Acrotère : rebord plein au bord d'un toit plat. */
+export function acrotere(g: Geo, r: Rect, y: number, c: Couleur, h = 0.9, e = 0.35, seed = 0) {
+  box(g, r[0], y, r[1], r[2], y + h, r[1] + e, { c, m: MAT.PLAIN, top: true, seed });
+  box(g, r[0], y, r[3] - e, r[2], y + h, r[3], { c, m: MAT.PLAIN, top: true, seed });
+  box(g, r[0], y, r[1] + e, r[0] + e, y + h, r[3] - e, { c, m: MAT.PLAIN, top: true, seed });
+  box(g, r[2] - e, y, r[1] + e, r[2], y + h, r[3] - e, { c, m: MAT.PLAIN, top: true, seed });
+}
+
+/** Groupes de climatisation et caissons d'extraction sur un toit plat : `n` blocs de tailles variées, tirés avec le générateur du site. */
+export function toitureEquipee(s: Site, r: Rect, y: number, n: number) {
+  const gris = hex("#aeb3b8");
+  for (let i = 0; i < n; i++) {
+    const w = 1.6 + s.r() * 2.2,
+      d = 1.4 + s.r() * 1.8,
+      h = 0.9 + s.r() * 1.3;
+    const x = r[0] + 1.2 + s.r() * Math.max(0.5, r[2] - r[0] - 2.4 - w),
+      z = r[1] + 1.2 + s.r() * Math.max(0.5, r[3] - r[1] - 2.4 - d);
+    box(s.g, x, y, z, x + w, y + h, z + d, { c: gris, m: MAT.PLAIN, seed: s.seed });
+    box(s.g, x + w * 0.2, y + h, z + d * 0.2, x + w * 0.8, y + h + 0.12, z + d * 0.8, { c: hex("#6e7378"), m: MAT.PLAIN, seed: s.seed });
+  }
+}
+
+/** Parking : nappe d'enrobé et rangées de voitures (4,3 m de long) sur un rectangle ; `alongX` donne l'axe des places. */
+export function parking(s: Site, r: Rect, alongX: boolean, remplissage = 0.7) {
+  const { g } = s;
+  flat(g, r[0], r[1], r[2], r[3], BASE + 0.015, hex("#4a4d52"), MAT.PARKING, s.seed);
+  const L = 5,
+    W = 2.7;
+  if (alongX) {
+    for (let z = r[1] + 1.6; z + 2 * W + 1.6 < r[3] + 0.01; z += 2 * W + 6)
+      for (let k = 0; k < 2; k++) {
+        const zc = z + (k ? W : 0) + W / 2;
+        for (let x = r[0] + L / 2 + 0.6; x + L / 2 < r[2]; x += L + 0.4) if (s.r() < remplissage) car(g, x, zc, true, s.r, BASE);
+      }
+  } else {
+    for (let x = r[0] + 1.6; x + 2 * W + 1.6 < r[2] + 0.01; x += 2 * W + 6)
+      for (let k = 0; k < 2; k++) {
+        const xc = x + (k ? W : 0) + W / 2;
+        for (let z = r[1] + L / 2 + 0.6; z + L / 2 < r[3]; z += L + 0.4) if (s.r() < remplissage) car(g, xc, z, false, s.r, BASE);
+      }
+  }
+}
+
+/** Voiture isolée posée sur la plateforme. */
+export function voiture(s: Site, x: number, z: number, alongX: boolean) {
+  car(s.g, x, z, alongX, s.r, BASE);
+}
+
+/** Pilastres : `n` poteaux verticaux saillants régulièrement répartis le long d'une façade (axe X ou Z). */
+export function pilastres(g: Geo, depuis: number, vers: number, fixe: number, alongX: boolean, y0: number, y1: number, n: number, saillie: number, larg: number, c: Couleur, seed = 0) {
+  for (let i = 0; i < n; i++) {
+    const t = depuis + ((vers - depuis) * (i + 0.5)) / n;
+    if (alongX) box(g, t - larg / 2, y0, fixe, t + larg / 2, y1, fixe + saillie, { c, m: MAT.PLAIN, top: false, seed });
+    else box(g, fixe, y0, t - larg / 2, fixe + saillie, y1, t + larg / 2, { c, m: MAT.PLAIN, top: false, seed });
+  }
 }
 
 /** Rangées de panneaux solaires inclinés posées sur un toit plat (bâtiments modernes). */

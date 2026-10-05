@@ -319,6 +319,12 @@ journal existant, puis ce fichier peut être supprimé.*
 > fonctions (`rayonMegaprojet`, `hauteurMegaprojet`), dans la limite de la plus petite
 > cour (14,5 m de large). Détail : `DECISIONS.md` §4 « Mégaprojets : une silhouette par
 > type, couleur naturelle ».
+> **§44 — reprise le 05/10/2026** (retour d'Adrien : « très peu développés et moches, comme le
+> grand stade ») : les 18 modèles sont redessinés à cotes réelles avec leurs abords (pelouses,
+> allées, arbres, parkings et voitures, mobilier, routes d'accès), le Grand stade est refait (bas,
+> façade à pilastres et bannières, toit-couronne), la tour emblématique devient un fût de verre
+> effilé, la centrale solaire un champ ; aucune migration. Détail : `DECISIONS.md` §4 « Mégaprojets
+> étoffés ».
 > **§44 (détail visuel des 18 mégaprojets, 05/10/2026) : nouveau,
 > décision d'Adrien sur la teinte** — ni la teinte d'activité actuelle,
 > ni l'or/bronze des monuments : chaque mégaprojet doit avoir la

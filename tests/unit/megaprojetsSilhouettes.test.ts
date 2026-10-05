@@ -80,7 +80,7 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
         expect(Math.abs(v.x), `${d.type} x`).toBeLessThanOrEqual(R + 0.05);
         expect(Math.abs(v.z), `${d.type} z`).toBeLessThanOrEqual(R + 0.05);
         expect(v.y, `${d.type} y bas`).toBeGreaterThanOrEqual(0);
-        expect(v.y, `${d.type} y haut`).toBeLessThanOrEqual(BASE + 1.45 * H);
+        expect(v.y, `${d.type} y haut`).toBeLessThanOrEqual(BASE + 1.7 * H);
       }
     }
   });
@@ -135,14 +135,26 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
     }
   });
 
-  it("le budget de poids reste modeste : moins de 6 000 sommets par mégaprojet, 40 000 pour les 18 au stade le plus grand", () => {
+  it("chaque mégaprojet est étoffé : au moins 1 000 sommets (le retour d'Adrien du 05/10/2026 jugeait les premiers trop pauvres)", () => {
+    for (const d of DEFS) expect(deDef(d).g.n, d.type).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("chaque site a ses abords : du feuillage (arbres plantés) et des surfaces de sol (pelouse, parking ou allée) en plus du bâtiment", () => {
+    for (const d of DEFS) {
+      const matieres = new Set(sommets(deDef(d).g).map((v) => v.m));
+      expect(matieres.has(MAT.FOLIAGE), `${d.type} : arbres`).toBe(true);
+      expect(matieres.has(MAT.LAWN) || matieres.has(MAT.PARKING) || matieres.has(MAT.PAVING), `${d.type} : sol`).toBe(true);
+    }
+  });
+
+  it("le budget de poids reste modeste : moins de 8 000 sommets par mégaprojet, 60 000 pour les 18 au stade le plus grand", () => {
     let total = 0;
     for (const d of DEFS) {
       const n = construire(d.type, 4).g.n;
-      expect(n, d.type).toBeLessThan(6000);
+      expect(n, d.type).toBeLessThan(8000);
       total += n;
     }
-    expect(total).toBeLessThan(40_000);
+    expect(total).toBeLessThan(60_000);
   });
 
   describe("réemploi des modèles déjà dessinés", () => {

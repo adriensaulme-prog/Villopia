@@ -5368,6 +5368,47 @@ croix retirée. Les vérifications d'emprise ont d'ailleurs trouvé de vrais dé
 arbres, corniche), corrigés. Un seul cas de test ne distingue pas : une croix posée à l'arrière du bâtiment passerait
 (tout parallélépipède a une face +z) ; le showroom la montre à l'avant.
 
+
+### Mégaprojets étoffés : cotes réelles, abords, Grand stade refait (retour d'Adrien du 05/10/2026, suite du §44)
+
+**Retour d'Adrien.** « Améliore les graphismes, certains sont très peu développés et moches (comme le grand
+stade). » Constat dans la vraie scène : les modèles du §44 étaient des volumes nus aux détails à l'échelle d'une
+maquette (mâts de 12 cm, arbres à 30 % de la hauteur, voitures absentes), et le Grand stade ressemblait à un
+gazomètre (mur de 0,58 H, toit qui recouvre tous les gradins). Aucune migration, aucune règle de jeu touchée.
+
+**Fait** (mêmes fichiers, même table `SILHOUETTES`, même signature de `buildMegaprojet()`) :
+- *Cotes réelles.* Les volumes restent en fractions de R et de H (donc suivent la taille réelle du §45) mais
+  tous les détails sont en mètres : marches de 17 cm, colonnes à base et chapiteau, mâts de 18 cm, quais,
+  portes, voitures de 4,3 m (`car()`), arbres de ville (`tree()` de `mobilier.ts`, 4,5 à 7 m ; rapetissés sur
+  les petites plateformes et ramenés à l'intérieur de l'emprise par `rangeeArbres()`).
+- *Abords.* Pelouses, allées dallées, rangées d'arbres, lampadaires, bancs, parkings avec voitures,
+  fontaines, grillages, routes d'accès, toitures équipées (climatisations) : nouvelles briques de
+  `megaprojetsFormes.ts` (`pelouse`, `pelouseRayee`, `allee`, `escalier`, `colonne`, `acrotere`,
+  `toitureEquipee`, `parking`, `rangeeArbres`, `pilastres`, `anneauPente` à secteur).
+- *Grand stade refait.* Bas et large (hauteur ≤ 0,3 H et ≤ 0,62 R), façade à 40 pilastres et bannières
+  bleu et rouge, bandeau vitré sombre, cuvette à sièges colorés par secteurs, toit-couronne blanc sur seize
+  mâts avec sa couronne de feux, pelouse rayée aux lignes et aux buts, quatre grands mâts, parvis dallé.
+- *Autres types* : hôpital en tour, deux ailes, auvent des urgences, ambulances et parking ; école à tour
+  d'horloge, portique et mâts à fanions ; opéra à huit colonnes, grand escalier et fontaine ; gare à quatre
+  voies, caténaires, quais couverts, deux rames, passerelle et taxis ; aéroport à piste balisée, deux avions,
+  passerelles, tour de contrôle, hangar et parking ; stade à tribunes couvertes ; parc des sports à piste,
+  tribune, club-house et courts ; marché à arcades, lanterneau et étals ; logistique à quais, camions,
+  conteneurs, silos ; tour emblématique en **fût de verre effilé** (et non plus une pagode à retraits) ;
+  centrale solaire en **champ** de rangées d'Énergie à leur taille d'origine ; parc éolien à pistes d'accès
+  et poste ; centrale à panaches de vapeur.
+
+**Testé.** `megaprojetsSilhouettes.test.ts` : deux tests nouveaux (chaque modèle fait au moins 1 000 sommets ;
+chaque site a des arbres et un sol de pelouse, de parking ou d'allée) ; bornes ajustées (hauteur ≤ 1,7 H ;
+moins de 8 000 sommets par modèle, 60 000 pour les 18 au stade 4 ; en réalité 1 500 à 4 800 chacun, ~40 000 au
+total). **Sabotage vérifié rouge** : arbres supprimés. Les vérifications d'emprise ont fait corriger de vrais
+débords (feuillage, étals, silos, nez de train, voitures de parvis). Effet de bord corrigé en route : les
+sabotages de `residentielPointFort.test.ts` (§42) ne touchaient que la première copie de `visiter_ville()` ;
+une migration d'une autre session (`0052`) en recopie une dernière avec le point fort, et trois sabotages
+passaient au vert à tort — ils utilisent maintenant `replaceAll`.
+
+**Vérifié.** Showroom (section « Mégaprojets ») et vraie scène sur une page temporaire de Belval-sur-Loire :
+les 18 se lisent, le Grand stade est devenu un stade.
+
 ---
 
 ## §5. i18n
