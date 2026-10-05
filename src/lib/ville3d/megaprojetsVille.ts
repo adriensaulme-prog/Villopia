@@ -33,6 +33,15 @@
  *   - le stade Mégapole (250 000 habitants) est le dernier : c'est aussi le
  *     plafond de rendu (PLAFOND_RENDU_POPULATION), la ville dessinée cesse de
  *     s'étendre au-delà.
+ * A-INTEGRER §45 (05/10/2026, taille réelle) : le mégaprojet n'est plus petit au
+ * point de tenir dans la cour. Il garde EXACTEMENT la même position (centre de la
+ * cour), mais occupe le bloc entier : le bloc est RÉSERVÉ, aucun lot ne s'y
+ * construit (terrain.ts, `siteMegaprojet`), et son emprise est limitée à la
+ * distance entre sa position et le bord du bloc, donc il ne déborde jamais sur
+ * une rue ni sur le bloc voisin (`rayon`). Quand la ville atteint la case, le
+ * bloc devient le mégaprojet : une grande place dans la ville, pas un bâtiment
+ * coincé entre des maisons.
+ *
  * Fonction pure de (graine, palier) : le rendu 3D ET le bouton « Voir où il
  * est » lisent exactement la même position, et elle ne dépend ni de la
  * population courante, ni des vocations des blocs, ni des autres mégaprojets
@@ -40,16 +49,22 @@
  */
 import { POPULATION_STADE, megaprojetDuPalier, rangDansLeStade } from "@/lib/game/megaprojets";
 import { casesTriees } from "./cases";
-import { PLAFOND_RENDU_POPULATION, openAtK } from "./constantes";
+import { BS, PLAFOND_RENDU_POPULATION, blockX0, openAtK } from "./constantes";
+import { rayonMegaprojet } from "./megaprojets";
 import { rectCourBloc } from "./terrain";
 import { FENETRE_CANDIDATS } from "./zonage";
 
 export interface PlaceMegaprojet {
   x: number;
   z: number;
-  /** Case (bloc) dont la cour accueille ce mégaprojet. */
+  /** Case (bloc) que ce mégaprojet réserve (sa cour en est le centre, décalé de 7,25 m du centre du bloc). */
   bi: number;
   bj: number;
+  /**
+   * Demi-côté de son emprise carrée : celui de son stade, réduit si besoin pour rester dans le bloc
+   * (A-INTEGRER §45). Fonction de (graine, palier) seulement, comme la position.
+   */
+  rayon: number;
 }
 
 /** Nombre de blocs ouverts quand la ville atteint `population` (plafonnée au rendu), comme planifierBlocs(). */
@@ -95,7 +110,13 @@ export function placesMegaprojets(key: string, paliers: readonly number[]): Map<
     const rect = rectCourBloc(key, c.bi, c.bj);
     // Jamais en pratique (un bloc a toujours au moins deux parcelles intérieures) : centre du bloc.
     const [x0, z0, x1, z1] = rect ?? [c.bi * 80 + 8, c.bj * 80 + 8, c.bi * 80 + 72, c.bj * 80 + 72];
-    places.set(palier, { x: (x0 + x1) / 2, z: (z0 + z1) / 2, bi: c.bi, bj: c.bj });
+    const x = (x0 + x1) / 2,
+      z = (z0 + z1) / 2;
+    const bx = blockX0(c.bi),
+      bz = blockX0(c.bj);
+    const marge = Math.min(x - bx, bx + BS - x, z - bz, bz + BS - z);
+    const stade = megaprojetDuPalier(palier)?.stade ?? 0;
+    places.set(palier, { x, z, bi: c.bi, bj: c.bj, rayon: Math.min(rayonMegaprojet(stade), marge) });
   });
   return places;
 }

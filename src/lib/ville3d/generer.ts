@@ -45,6 +45,7 @@ import {
   type MegaprojetConstruit,
   type MonumentDebloque,
   type Stats,
+  type ZoneSansArbre,
 } from "./terrain";
 import type { VocationQuartier } from "./quartiers";
 import { technologiesDepuisPalier, type TechnologiesVille } from "@/lib/game/technologies";
@@ -201,18 +202,27 @@ export function generate(
     megaprojets.map((m) => m.palier)
   );
   const casesSansCour = new Set([...places.values(), ...placesMega.values()].map((p) => p.bi + "," + p.bj));
-  const emplacementsSurCour = [...places.values(), ...placesMega.values()];
+  // A-INTEGRER §45 : un mégaprojet occupe son bloc entier (taille réelle), qui n'a donc pas de lots.
+  const casesMegaprojet = new Set([...placesMega.values()].map((p) => p.bi + "," + p.bj));
+  // Rien ne se plante sur un monument (disque de 12 m) ni sur l'emprise d'un mégaprojet (carré, marge de 3 m pour sa plateforme).
+  const emplacementsSurCour: ZoneSansArbre[] = [
+    ...[...places.values()].map((p) => ({ x: p.x, z: p.z })),
+    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: p.rayon + 3 })),
+  ];
 
   buildRoadsAndTraffic(g, act, key, Math.ceil(cityR / T));
   for (const b of blocks) {
     if (b.active)
-      buildBlock(g, b, C, key, ao, stats, glow, ev, tech, theme, { sansCour: casesSansCour.has(b.bi + "," + b.bj) });
+      buildBlock(g, b, C, key, ao, stats, glow, ev, tech, theme, {
+        sansCour: casesSansCour.has(b.bi + "," + b.bj),
+        siteMegaprojet: casesMegaprojet.has(b.bi + "," + b.bj),
+      });
     else if (!horsVille(b)) buildIdleBlock(g, b, key, ao, emplacementsSurCour);
   }
   if (tech.tramway) buildTramway(g, key, cityR);
   if (tech.drones) buildDrones(g, key, cityR);
   buildCountryside(g, key, ao, cityR, [
-    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, r: 12 })),
+    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: p.rayon + 6 })),
     ...zonesEnergie(key, elanEnergie),
   ]);
   buildCountryRoads(g, key, ao, cityR);

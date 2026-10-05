@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { generate, planifierBlocs } from "@/lib/ville3d/generer";
 import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { Geo } from "@/lib/ville3d/geometrie";
-import { buildMegaprojet } from "@/lib/ville3d/megaprojets";
-import { buildCourtyard, rectCourBloc } from "@/lib/ville3d/terrain";
+import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet } from "@/lib/ville3d/megaprojets";
+import { rectCourBloc } from "@/lib/ville3d/terrain";
 import { BS, CITY_R_MIN, PLAFOND_RENDU_POPULATION, blockX0 } from "@/lib/ville3d/constantes";
 import { CEINTURE } from "@/lib/ville3d/emplacements";
 import { casesCentrales } from "@/lib/ville3d/cases";
@@ -153,7 +153,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     const cle = "ville-a";
     const mega = [{ palier: PREMIER, type: "grande_ecole", activite: "services" }];
     const place = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
-    const rSocle = 2.4; // stade 0
+    const rSocle = place.rayon; // stade 0
     // Centre de l'empreinte du socle (ao), l'un des rectangles posés par buildMegaprojet().
     const empreinte = (ao: { x0: number; z0: number; x1: number; z1: number }[]) =>
       ao.filter((r) => Math.abs((r.x0 + r.x1) / 2 - place.x) < 0.01 && Math.abs((r.z0 + r.z1) / 2 - place.z) < 0.01 && Math.abs(r.x1 - r.x0 - 2 * rSocle) < 0.01);
@@ -171,8 +171,113 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       buildMegaprojet(g, 0, 0, def.type, def.stade, rngFrom("t"), ao as never, 1);
       return ao[0].h;
     };
-    for (const palier of PALIERS) expect(hauteur(palier), `palier ${palier}`).toBeLessThan(15);
+    // Taille réelle (§45) : au plus 55 m de haut au stade 4 — jamais les 33 × 4 m qu'un palier brut donnerait.
+    for (const palier of PALIERS) expect(hauteur(palier), `palier ${palier}`).toBeLessThanOrEqual(55 + 1e-9);
     expect(hauteur(PALIERS.at(-1)!)).toBeGreaterThan(hauteur(PREMIER)); // le stade 4 est plus grand que le stade 0
+  });
+
+  describe("taille réelle (§45) : un mégaprojet occupe un bloc entier, sans jamais bouger", () => {
+    it("le rayon et la hauteur croissent avec le stade, et sont nettement plus grands qu'une maison (≈ 9 m) ou un immeuble (12 m)", () => {
+      let r = 0,
+        h = 0;
+      for (let stade = 0; stade <= 4; stade++) {
+        expect(rayonMegaprojet(stade)).toBeGreaterThan(r);
+        expect(hauteurMegaprojet(stade)).toBeGreaterThan(h);
+        r = rayonMegaprojet(stade);
+        h = hauteurMegaprojet(stade);
+      }
+      // Dès le stade 0 : près du double d'un immeuble (12 m) de large ; avant le §45 : 4,8 m (plus petit qu'un arbre).
+      expect(2 * rayonMegaprojet(0)).toBeGreaterThanOrEqual(20);
+      // Au stade 4 : presque un bloc entier (64 m), 4 à 5 fois la hauteur d'un immeuble.
+      expect(2 * rayonMegaprojet(4)).toBeGreaterThanOrEqual(50);
+      expect(hauteurMegaprojet(4)).toBeGreaterThanOrEqual(50);
+    });
+
+    it("la position n'a pas changé d'un mètre : toujours le centre de la cour de la case (celle d'avant le §45)", () => {
+      for (const cle of CLES)
+        for (const [, p] of placesMegaprojets(cle, PALIERS)) {
+          const rect = rectCourBloc(cle, p.bi, p.bj)!;
+          expect(p.x).toBeCloseTo((rect[0] + rect[2]) / 2, 9);
+          expect(p.z).toBeCloseTo((rect[1] + rect[3]) / 2, 9);
+        }
+    });
+
+    it("l'emprise tient dans le bloc : jamais de débord sur une rue ni sur le bloc voisin, quelle que soit la ville", () => {
+      for (const cle of CLES)
+        for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+          const bx = blockX0(p.bi),
+            bz = blockX0(p.bj);
+          const msg = `${cle} palier ${palier}`;
+          expect(p.x - p.rayon, msg).toBeGreaterThanOrEqual(bx - 1e-9);
+          expect(p.x + p.rayon, msg).toBeLessThanOrEqual(bx + BS + 1e-9);
+          expect(p.z - p.rayon, msg).toBeGreaterThanOrEqual(bz - 1e-9);
+          expect(p.z + p.rayon, msg).toBeLessThanOrEqual(bz + BS + 1e-9);
+          expect(p.rayon, msg).toBeLessThanOrEqual(rayonMegaprojet(stadeDe(palier)));
+        }
+    });
+
+    it("les plus gros (stade 3 et 4) sont réduits à la place qu'ils ont plutôt que de déborder ; les petits gardent leur rayon de stade", () => {
+      for (const cle of CLES)
+        for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+          if (stadeDe(palier) <= 2) expect(p.rayon, `${cle} ${palier}`).toBe(rayonMegaprojet(stadeDe(palier)));
+          // 24,75 m : la distance minimale entre le centre d'une cour et le bord de son bloc (cour de 14,5 × 29 m décalée de 7,25 m).
+          expect(p.rayon, `${cle} ${palier}`).toBeCloseTo(Math.min(rayonMegaprojet(stadeDe(palier)), 24.75), 9);
+        }
+    });
+
+    it("le bâtiment dessiné est réduit avec son rayon, hauteur comprise (mêmes proportions)", () => {
+      const mesure = (rayonMax?: number) => {
+        const g = new Geo();
+        const ao: { x0: number; x1: number; h: number }[] = [];
+        buildMegaprojet(g, 0, 0, "grand_stade", 4, rngFrom("t"), ao as never, 1, rayonMax);
+        return { largeur: ao[0].x1 - ao[0].x0, h: ao[0].h };
+      };
+      const plein = mesure();
+      const reduit = mesure(20);
+      expect(plein.largeur).toBeCloseTo(2 * rayonMegaprojet(4), 9);
+      expect(reduit.largeur).toBeCloseTo(40, 9);
+      expect(reduit.h / plein.h).toBeCloseTo(20 / rayonMegaprojet(4), 9);
+      // Un rayonMax plus grand que celui du stade ne l'agrandit jamais.
+      expect(mesure(1000)).toEqual(plein);
+    });
+
+    it("quand la ville atteint la case, le bloc est réservé : aucun lot, aucune maison, rien que le mégaprojet", () => {
+      const cle = "ville-a";
+      const vocations = vocationsDe(cle, 5);
+      const place = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
+      const { blocks } = planifierBlocs(cle, PLAFOND_RENDU_POPULATION, vocations, 0);
+      expect(blocks.some((b) => b.active && b.bi === place.bi && b.bj === place.bj)).toBe(true);
+      const bx = blockX0(place.bi),
+        bz = blockX0(place.bj);
+      const dansLeBloc = (r: { x0: number; z0: number; x1: number; z1: number }) =>
+        r.x0 >= bx - 0.01 && r.x1 <= bx + BS + 0.01 && r.z0 >= bz - 0.01 && r.z1 <= bz + BS + 0.01;
+      const sans = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [], 0, [], "classique", 0);
+      const avec = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [{ palier: PREMIER, type: "grande_ecole", activite: "services" }], 0, [], "classique", 0);
+      // Sans mégaprojet : ce bloc est une vraie parcelle de la ville (maisons, arbres, cour...).
+      expect(sans.ao.filter(dansLeBloc).length).toBeGreaterThan(5);
+      // Avec : seule l'empreinte du mégaprojet (un seul rectangle d'ombre) occupe le bloc.
+      const dedans = avec.ao.filter(dansLeBloc);
+      expect(dedans).toHaveLength(1);
+      expect(dedans[0].x1 - dedans[0].x0).toBeCloseTo(2 * place.rayon, 6);
+      // Et la ville autour, elle, n'a pas bougé : tout ce qui est à plus de 20 m du bloc a les mêmes empreintes
+      // (la campagne seule évite le site : quelques arbres de moins juste autour).
+      const loin = (r: { x0: number; z0: number; x1: number; z1: number }) =>
+        r.x1 < bx - 20 || r.x0 > bx + BS + 20 || r.z1 < bz - 20 || r.z0 > bz + BS + 20;
+      expect(avec.ao.filter(loin)).toEqual(sans.ao.filter(loin));
+    });
+
+    it("le bloc réservé garde ses lampadaires et sa pelouse : la rue reste éclairée", () => {
+      const cle = "ville-a";
+      const vocations = vocationsDe(cle, 5);
+      const place = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
+      const sans = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [], 0, [], "classique", 0);
+      const avec = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [{ palier: PREMIER, type: "grande_ecole", activite: "services" }], 0, [], "classique", 0);
+      const bx = blockX0(place.bi),
+        bz = blockX0(place.bj);
+      const lueurs = (glow: { x: number; z: number }[]) => glow.filter((l) => l.x > bx - 3 && l.x < bx + BS + 3 && l.z > bz - 3 && l.z < bz + BS + 3).length;
+      expect(lueurs(avec.glow)).toBe(lueurs(sans.glow));
+      expect(lueurs(avec.glow)).toBeGreaterThan(0);
+    });
   });
 
   it("rien d'autre ne se superpose au mégaprojet : ni arbre de la cour, ni de forêt, ni de friche, quelle que soit la population", () => {
@@ -181,7 +286,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       const mega = [{ palier: PREMIER, type: "grande_ecole", activite: "services" }];
       for (const pop of [5_000, 15_000, 40_000, PLAFOND_RENDU_POPULATION]) {
         const { ao } = generate(cle, pop, vocationsDe(cle, 5), 0, mega, 0, [], "classique", 0);
-        const rSocle = 2.4;
+        const rSocle = place.rayon;
         const ici = ao.filter(
           (r) => r.x1 > place.x - rSocle && r.x0 < place.x + rSocle && r.z1 > place.z - rSocle && r.z0 < place.z + rSocle
         );
@@ -189,25 +294,6 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
         expect(ici.length, `${cle} population ${pop}`).toBe(1);
       }
     }
-  });
-
-  it("quand la ville atteint la case du mégaprojet, sa cour n'est plus décorée : le bloc se construit autour", () => {
-    const cle = "ville-a";
-    const vocations = vocationsDe(cle, 5);
-    const place = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
-    // À 250 000 habitants, la ville a dépassé la case du premier mégaprojet : son bloc est ouvert.
-    const { blocks } = planifierBlocs(cle, PLAFOND_RENDU_POPULATION, vocations, 0);
-    expect(blocks.some((b) => b.active && b.bi === place.bi && b.bj === place.bj)).toBe(true);
-    const sans = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [], 0, [], "classique", 0);
-    const avec = generate(cle, PLAFOND_RENDU_POPULATION, vocations, 0, [{ palier: PREMIER, type: "grande_ecole", activite: "services" }], 0, [], "classique", 0);
-    // Géométrie du mégaprojet seul, et de la cour (fontaine, pavés, arbres) qu'il remplace.
-    const gm = new Geo();
-    const rm = rngFrom(cle + "|megaprojet|type|" + PREMIER);
-    buildMegaprojet(gm, place.x, place.z, "grande_ecole", 0, rm, [], Math.floor(rm() * 900) + 50);
-    const gc = new Geo();
-    buildCourtyard(gc, rectCourBloc(cle, place.bi, place.bj)!, rngFrom(`${cle}|lot|${place.bi},${place.bj}|9,9`), []);
-    expect(gc.V.length).toBeGreaterThan(0);
-    expect(avec.g.V.length - sans.g.V.length).toBe(gm.V.length - gc.V.length);
   });
 
   it("la géométrie générée est déterministe avec des mégaprojets, et change quand on en débloque un", () => {
@@ -232,7 +318,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     const places = placesMegaprojets(cle, PALIERS);
     for (const palier of PALIERS) {
       const p = places.get(palier)!;
-      const rSocle = 2.4 + 0.4 * stadeDe(palier);
+      const rSocle = p.rayon;
       const empreintes = tous18.ao.filter(
         (r) => Math.abs((r.x0 + r.x1) / 2 - p.x) < 0.01 && Math.abs((r.z0 + r.z1) / 2 - p.z) < 0.01 && Math.abs(r.x1 - r.x0 - 2 * rSocle) < 0.01
       );

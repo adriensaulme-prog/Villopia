@@ -214,6 +214,12 @@ export interface OptionsBloc {
   surCour?: (rect: Rect) => void;
   /** La cour accueille des monuments : on ne la décore pas. */
   sansCour?: boolean;
+  /**
+   * Ce bloc est le site d'un mégaprojet à taille réelle (A-INTEGRER §45) : il garde sa pelouse, ses
+   * trottoirs et ses lampadaires, mais aucun lot ne s'y construit (ni maison, ni immeuble, ni
+   * gratte-ciel, ni cour) — le mégaprojet, posé par generate(), occupe le bloc.
+   */
+  siteMegaprojet?: boolean;
 }
 
 export function buildBlock(
@@ -249,7 +255,8 @@ export function buildBlock(
 
   // arbres d'alignement
   const streetTree = (x: number, z: number) => {
-    if (r() < 0.7) tree(g, x, z, sh, rr(r, 0.75, 0.9), r, ao);
+    // Le tirage a toujours lieu ; sur le site d'un mégaprojet, l'arbre ne serait que sous sa plateforme.
+    if (r() < 0.7 && !options.siteMegaprojet) tree(g, x, z, sh, rr(r, 0.75, 0.9), r, ao);
   };
   for (let k = 1; k < 6; k++) {
     const t = 6 + k * 9.2;
@@ -295,6 +302,11 @@ export function buildBlock(
     else if (cote === 2) abribus(g, bx0 + 2.2, bz0 + 29, false);
     else abribus(g, bx0 + BS - 2.2, bz0 + 29, false);
   }
+
+  // Site d'un mégaprojet (A-INTEGRER §45) : le bloc entier lui est réservé. Tout ce qui suit ne
+  // concerne que les lots, que le mégaprojet remplace ; les tirages de ce bloc n'alimentent rien
+  // d'autre (chaque lot a son propre générateur).
+  if (options.siteMegaprojet) return;
 
   // où va le gratte-ciel (un côté du bloc, 2x2 parcelles)
   const side = Math.floor(r() * 4);
@@ -474,7 +486,18 @@ export function buildSquare(g: Geo, rect: Rect, r: RNG, ao: TamponAO[]) {
   }
 }
 
-export function buildIdleBlock(g: Geo, b: Bloc, key: string, ao: TamponAO[], evite: { x: number; z: number }[] = []) {
+/** Zone où l'on ne plante rien : un disque (`r`, 12 m par défaut) ou, si `demi` est donné, un carré de ce demi-côté. */
+export interface ZoneSansArbre {
+  x: number;
+  z: number;
+  r?: number;
+  demi?: number;
+}
+
+const dansLaZone = (p: ZoneSansArbre, x: number, z: number, marge = 0) =>
+  p.demi !== undefined ? Math.max(Math.abs(p.x - x), Math.abs(p.z - z)) < p.demi + marge : Math.hypot(p.x - x, p.z - z) < (p.r ?? 12) + marge;
+
+export function buildIdleBlock(g: Geo, b: Bloc, key: string, ao: TamponAO[], evite: ZoneSansArbre[] = []) {
   const r = rngFrom(key + "|friche|" + b.bi + "," + b.bj);
   const bx0 = blockX0(b.bi),
     bz0 = blockX0(b.bj);
@@ -485,7 +508,7 @@ export function buildIdleBlock(g: Geo, b: Bloc, key: string, ao: TamponAO[], evi
     const x = bx0 + rr(r, 6, BS - 6),
       z = bz0 + rr(r, 6, BS - 6),
       echelle = rr(r, 0.9, 1.3);
-    if (evite.some((p) => Math.hypot(p.x - x, p.z - z) < 12)) continue;
+    if (evite.some((p) => dansLaZone(p, x, z))) continue;
     tree(g, x, z, 0, echelle, r, ao);
   }
 }
@@ -522,7 +545,7 @@ export function buildCountryside(
   key: string,
   ao: TamponAO[],
   cityR: number,
-  evite: readonly { x: number; z: number; r: number }[] = []
+  evite: readonly ZoneSansArbre[] = []
 ) {
   for (let k = 0; k < 110; k++) {
     const r = rngFrom(key + "|foret|" + k);
@@ -540,7 +563,7 @@ export function buildCountryside(
       if (Math.max(Math.abs(x), Math.abs(z)) < cityR + 14) continue;
       if (Math.abs(x) < 12 || Math.abs(z) < 12) continue;
       // Pas d'arbre sur un mégaprojet ou une installation d'Énergie (A-INTEGRER §37) : le tirage a lieu, on ne plante simplement pas.
-      if (evite.some((p) => Math.hypot(p.x - x, p.z - z) < p.r)) continue;
+      if (evite.some((p) => dansLaZone(p, x, z))) continue;
       if (coni && q() < 0.8) conifer(g, x, z, rr(q, 0.9, 1.25), q, ao);
       else tree(g, x, z, 0, rr(q, 1.1, 1.6), q, ao);
     }
@@ -605,14 +628,14 @@ export function buildMegaprojetsCampagne(
   key: string,
   ao: TamponAO[],
   megaprojets: MegaprojetConstruit[],
-  places: ReadonlyMap<number, { x: number; z: number }>
+  places: ReadonlyMap<number, { x: number; z: number; rayon?: number }>
 ) {
   for (const m of megaprojets) {
     const place = places.get(m.palier);
     if (!place) continue;
     const r = rngFrom(key + "|megaprojet|type|" + m.palier);
     const stade = megaprojetDuPalier(m.palier)?.stade ?? 0;
-    buildMegaprojet(g, place.x, place.z, m.type, stade, r, ao, Math.floor(r() * 900) + 50);
+    buildMegaprojet(g, place.x, place.z, m.type, stade, r, ao, Math.floor(r() * 900) + 50, place.rayon);
   }
 }
 

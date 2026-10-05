@@ -194,7 +194,7 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
   });
 
   describe("la taille suit le stade, pas le palier", () => {
-    it("le rayon et la hauteur croissent avec le stade et restent dans la plus petite cour d'un bloc (14,5 m de large)", () => {
+    it("le rayon et la hauteur croissent avec le stade et restent dans un bloc (64 m) : taille réelle, A-INTEGRER §45", () => {
       let r = 0,
         h = 0;
       for (let stade = 0; stade <= 4; stade++) {
@@ -202,8 +202,8 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
         expect(hauteurMegaprojet(stade)).toBeGreaterThan(h);
         r = rayonMegaprojet(stade);
         h = hauteurMegaprojet(stade);
-        expect(2 * r).toBeLessThan(14.5);
-        expect(h).toBeLessThan(15);
+        expect(2 * r).toBeLessThanOrEqual(64);
+        expect(h).toBeLessThanOrEqual(60);
       }
     });
   });
