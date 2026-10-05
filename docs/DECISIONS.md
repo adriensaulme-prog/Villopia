@@ -4575,7 +4575,8 @@ classement actuel par défaut. `guide.test.ts` mis à jour. Capture vérifiée.
 ### Mégaprojets à la bordure de la ville et centrale hors de la route (A-INTEGRER §37) — 05/10/2026
 
 **Demande d'Adrien.** (A) Énergie reste à l'extérieur (rien à changer, bouton
-« voir où il est » à **conserver**) ; les mégaprojets viennent à la **bordure de la
+« voir où il est » à **conserver** — *retiré ensuite sur ordre d'Adrien, voir plus
+bas*) ; les mégaprojets viennent à la **bordure de la
 ville** au lieu de la ceinture fixe à 450 m+, et un mégaprojet déjà construit
 **ne bouge jamais**, même quand la ville grandit ensuite. (B) Bug : la centrale
 électrique apparaît parfois à moitié sur une route. Les deux points sont laissés
@@ -4648,8 +4649,13 @@ le **milieu** du secteur d'Énergie (±30° autour de +x) : un tirage proche de 
   bougent** (une fois) ; les autres installations gardent leur place. Constantes
   `DEMI_ROUTE_CAMPAGNE` et `DEMI_BANDE_ROUTE_CAMPAGNE` dans `constantes.ts`,
   partagées avec `buildCountryRoads()`.
-- Le bouton « Voir où il est » d'Énergie (`JaugesActivites`) est **conservé tel quel**
-  et lit toujours les mêmes fonctions.
+- **Bouton « Voir où il est » d'Énergie retiré** (`JaugesActivites`, prop `energie`
+  supprimée) à la demande d'Adrien, le jour même, après que je l'avais conservé comme
+  demandé au §37 A : il l'a explicitement désigné (« énergie ») quand je lui ai demandé
+  quel bouton retirer avant le commit. Les boutons des **mégaprojets** et des
+  **monuments** restent. `emplacementEnergie()` et `emplacementCentrale()` ne servent
+  plus qu'au rendu 3D. La règle `.jauge .jauge-voir` de `globals.css`, devenue
+  inutile, est retirée.
 - Les forêts n'empiètent plus sur l'Énergie (`zonesEnergie()`).
 
 **Testé.** `tests/unit/megaprojetsVille.test.ts` (nouveau, 10) : case libre à
@@ -4666,7 +4672,8 @@ Suite unitaire complète verte, `tsc` propre. Vérifié à l'œil sur une page t
 (supprimée) : à 5 000 habitants le mégaprojet est juste au bord de la ville, à
 250 000 il est au même endroit dans la cour d'un bloc entouré de maisons, et la
 centrale est nettement à l'écart de la route. `voir-ou-megaprojets-energie.spec.ts`
-adapté à la nouvelle fonction mais **pas rejoué** (il demande Supabase).
+adapté (nouvelle fonction de place, et vérifie maintenant que la jauge Énergie n'a
+plus de bouton) mais **pas rejoué** (il demande Supabase).
 
 ### Bouton « Appliquer » du thème sans effet : doublon retiré (A-INTEGRER §38) — 05/10/2026
 

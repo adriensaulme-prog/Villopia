@@ -1,13 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { cleDe, emplacementEnergie } from "../../src/lib/ville3d/emplacements";
+import { cleDe } from "../../src/lib/ville3d/emplacements";
 import { placesMegaprojets } from "../../src/lib/ville3d/megaprojetsVille";
 
 /**
- * « Voir où il est » étendu aux mégaprojets construits et aux installations
- * d'Énergie (suite de docs/A-INTEGRER.md §25). Client service_role recréé
- * ici pour la même raison que les specs des jalons précédents
- * ("server-only" hors du pipeline Next.js).
+ * « Voir où il est » pour les mégaprojets construits (suite de
+ * docs/A-INTEGRER.md §25, place à la bordure de la ville depuis le §37) ; le
+ * bouton d'Énergie, d'abord prévu au §25 puis conservé au §37, a été retiré à
+ * la demande d'Adrien (05/10/2026) : la jauge Énergie n'en a plus. Client
+ * service_role recréé ici pour la même raison que les specs des jalons
+ * précédents ("server-only" hors du pipeline Next.js).
  */
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +19,7 @@ const supabaseAdmin = createClient(
 
 const suffixe = () => Math.random().toString(36).slice(2, 6);
 
-test("un mégaprojet construit et l'Énergie ont leur bouton « Voir où il est », qui cible l'emplacement exact", async ({
+test("un mégaprojet construit a son bouton « Voir où il est », qui cible l'emplacement exact ; la jauge Énergie n'en a plus", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -62,11 +64,9 @@ test("un mégaprojet construit et l'Énergie ont leur bouton « Voir où il est 
     const m = placesMegaprojets(cle, [0]).get(0)!;
     await expect(canvas).toHaveAttribute("data-repere", `${Math.round(m.x)},${Math.round(m.z)}`);
 
-    const boutonEnergie = page.getByRole("button", { name: /Voir où il est : Énergie/ });
-    await expect(boutonEnergie).toBeVisible();
-    await boutonEnergie.click();
-    const e = emplacementEnergie(cle, 0);
-    await expect(canvas).toHaveAttribute("data-repere", `${Math.round(e.x)},${Math.round(e.z)}`);
+    // Énergie : de l'élan, donc des installations dans la campagne, mais plus de bouton pour les repérer.
+    await expect(page.locator(".jauge-nom", { hasText: "Énergie" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Voir où il est : Énergie/ })).toHaveCount(0);
   } finally {
     await supabaseAdmin.auth.admin.deleteUser(userId);
   }

@@ -9,9 +9,10 @@
  * Avant le §25 chaque objet était posé à un ANGLE ALÉATOIRE sur 360° :
  * impossible de savoir où regarder. Désormais Énergie a son SECTEUR fixe,
  * identique pour toutes les villes : l'axe +x (les autres axes sont libres ;
- * pas de boussole affichée, la caméra tourne : le joueur passe par « voir
- * où il est », bouton à conserver — §37 A), et se place à partir d'une
- * CEINTURE fixe, jamais relative au rayon courant de la ville (qui grandit) :
+ * pas de boussole affichée, la caméra tourne ; le bouton « voir où il est »
+ * d'Énergie, d'abord conservé au §37 A, a été retiré à la demande d'Adrien
+ * le 05/10/2026), et se place à partir d'une CEINTURE fixe, jamais relative
+ * au rayon courant de la ville (qui grandit) :
  * un objet déjà visible ne bouge plus jamais, et la ville ne peut plus
  * l'avaler — la ceinture est au-delà du rayon de la ville au plafond de rendu
  * (PLAFOND_RENDU_POPULATION, rayon 400), vérifié par
@@ -23,8 +24,7 @@
  * la bande de route (GARDE_ROUTE_ENERGIE) ; seuls les tirages qui tombaient
  * dedans sont déplacés, les autres installations gardent leur place.
  *
- * Fonctions pures : la scène 3D (terrain.ts) ET le panneau « voir où il
- * est » (client, caméra) lisent exactement la même position.
+ * Fonctions pures, lues par la scène 3D (terrain.ts) et par ses tests.
  */
 
 import { rngFrom, rr, type RNG } from "./aleatoire";

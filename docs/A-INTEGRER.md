@@ -213,8 +213,9 @@ journal existant, puis ce fichier peut être supprimé.*
 > jardin, sans marge minimale avec la maison.
 
 > **§37 — fait le 05/10/2026** (mégaprojets à la bordure de la ville,
-> centrale hors de la route ; Énergie et son bouton « voir où il est »
-> inchangés).
+> centrale hors de la route ; le bouton « voir où il est » d'Énergie,
+> d'abord conservé comme demandé, a ensuite été **retiré à la demande
+> d'Adrien** le même jour).
 > **§37 (décision finale Énergie/mégaprojets + bug centrale sur une
 > route, 05/10/2026) : nouveau** — Adrien confirme qu'Énergie reste à
 > l'extérieur (rien à changer là), demande que les mégaprojets viennent
@@ -2223,7 +2224,9 @@ mégaprojet se pose au centre de la cour de cette case
 (`src/lib/ville3d/megaprojetsVille.ts`, fonction pure de la graine et du
 palier, aucune migration). Une fois posé il ne bouge jamais : quand la
 ville atteint sa case, le bloc se construit autour de lui. Énergie reste
-à l'extérieur et son bouton « Voir où il est » est conservé. (B) la
+à l'extérieur ; son bouton « Voir où il est », d'abord conservé comme demandé
+ci-dessus, a été **retiré** ensuite sur demande expresse d'Adrien (le même
+jour, après question), les boutons des mégaprojets et des monuments restant. (B) la
 centrale et les autres installations d'Énergie sont écartées de la route
 de campagne au tirage (`GARDE_ROUTE_ENERGIE`, 25 m de l'axe) ; la route et
 le secteur ne changent pas. Écart à signaler : l'ancrage des mégaprojets

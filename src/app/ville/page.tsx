@@ -414,7 +414,7 @@ export default async function VillePage() {
             </div>
           ))}
         </div>
-        <JaugesActivites locale={locale} jauges={jauges} energie={{ cleVille: ville.id, elan: elanEnergie }} />
+        <JaugesActivites locale={locale} jauges={jauges} />
         <ChoisirActivite
           locale={locale}
           villeId={ville.id}
