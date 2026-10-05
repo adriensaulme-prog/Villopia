@@ -13,8 +13,9 @@ import { CATALOGUE_MEGAPROJETS, PREMIER_PALIER_MEGAPROJET } from "@/lib/game/meg
 
 /**
  * A-INTEGRER §49 D (retour d'Adrien du 05/10/2026) : « stade et grand stade beaucoup plus grands, sur
- * plusieurs blocs réservés ». Le Stade occupe un carré de 2 × 2 blocs, le Grand stade de 3 × 3 ; les
- * rues qui les traversent disparaissent avec eux.
+ * plusieurs blocs réservés ». Le Stade occupe un carré de 2 × 2 blocs, le Grand stade un rectangle de 3 × 2
+ * (retour d'Adrien du 05/10/2026 : « le Grand stade est trop grand, disproportionné », il était en 3 × 3) ;
+ * les rues qui les traversent disparaissent avec eux.
  */
 const PALIERS = CATALOGUE_MEGAPROJETS.map((_, i) => PREMIER_PALIER_MEGAPROJET + i);
 const STADE = PREMIER_PALIER_MEGAPROJET + CATALOGUE_MEGAPROJETS.findIndex((m) => m.type === "stade");
@@ -24,21 +25,26 @@ const GRAINES = Array.from({ length: 100 }, (_, i) => `graine-${i}`);
 const cleBloc = (b: { bi: number; bj: number }) => b.bi + "," + b.bj;
 
 describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
-  it("la taille : 2 × 2 blocs et 3 × 3 blocs, rues intérieures comprises ; tous les autres mégaprojets gardent un bloc", () => {
+  it("la taille : 2 × 2 blocs pour le Stade, 3 × 2 pour le Grand stade, rues intérieures comprises ; tous les autres mégaprojets gardent un bloc", () => {
     expect(coteBlocs(2)).toBe(144);
     expect(coteBlocs(3)).toBe(224);
-    expect(blocsMegaprojet("stade")).toBe(2);
-    expect(blocsMegaprojet("grand_stade")).toBe(3);
-    for (const d of CATALOGUE_MEGAPROJETS) if (d.type !== "stade" && d.type !== "grand_stade") expect(blocsMegaprojet(d.type), d.type).toBe(1);
-    // La plateforme laisse le trottoir (3 m) et un mètre de jeu : 68 m de demi-côté pour le Stade, 108 m pour le Grand stade.
-    expect(tailleMegaprojet("stade", 1)).toMatchObject({ R: 68, blocs: 2 });
-    expect(tailleMegaprojet("grand_stade", 4)).toMatchObject({ R: 108, blocs: 3 });
-    // Beaucoup plus grands qu'avant (le Stade tenait dans 15 m de demi-côté, le Grand stade dans 24,75 m).
+    expect(blocsMegaprojet("stade")).toEqual({ nx: 2, nz: 2 });
+    expect(blocsMegaprojet("grand_stade")).toEqual({ nx: 3, nz: 2 });
+    for (const d of CATALOGUE_MEGAPROJETS) if (d.type !== "stade" && d.type !== "grand_stade") expect(blocsMegaprojet(d.type), d.type).toEqual({ nx: 1, nz: 1 });
+    // La plateforme laisse le trottoir (3 m) et un mètre de jeu : 68 m de demi-côté pour le Stade, 108 × 68 m pour le Grand stade.
+    expect(tailleMegaprojet("stade", 1)).toMatchObject({ R: 68, Rz: 68, nx: 2, nz: 2 });
+    expect(tailleMegaprojet("grand_stade", 4)).toMatchObject({ R: 108, Rz: 68, nx: 3, nz: 2, H: 48 });
+    // Beaucoup plus grands qu'avant (le Stade tenait dans 15 m de demi-côté, le Grand stade dans 24,75 m) ...
     expect(tailleMegaprojet("stade", 1).R).toBeGreaterThan(4 * 15);
     expect(tailleMegaprojet("grand_stade", 4).R).toBeGreaterThan(4 * 24.75);
+    // ... mais le Grand stade n'est plus disproportionné : un tiers de surface de moins que le 3 × 3, et plus long que large.
+    const g = tailleMegaprojet("grand_stade", 4);
+    expect(g.R * g.Rz).toBeLessThan((108 * 108 * 2) / 3 + 1);
+    expect(g.R).toBeGreaterThan(g.Rz);
+    expect(g.R * g.Rz).toBeGreaterThan(tailleMegaprojet("stade", 1).R ** 2); // toujours plus grand que le Stade
   });
 
-  it("un carré de blocs qui part de la case d'ancrage vers l'extérieur de la ville, sans jamais chevaucher un axe central", () => {
+  it("un rectangle de blocs qui part de la case d'ancrage vers l'extérieur de la ville, sans jamais chevaucher un axe central", () => {
     for (const c of [
       { bi: 4, bj: 2 },
       { bi: -4, bj: 2 },
@@ -47,10 +53,13 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
       { bi: 0, bj: 5 },
       { bi: -1, bj: -6 },
     ]) {
-      for (const n of [2, 3]) {
-        const blocs = blocsDuSite(c, n);
-        expect(blocs).toHaveLength(n * n);
-        expect(new Set(blocs.map(cleBloc)).size).toBe(n * n);
+      for (const [nx, nz] of [
+        [2, 2],
+        [3, 2],
+      ] as const) {
+        const blocs = blocsDuSite(c, nx, nz);
+        expect(blocs).toHaveLength(nx * nz);
+        expect(new Set(blocs.map(cleBloc)).size).toBe(nx * nz);
         // Tous du même côté de chaque axe central que la case d'ancrage : l'axe n'est jamais une rue intérieure du site.
         expect(blocs.every((b) => b.bi >= 0 === c.bi >= 0 && b.bj >= 0 === c.bj >= 0)).toBe(true);
         // Chaque bloc ajouté est plus loin du centre que l'ancre, jamais entre elle et la ville.
@@ -62,20 +71,21 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     }
   });
 
-  it("les places : 4 blocs et 136 m pour le Stade, 9 blocs et 216 m pour le Grand stade, rect = carré de leurs blocs", () => {
+  it("les places : 4 blocs et 136 m pour le Stade, 6 blocs et 216 × 136 m pour le Grand stade, rect = rectangle de leurs blocs", () => {
     for (const cle of CLES) {
       const places = placesMegaprojets(cle, PALIERS);
-      for (const [palier, n, R] of [
-        [STADE, 2, 68],
-        [GRAND_STADE, 3, 108],
+      for (const [palier, nx, nz, R, Rz] of [
+        [STADE, 2, 2, 68, 68],
+        [GRAND_STADE, 3, 2, 108, 68],
       ] as const) {
         const p = places.get(palier)!;
-        expect(p.taille, cle).toBe(n);
-        expect(p.blocs, cle).toHaveLength(n * n);
+        expect([p.nx, p.nz], cle).toEqual([nx, nz]);
+        expect(p.blocs, cle).toHaveLength(nx * nz);
         expect(p.rayon, cle).toBe(R);
+        expect(p.rayonZ, cle).toBe(Rz);
         const [x0, z0, x1, z1] = p.rect;
-        expect(x1 - x0).toBe(coteBlocs(n));
-        expect(z1 - z0).toBe(coteBlocs(n));
+        expect(x1 - x0).toBe(coteBlocs(nx));
+        expect(z1 - z0).toBe(coteBlocs(nz));
         expect(p.x).toBeCloseTo((x0 + x1) / 2, 9);
         expect(p.z).toBeCloseTo((z0 + z1) / 2, 9);
         // Le carré de blocs est exactement celui des blocs réservés.
@@ -85,8 +95,9 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
           expect(blockX0(b.bj)).toBeGreaterThanOrEqual(z0);
           expect(blockX0(b.bj) + BS).toBeLessThanOrEqual(z1);
         }
-        // La plateforme laisse 4 m (trottoir et jeu) entre son bord et celui du carré.
+        // La plateforme laisse 4 m (trottoir et jeu) entre son bord et celui du rectangle.
         expect((x1 - x0) / 2 - p.rayon).toBeCloseTo(4, 9);
+        expect((z1 - z0) / 2 - p.rayonZ).toBeCloseTo(4, 9);
       }
       // Les 16 autres mégaprojets n'ont qu'un bloc.
       for (const palier of PALIERS) if (palier !== STADE && palier !== GRAND_STADE) expect(places.get(palier)!.blocs, `${cle} ${palier}`).toHaveLength(1);
@@ -97,7 +108,7 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     for (const cle of GRAINES) {
       const places = placesMegaprojets(cle, PALIERS);
       const tous = [...places.values()].flatMap((p) => p.blocs.map(cleBloc));
-      expect(tous, cle).toHaveLength(18 - 2 + 4 + 9);
+      expect(tous, cle).toHaveLength(18 - 2 + 4 + 6);
       expect(new Set(tous).size, cle).toBe(tous.length);
       const monuments = new Set(casesCentrales(cle, NB_BLOCS_MONUMENTS).map(cleBloc));
       for (const b of tous) expect(monuments.has(b), `${cle} ${b}`).toBe(false);
@@ -131,14 +142,20 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     const dedans = (rect: [number, number, number, number], marge: number) => (x: number, z: number) =>
       x > rect[0] + marge && x < rect[2] - marge && z > rect[1] + marge && z < rect[3] - marge;
 
-    it("l'empreinte au sol est celle de la plateforme : 136 × 136 m pour le Stade, 216 × 216 m pour le Grand stade", () => {
-      for (const [palier, R, H] of [
-        [STADE, 68, 36],
-        [GRAND_STADE, 108, 60],
+    it("l'empreinte au sol est celle de la plateforme : 136 × 136 m pour le Stade, 216 × 136 m pour le Grand stade", () => {
+      for (const [palier, R, Rz, H] of [
+        [STADE, 68, 68, 36],
+        [GRAND_STADE, 108, 68, 48],
       ] as const) {
         const p = placesMegaprojets("ville-a", [palier]).get(palier)!;
         const { ao } = ville(palier);
-        const empreinte = ao.filter((r) => Math.abs((r.x0 + r.x1) / 2 - p.x) < 0.01 && Math.abs((r.z0 + r.z1) / 2 - p.z) < 0.01 && Math.abs(r.x1 - r.x0 - 2 * R) < 0.01);
+        const empreinte = ao.filter(
+          (r) =>
+            Math.abs((r.x0 + r.x1) / 2 - p.x) < 0.01 &&
+            Math.abs((r.z0 + r.z1) / 2 - p.z) < 0.01 &&
+            Math.abs(r.x1 - r.x0 - 2 * R) < 0.01 &&
+            Math.abs(r.z1 - r.z0 - 2 * Rz) < 0.01
+        );
         expect(empreinte, `palier ${palier}`).toHaveLength(1);
         expect(empreinte[0].h).toBe(H);
       }
@@ -193,10 +210,10 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
       expect(hors.length).toBeGreaterThanOrEqual(12);
     });
 
-    it("la pelouse tracée a la taille d'un terrain : 63 × 38 m au Stade, 106 × 67 m au Grand stade", () => {
+    it("la pelouse tracée a la taille d'un terrain : 63 × 38 m au Stade, 87 × 55 m au Grand stade", () => {
       for (const [palier, longueur, largeur] of [
         [STADE, 62, 37],
-        [GRAND_STADE, 105, 66],
+        [GRAND_STADE, 86, 54],
       ] as const) {
         const { g } = ville(palier);
         let x0 = Infinity,

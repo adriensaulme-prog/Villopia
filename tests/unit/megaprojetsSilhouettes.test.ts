@@ -19,6 +19,8 @@ interface Construit {
   g: Geo;
   ao: { x0: number; z0: number; x1: number; z1: number; w: number; h: number }[];
   R: number;
+  /** Demi-côté le long de z : égal à R sauf pour le Grand stade (site rectangulaire, §49 D). */
+  Rz: number;
   H: number;
 }
 
@@ -28,8 +30,8 @@ function construire(type: string, stade: number, cle = "silhouettes|" + type): C
   const r = rngFrom(cle);
   buildMegaprojet(g, 0, 0, type, stade, r, ao as never, Math.floor(r() * 900) + 50);
   // La taille d'un mégaprojet : celle de son stade, sauf le Stade et le Grand stade (plusieurs blocs, §49 D).
-  const { R, H } = tailleMegaprojet(type, stade);
-  return { g, ao, R, H };
+  const { R, Rz, H } = tailleMegaprojet(type, stade);
+  return { g, ao, R, Rz, H };
 }
 
 const DEFS: readonly DefMegaprojet[] = CATALOGUE_MEGAPROJETS;
@@ -74,13 +76,13 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
   it("les 18 types du catalogue sont dessinés, tous sommets finis, dans l'emprise de leur stade et sous leur plafond de hauteur", () => {
     expect(DEFS).toHaveLength(18);
     for (const d of DEFS) {
-      const { g, R, H } = deDef(d);
+      const { g, R, Rz, H } = deDef(d);
       expect(g.V.length, d.type).toBeGreaterThan(0);
       expect(g.V.every(Number.isFinite), d.type).toBe(true);
       expect(g.I.every((i) => i >= 0 && i < g.n), `${d.type} : indices valides`).toBe(true);
       for (const v of sommets(g)) {
         expect(Math.abs(v.x), `${d.type} x`).toBeLessThanOrEqual(R + 0.05);
-        expect(Math.abs(v.z), `${d.type} z`).toBeLessThanOrEqual(R + 0.05);
+        expect(Math.abs(v.z), `${d.type} z`).toBeLessThanOrEqual(Rz + 0.05);
         expect(v.y, `${d.type} y bas`).toBeGreaterThanOrEqual(0);
         expect(v.y, `${d.type} y haut`).toBeLessThanOrEqual(BASE + 1.7 * H);
       }
@@ -89,9 +91,9 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
 
   it("une empreinte unique, carrée, de la taille du stade : l'ombre et le placement dans la cour en dépendent", () => {
     for (const d of DEFS) {
-      const { ao, R, H } = deDef(d);
+      const { ao, R, Rz, H } = deDef(d);
       expect(ao, d.type).toHaveLength(1);
-      expect(ao[0]).toEqual({ x0: -R, z0: -R, x1: R, z1: R, w: 1, h: H });
+      expect(ao[0]).toEqual({ x0: -R, z0: -Rz, x1: R, z1: Rz, w: 1, h: H });
     }
   });
 

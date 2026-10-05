@@ -26,6 +26,8 @@ export interface Site {
   cx: number;
   cz: number;
   R: number;
+  /** Demi-côté le long de z : égal à R, sauf pour un site rectangulaire (le Grand stade, A-INTEGRER §49 D). */
+  Rz: number;
   H: number;
   r: RNG;
   seed: number;
@@ -37,7 +39,7 @@ export const BASE = SOL + 0.12;
 
 /** Rectangle du site, en fractions de R : (a0, b0) → (a1, b1), a le long de x, b le long de z. */
 export function zone(s: Site, a0: number, b0: number, a1: number, b1: number): Rect {
-  return [s.cx + a0 * s.R, s.cz + b0 * s.R, s.cx + a1 * s.R, s.cz + b1 * s.R];
+  return [s.cx + a0 * s.R, s.cz + b0 * s.Rz, s.cx + a1 * s.R, s.cz + b1 * s.Rz];
 }
 
 /** Altitude à la fraction `f` de la hauteur du site, au-dessus de la plateforme. */
@@ -47,11 +49,11 @@ export function haut(s: Site, f: number): number {
 
 /** Position le long de x (ou z) à la fraction `a` de R. */
 export const px = (s: Site, a: number) => s.cx + a * s.R;
-export const pz = (s: Site, b: number) => s.cz + b * s.R;
+export const pz = (s: Site, b: number) => s.cz + b * s.Rz;
 
 /** Plateforme carrée dallée, de l'emprise du mégaprojet : l'empreinte au sol, d'un seul tenant. */
 export function plateforme(s: Site, dessus: Couleur = COL.paving, flanc: Couleur = COL.stone) {
-  box(s.g, s.cx - s.R, SOL, s.cz - s.R, s.cx + s.R, BASE, s.cz + s.R, {
+  box(s.g, s.cx - s.R, SOL, s.cz - s.Rz, s.cx + s.R, BASE, s.cz + s.Rz, {
     c: flanc,
     m: MAT.PLAIN,
     topM: MAT.PAVING,
@@ -251,12 +253,12 @@ export function arbre(g: Geo, x: number, z: number, echelle = 1, r: RNG = () => 
 export function rangeeArbres(s: Site, depuis: number, vers: number, fixe: number, alongX: boolean, pas = 7, echelle = 1) {
   const e = echelle * Math.min(1, s.R / 19);
   const marge = 3.0 * e + 0.2; // houppier principal (≤ 2,5 m) et second houppier décalé (jusqu'à 2,7 m du tronc)
-  const dans = (v: number, c: number) => Math.min(c + s.R - marge, Math.max(c - s.R + marge, v));
+  const dans = (v: number, c: number, R: number) => Math.min(c + R - marge, Math.max(c - R + marge, v));
   const n = Math.max(1, Math.round(Math.abs(vers - depuis) / pas));
   for (let i = 0; i <= n; i++) {
     const t = depuis + ((vers - depuis) * i) / n;
-    if (alongX) arbre(s.g, dans(t, s.cx), dans(fixe, s.cz), e, s.r);
-    else arbre(s.g, dans(fixe, s.cx), dans(t, s.cz), e, s.r);
+    if (alongX) arbre(s.g, dans(t, s.cx, s.R), dans(fixe, s.cz, s.Rz), e, s.r);
+    else arbre(s.g, dans(fixe, s.cx, s.R), dans(t, s.cz, s.Rz), e, s.r);
   }
 }
 

@@ -60,7 +60,7 @@ describe("les mégaprojets restent loin de l'Énergie (§49 C)", () => {
       for (const palier of PALIERS) {
         const apres = places.get(palier)!;
         // Le Stade et le Grand stade ont changé de place pour une autre raison : ils occupent plusieurs blocs (§49 D, megaprojetsStades.test.ts).
-        if (apres.taille > 1) continue;
+        if (apres.nx * apres.nz > 1) continue;
         const avant = placeAvantLe49(cases, cle, palier);
         const tropPres = distanceAuSecteurEnergie(avant.x, avant.z) < DISTANCE_MIN_ENERGIE;
         total++;

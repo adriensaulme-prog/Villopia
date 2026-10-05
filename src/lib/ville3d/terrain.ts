@@ -524,10 +524,14 @@ export interface ZoneSansArbre {
   z: number;
   r?: number;
   demi?: number;
+  /** Demi-côté le long de z d'une zone rectangulaire (le Grand stade, A-INTEGRER §49 D) ; absent = `demi`, la zone est carrée. */
+  demiZ?: number;
 }
 
 const dansLaZone = (p: ZoneSansArbre, x: number, z: number, marge = 0) =>
-  p.demi !== undefined ? Math.max(Math.abs(p.x - x), Math.abs(p.z - z)) < p.demi + marge : Math.hypot(p.x - x, p.z - z) < (p.r ?? 12) + marge;
+  p.demi !== undefined
+    ? Math.abs(p.x - x) < p.demi + marge && Math.abs(p.z - z) < (p.demiZ ?? p.demi) + marge
+    : Math.hypot(p.x - x, p.z - z) < (p.r ?? 12) + marge;
 
 export function buildIdleBlock(g: Geo, b: Bloc, key: string, ao: TamponAO[], evite: ZoneSansArbre[] = []) {
   const r = rngFrom(key + "|friche|" + b.bi + "," + b.bj);

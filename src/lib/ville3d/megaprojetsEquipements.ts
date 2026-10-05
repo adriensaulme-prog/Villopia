@@ -328,94 +328,95 @@ export function stade(s: Site) {
   rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, -0.985), true, 11, 1.3);
 }
 
-/** Grand stade (A-INTEGRER §49 D : 3 × 3 blocs, 216 m de plateforme) : arène à deux niveaux, façade à pilastres et bannières, toit-couronne blanc sur 28 mâts, pelouse aux dimensions réelles, parvis, parkings. Bas et large, comme un vrai stade. */
+/**
+ * Grand stade (A-INTEGRER §49 D : 3 × 2 blocs, plateforme de 216 × 136 m) : arène à deux niveaux, façade à pilastres et
+ * bannières, toit-couronne blanc sur 24 mâts, pelouse de 87 × 55 m, parvis, parkings aux deux bouts. Bas et plus long
+ * que large, comme un vrai stade. Retour d'Adrien du 05/10/2026 (« trop grand, disproportionné ») : la cuvette fait
+ * 168 × 122 m, au lieu de 203 × 168 m dans le site de 3 × 3 blocs de la première version.
+ */
 export function grandStade(s: Site) {
-  const { g, cx, cz, R, H } = s;
+  const { g, cx, cz, R, Rz, H } = s;
   plateforme(s, hex("#cfc8b8"));
   const hb = 0.3 * H,
-    SEG = 96;
+    SEG = 88;
   const place = (i: number) => [SIEGE_BLEU, SIEGE_ROUGE][Math.floor(i / 6) % 2];
-  // Parvis dallé en couronne autour de l'arène, parkings et pelouses dans les quatre angles du site.
-  anneauPente(g, cx, cz, 0.94 * R, 0.78 * R, BASE + 0.02, 0.995 * R, 0.84 * R, BASE + 0.02, SEG, hex("#e6dfcf"), MAT.PAVING, s.seed);
-  for (const [sx, sz] of [
-    [-1, -1],
-    [1, -1],
-    [-1, 1],
-    [1, 1],
-  ] as const) {
-    const r = zone(s, sx > 0 ? 0.72 : -0.97, sz > 0 ? 0.72 : -0.97, sx > 0 ? 0.97 : -0.72, sz > 0 ? 0.97 : -0.72);
-    parking(s, r, true, 0.45);
-  }
-  // Façade basse : panneaux blancs, bandeau vitré sombre, pilastres rythmant le pourtour.
-  const aE = 0.94,
-    bE = 0.78;
-  murOvale(g, cx, cz, aE * R, bE * R, BASE, BASE + hb, SEG, (i) => (i % 2 ? hex("#e1dfd9") : hex("#ece9e3")), MAT.PLAIN, true, s.seed);
-  murOvale(g, cx, cz, aE * R + 0.15, bE * R + 0.15, BASE + 0.14 * hb, BASE + 0.34 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
-  murOvale(g, cx, cz, aE * R + 0.15, bE * R + 0.15, BASE + 0.58 * hb, BASE + 0.76 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
-  const NP = 96;
+  // Demi-axes de la façade (l'ellipse extérieure) : tout le reste s'en déduit.
+  const A = 0.78 * R,
+    B = 0.9 * Rz;
+  // Parvis dallé en couronne autour de l'arène, parkings aux deux bouts, avec une allée centrale pour l'entrée.
+  anneauPente(g, cx, cz, A, B, BASE + 0.02, 1.07 * A, 1.1 * B, BASE + 0.02, SEG, hex("#e6dfcf"), MAT.PAVING, s.seed);
+  for (const sx of [-1, 1] as const)
+    for (const sz of [-1, 1] as const) {
+      const r = zone(s, sx > 0 ? 0.86 : -0.98, sz > 0 ? 0.22 : -0.85, sx > 0 ? 0.98 : -0.86, sz > 0 ? 0.85 : -0.22);
+      parking(s, r, false, 0.45);
+    }
+  // Façade basse : panneaux blancs, bandeaux vitrés sombres, pilastres rythmant le pourtour.
+  murOvale(g, cx, cz, A, B, BASE, BASE + hb, SEG, (i) => (i % 2 ? hex("#e1dfd9") : hex("#ece9e3")), MAT.PLAIN, true, s.seed);
+  murOvale(g, cx, cz, A + 0.15, B + 0.15, BASE + 0.14 * hb, BASE + 0.34 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
+  murOvale(g, cx, cz, A + 0.15, B + 0.15, BASE + 0.58 * hb, BASE + 0.76 * hb, SEG, hex("#33495c"), MAT.DARKGLASS, true, s.seed);
+  const NP = 80;
   for (let k = 0; k < NP; k++) {
     const a = (k / NP) * Math.PI * 2;
-    const x = cx + Math.cos(a) * aE * R,
-      z = cz + Math.sin(a) * bE * R;
+    const x = cx + Math.cos(a) * A,
+      z = cz + Math.sin(a) * B;
     box(g, x - 0.5, BASE, z - 0.5, x + 0.5, BASE + hb + 1.4, z + 0.5, { c: BLANC, m: MAT.PLAIN, top: true, seed: s.seed });
   }
-  // Vomitoires : vingt-quatre portes sombres au pied de la façade.
-  for (let k = 0; k < 24; k++) {
-    const a = ((k + 0.5) / 24) * Math.PI * 2;
-    const x = cx + Math.cos(a) * (aE * R + 0.1),
-      z = cz + Math.sin(a) * (bE * R + 0.1);
-    box(g, x - 1.5, BASE, z - 1.5, x + 1.5, BASE + 0.2 * hb, z + 1.5, { c: hex("#2b3036"), m: MAT.PLAIN, top: false, seed: s.seed });
+  // Vomitoires : vingt portes sombres au pied de la façade.
+  for (let k = 0; k < 20; k++) {
+    const a = ((k + 0.5) / 20) * Math.PI * 2;
+    const x = cx + Math.cos(a) * (A + 0.1),
+      z = cz + Math.sin(a) * (B + 0.1);
+    box(g, x - 1.4, BASE, z - 1.4, x + 1.4, BASE + 0.2 * hb, z + 1.4, { c: hex("#2b3036"), m: MAT.PLAIN, top: false, seed: s.seed });
   }
-  // Bannières aux couleurs du club, une sur six pilastres.
+  // Bannières aux couleurs du club, une sur cinq pilastres.
   for (let k = 0; k < 16; k++) {
-    const a0 = ((k * 6 + 1.2) / NP) * Math.PI * 2,
-      a1 = ((k * 6 + 2.8) / NP) * Math.PI * 2;
-    const p = (a: number, y: number): [number, number, number] => [cx + Math.cos(a) * (aE * R + 0.4), y, cz + Math.sin(a) * (bE * R + 0.4)];
+    const a0 = ((k * 5 + 1.2) / NP) * Math.PI * 2,
+      a1 = ((k * 5 + 2.8) / NP) * Math.PI * 2;
+    const p = (a: number, y: number): [number, number, number] => [cx + Math.cos(a) * (A + 0.4), y, cz + Math.sin(a) * (B + 0.4)];
     quad(g, p(a0, BASE + 0.38 * hb), p(a1, BASE + 0.38 * hb), p(a1, BASE + 0.54 * hb), p(a0, BASE + 0.54 * hb), k % 2 ? SIEGE_ROUGE : SIEGE_BLEU, MAT.PAINT, [Math.cos((a0 + a1) / 2), 0, Math.sin((a0 + a1) / 2)], s.seed);
   }
-  // Cuvette intérieure à deux niveaux (vue par l'ouverture du toit), pelouse tracée aux dimensions d'un vrai terrain (104 × 66 m).
-  const rxI = 0.74,
-    rzI = 0.52;
+  // Cuvette intérieure à deux niveaux (vue par l'ouverture du toit), pelouse tracée (87 × 55 m).
+  const rxI = 0.787 * A,
+    rzI = 0.667 * B;
   const yM = BASE + 0.8 + (0.62 * hb - 0.8) * 0.5;
-  anneauPente(g, cx, cz, rxI * R, rzI * R, BASE + 0.8, 0.85 * R, 0.64 * R, yM, SEG, place, MAT.PLAIN, s.seed);
-  murOvale(g, cx, cz, 0.85 * R, 0.64 * R, yM, yM + 1.8, SEG, hex("#33495c"), MAT.DARKGLASS, false, s.seed);
-  anneauPente(g, cx, cz, 0.85 * R, 0.64 * R, yM + 1.8, 0.93 * R, 0.77 * R, BASE + 0.62 * hb, SEG, place, MAT.PLAIN, s.seed);
-  murOvale(g, cx, cz, rxI * R, rzI * R, BASE, BASE + 0.8, SEG, SIEGE_BLANC, MAT.PLAIN, false, s.seed);
-  terrainFoot(s, cx, cz, 0.49 * R, 0.31 * R);
-  panneauxPub(s, cx, cz, 0.49 * R, 0.31 * R);
-  abrisTouche(s, cx, cz, 0.31 * R);
+  anneauPente(g, cx, cz, rxI, rzI, BASE + 0.8, 0.904 * A, 0.82 * B, yM, SEG, place, MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, 0.904 * A, 0.82 * B, yM, yM + 1.8, SEG, hex("#33495c"), MAT.DARKGLASS, false, s.seed);
+  anneauPente(g, cx, cz, 0.904 * A, 0.82 * B, yM + 1.8, 0.99 * A, 0.99 * B, BASE + 0.62 * hb, SEG, place, MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, rxI, rzI, BASE, BASE + 0.8, SEG, SIEGE_BLANC, MAT.PLAIN, false, s.seed);
+  terrainFoot(s, cx, cz, 0.52 * A, 0.45 * B);
+  panneauxPub(s, cx, cz, 0.52 * A, 0.45 * B);
+  abrisTouche(s, cx, cz, 0.45 * B);
   // Toit-couronne : du bord extérieur haut vers l'intérieur plus bas, tranches blanches, couronne de feux.
-  anneauPente(g, cx, cz, 0.78 * R, 0.56 * R, BASE + hb - 0.5, 0.955 * R, 0.795 * R, BASE + hb + 3.2, SEG, hex("#f3f1ea"), MAT.PLAIN, s.seed);
-  murOvale(g, cx, cz, 0.78 * R, 0.56 * R, BASE + hb - 1.8, BASE + hb - 0.5, SEG, hex("#d9d7d0"), MAT.PLAIN, false, s.seed);
-  murOvale(g, cx, cz, 0.955 * R, 0.795 * R, BASE + hb, BASE + hb + 3.2, SEG, hex("#d9d7d0"), MAT.PLAIN, true, s.seed);
+  anneauPente(g, cx, cz, 0.83 * A, 0.72 * B, BASE + hb - 0.5, 1.015 * A, 1.02 * B, BASE + hb + 3.2, SEG, hex("#f3f1ea"), MAT.PLAIN, s.seed);
+  murOvale(g, cx, cz, 0.83 * A, 0.72 * B, BASE + hb - 1.8, BASE + hb - 0.5, SEG, hex("#d9d7d0"), MAT.PLAIN, false, s.seed);
+  murOvale(g, cx, cz, 1.015 * A, 1.02 * B, BASE + hb, BASE + hb + 3.2, SEG, hex("#d9d7d0"), MAT.PLAIN, true, s.seed);
   for (let k = 0; k < SEG; k += 2) {
     const a = ((k + 0.5) / SEG) * Math.PI * 2;
-    const x = cx + Math.cos(a) * 0.79 * R,
-      z = cz + Math.sin(a) * 0.57 * R;
+    const x = cx + Math.cos(a) * 0.84 * A,
+      z = cz + Math.sin(a) * 0.73 * B;
     box(g, x - 0.5, BASE + hb - 2.0, z - 0.5, x + 0.5, BASE + hb - 1.8, z + 0.5, { c: [1, 0.96, 0.85], m: MAT.LAMP, seed: s.seed });
   }
-  // Vingt-huit mâts d'appui du toit, qui le dépassent de huit mètres, et quatre pylônes d'éclairage dans les angles.
-  for (let k = 0; k < 28; k++) {
-    const a = (k / 28) * Math.PI * 2;
-    const x = cx + Math.cos(a) * 0.975 * R,
-      z = cz + Math.sin(a) * 0.815 * R;
+  // Vingt-quatre mâts d'appui du toit, qui le dépassent de huit mètres, et quatre pylônes d'éclairage dans les angles.
+  for (let k = 0; k < 24; k++) {
+    const a = (k / 24) * Math.PI * 2;
+    const x = cx + Math.cos(a) * 1.037 * A,
+      z = cz + Math.sin(a) * 1.045 * B;
     box(g, x - 0.35, BASE, z - 0.35, x + 0.35, BASE + hb + 8, z + 0.35, { c: COL.metal, m: MAT.PLAIN, top: true, seed: s.seed });
   }
-  fanions(s, 0.955 * R, 0.795 * R, BASE + hb + 3, 16, [SIEGE_BLEU, SIEGE_ROUGE, SIEGE_BLANC]);
+  fanions(s, 1.015 * A, 1.02 * B, BASE + hb + 3, 14, [SIEGE_BLEU, SIEGE_ROUGE, SIEGE_BLANC]);
   for (const [a, b] of [
-    [-0.9, -0.9],
-    [0.9, -0.9],
-    [-0.9, 0.9],
-    [0.9, 0.9],
+    [-0.93, -0.93],
+    [0.93, -0.93],
+    [-0.93, 0.93],
+    [0.93, 0.93],
   ] as const)
     pylone(g, px(s, a), pz(s, b), BASE, 0.62 * H, s.seed, "z");
-  // Entrées : aux quatre points cardinaux, et deux de plus sur chaque grand côté.
-  entree(s, px(s, 0.94), cz, "+x", 14, 0.06 * R);
-  entree(s, px(s, -0.94), cz, "-x", 14, 0.06 * R);
+  // Entrées : une au milieu de chaque bout, trois sur chaque grand côté.
+  entree(s, cx + A, cz, "+x", 14, R - A);
+  entree(s, cx - A, cz, "-x", 14, R - A);
   for (const sg of [-1, 1] as const)
-    for (const t of [-0.3, 0, 0.3] as const) entree(s, cx + t * R * 1.5, pz(s, sg * 0.78), sg > 0 ? "+z" : "-z", 12, 0.2 * R);
-  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, 0.99), true, 13, 1.4);
-  rangeeArbres(s, px(s, -0.9), px(s, 0.9), pz(s, -0.99), true, 13, 1.4);
+    for (const t of [-0.45, 0, 0.45] as const) entree(s, cx + t * A, cz + sg * B, sg > 0 ? "+z" : "-z", 12, Rz - B);
+  for (const sx of [-1, 1] as const) rangeeArbres(s, pz(s, -0.9), pz(s, 0.9), px(s, sx * 0.99), false, 13, 1.4);
 }
 
 /** Marché couvert : halle de brique et de fonte verte, arcades, nef à verrière et lanterneau, bas-côtés de zinc, enseigne, étals sous auvents rayés. */

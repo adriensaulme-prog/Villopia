@@ -362,3 +362,155 @@ export function balustrade(g: Geo, xa: number, za: number, xb: number, zb: numbe
   lisse(y0 + h * 0.88, y0 + h, ep);
   for (let k = 0; k <= n; k++) posee((L * k) / n, y0, y0 + h, k === 0 || k === n ? ep * 1.2 : ep * 0.55);
 }
+
+// --------------------------------------------------------------------------
+// Briques pour les formes atypiques (retour d'Adrien du 05/10/2026 : « plus de détail et atypiques ») :
+// membres inclinés (bras, jambes, rayons), tores (anneaux), tour vrillée.
+// --------------------------------------------------------------------------
+
+export type V3 = [number, number, number];
+
+const sous = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const croix = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const unitaire = (v: V3): V3 => {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / l, v[1] / l, v[2] / l];
+};
+
+/** Deux axes unitaires perpendiculaires à `axe` (qui est supposé unitaire). */
+function baseOrthogonale(axe: V3): [V3, V3] {
+  const ref: V3 = Math.abs(axe[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  const ex = unitaire(croix(ref, axe));
+  const ey = croix(axe, ex);
+  return [ex, ey];
+}
+
+/**
+ * Membre : un cylindre effilé entre deux points quelconques (`a` de rayon `ra`, `b` de rayon `rb`), avec ses
+ * calottes si demandé. Bras, jambes, rayons, hampes, pattes de cheval : tout ce que `cylinder()` (vertical) et
+ * `tronc()` (à base rectangulaire) ne savent pas faire quand la pièce est penchée.
+ */
+export function membre(g: Geo, a: V3, b: V3, ra: number, rb: number, c: Couleur, m: number, o: { seg?: number; calotteA?: boolean; calotteB?: boolean; seed?: number } = {}) {
+  const seg = o.seg ?? 8;
+  const s = o.seed ?? 0;
+  const d = sous(b, a);
+  const L = Math.hypot(d[0], d[1], d[2]);
+  if (L < 1e-9) return;
+  const axe = unitaire(d);
+  const [ex, ey] = baseOrthogonale(axe);
+  const anneauA: number[] = [],
+    anneauB: number[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const t = (i / seg) * Math.PI * 2;
+    const r: V3 = [Math.cos(t) * ex[0] + Math.sin(t) * ey[0], Math.cos(t) * ex[1] + Math.sin(t) * ey[1], Math.cos(t) * ex[2] + Math.sin(t) * ey[2]];
+    const n = unitaire([r[0] * L + axe[0] * (ra - rb), r[1] * L + axe[1] * (ra - rb), r[2] * L + axe[2] * (ra - rb)]);
+    anneauA.push(g.v(a[0] + r[0] * ra, a[1] + r[1] * ra, a[2] + r[2] * ra, n[0], n[1], n[2], c, m, t * ra, 0, s));
+    anneauB.push(g.v(b[0] + r[0] * rb, b[1] + r[1] * rb, b[2] + r[2] * rb, n[0], n[1], n[2], c, m, t * ra, L, s));
+  }
+  for (let i = 0; i < seg; i++) g.q(anneauA[i], anneauA[i + 1], anneauB[i + 1], anneauB[i]);
+  const calotte = (p: V3, r: number, sens: number) => {
+    const n: V3 = [axe[0] * sens, axe[1] * sens, axe[2] * sens];
+    const ctr = g.v(p[0], p[1], p[2], n[0], n[1], n[2], c, m, 0, 0, s);
+    const rim: number[] = [];
+    for (let i = 0; i <= seg; i++) {
+      const t = (i / seg) * Math.PI * 2;
+      rim.push(g.v(p[0] + (Math.cos(t) * ex[0] + Math.sin(t) * ey[0]) * r, p[1] + (Math.cos(t) * ex[1] + Math.sin(t) * ey[1]) * r, p[2] + (Math.cos(t) * ex[2] + Math.sin(t) * ey[2]) * r, n[0], n[1], n[2], c, m, 0, 0, s));
+    }
+    for (let i = 0; i < seg; i++) g.t(ctr, rim[i], rim[i + 1]);
+  };
+  if (o.calotteA) calotte(a, ra, -1);
+  if (o.calotteB) calotte(b, rb, 1);
+}
+
+/**
+ * Tore : un anneau de rayon `R` et de section circulaire `r`, centré en `c`, dans le plan perpendiculaire à
+ * `axe` (anneaux d'une sphère armillaire, orbites autour d'une flèche, couronnes de lauriers).
+ */
+export function tore(g: Geo, c: V3, R: number, r: number, axe: V3, col: Couleur, m: number, o: { seg?: number; segTube?: number; seed?: number } = {}) {
+  const seg = o.seg ?? 28;
+  const segT = o.segTube ?? 6;
+  const s = o.seed ?? 0;
+  const ax = unitaire(axe);
+  const [ex, ey] = baseOrthogonale(ax);
+  const lignes: number[][] = [];
+  for (let i = 0; i <= seg; i++) {
+    const t = (i / seg) * Math.PI * 2;
+    const radial: V3 = [Math.cos(t) * ex[0] + Math.sin(t) * ey[0], Math.cos(t) * ex[1] + Math.sin(t) * ey[1], Math.cos(t) * ex[2] + Math.sin(t) * ey[2]];
+    const ligne: number[] = [];
+    for (let j = 0; j <= segT; j++) {
+      const p = (j / segT) * Math.PI * 2;
+      const n: V3 = [Math.cos(p) * radial[0] + Math.sin(p) * ax[0], Math.cos(p) * radial[1] + Math.sin(p) * ax[1], Math.cos(p) * radial[2] + Math.sin(p) * ax[2]];
+      ligne.push(g.v(c[0] + radial[0] * R + n[0] * r, c[1] + radial[1] * R + n[1] * r, c[2] + radial[2] * R + n[2] * r, n[0], n[1], n[2], col, m, t * R, p * r, s));
+    }
+    lignes.push(ligne);
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < segT; j++) g.q(lignes[i][j], lignes[i + 1][j], lignes[i + 1][j + 1], lignes[i][j + 1]);
+}
+
+/**
+ * Tour vrillée : une section carrée (demi-côté `w0` en bas, `w1` en haut) qui tourne de `torsion` radians sur la
+ * hauteur `h`, en `tranches` tranches dont les couleurs alternent (`c`, puis `c2`). `angle0` est l'angle de la base ;
+ * une pyramide qui prolonge la tour part de l'angle où elle s'arrête. Un sommet plat ferme le haut si `w1 > 0`.
+ */
+export function tourVrillee(
+  g: Geo,
+  cx: number,
+  y0: number,
+  cz: number,
+  w0: number,
+  w1: number,
+  h: number,
+  torsion: number,
+  tranches: number,
+  c: Couleur,
+  c2: Couleur,
+  m: number,
+  o: { angle0?: number; seed?: number } = {}
+) {
+  const a0 = o.angle0 ?? 0;
+  const s = o.seed ?? 0;
+  const coins = (i: number): [number, number][] => {
+    const t = i / tranches;
+    const w = (w0 + (w1 - w0) * t) * Math.SQRT2;
+    const a = a0 + torsion * t + Math.PI / 4;
+    return [0, 1, 2, 3].map((k) => [cx + Math.cos(a + (k * Math.PI) / 2) * w, cz + Math.sin(a + (k * Math.PI) / 2) * w]);
+  };
+  for (let i = 0; i < tranches; i++) {
+    const A = coins(i),
+      B = coins(i + 1);
+    const ya = y0 + (h * i) / tranches,
+      yb = y0 + (h * (i + 1)) / tranches;
+    const col = i % 2 ? c2 : c;
+    for (let k = 0; k < 4; k++) {
+      const k2 = (k + 1) % 4;
+      const p: V3[] = [
+        [A[k][0], ya, A[k][1]],
+        [A[k2][0], ya, A[k2][1]],
+        [B[k2][0], yb, B[k2][1]],
+        [B[k][0], yb, B[k][1]],
+      ];
+      let n = unitaire(croix(sous(p[1], p[0]), sous(p[3], p[0])));
+      // La normale regarde vers l'extérieur de la tour.
+      const mx = (p[0][0] + p[1][0] + p[2][0] + p[3][0]) / 4 - cx,
+        mz = (p[0][2] + p[1][2] + p[2][2] + p[3][2]) / 4 - cz;
+      if (n[0] * mx + n[2] * mz < 0) n = [-n[0], -n[1], -n[2]];
+      g.q(
+        g.v(p[0][0], p[0][1], p[0][2], n[0], n[1], n[2], col, m, 0, 0, s),
+        g.v(p[1][0], p[1][1], p[1][2], n[0], n[1], n[2], col, m, w0 * 2, 0, s),
+        g.v(p[2][0], p[2][1], p[2][2], n[0], n[1], n[2], col, m, w0 * 2, h / tranches, s),
+        g.v(p[3][0], p[3][1], p[3][2], n[0], n[1], n[2], col, m, 0, h / tranches, s)
+      );
+    }
+  }
+  if (w1 > 1e-6) {
+    const T = coins(tranches);
+    const yT = y0 + h;
+    const col = tranches % 2 ? c2 : c;
+    g.q(
+      g.v(T[0][0], yT, T[0][1], 0, 1, 0, col, m, 0, 0, s),
+      g.v(T[1][0], yT, T[1][1], 0, 1, 0, col, m, 1, 0, s),
+      g.v(T[2][0], yT, T[2][1], 0, 1, 0, col, m, 1, 1, s),
+      g.v(T[3][0], yT, T[3][1], 0, 1, 0, col, m, 0, 1, s)
+    );
+  }
+}

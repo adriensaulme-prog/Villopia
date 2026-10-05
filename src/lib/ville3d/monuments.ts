@@ -44,11 +44,15 @@ import {
   lampadaire,
   marchesCarrees,
   marchesRondes,
+  membre,
   mixer,
   panneau,
   plaque,
+  tore,
+  tourVrillee,
   tronc,
   type Face,
+  type V3,
 } from "./monumentsFormes";
 
 /** Taille (rayon du socle, hauteur totale) d'un monument, en mètres. */
@@ -207,29 +211,47 @@ function couronne(c: Ctx, x: number, y: number, z: number, ecart: number, hMax: 
 // Rang modeste (paliers 0 à 4)
 // --------------------------------------------------------------------------
 
-/** Borne commémorative : deux assises de pierre, fût effilé à plaques et listels, corniche, coiffe de bronze et boule, quatre bornes basses autour. */
+/** Borne commémorative : trois assises de pierre, fût à plaques et listels, chapiteau évasé et, au sommet, une sphère armillaire de bronze (quatre anneaux sur un axe incliné) ; quatre bornes basses autour. */
 const borne: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
-  const w = rb * 0.5;
-  const h1 = hs * 0.09,
-    h1b = hs * 0.07,
-    h2 = hs * 0.5,
-    h3 = hs * 0.04,
-    h4 = hs * 0.2;
+  const w = rb * 0.46;
+  const h1 = hs * 0.08,
+    h1b = hs * 0.06,
+    h2 = hs * 0.32,
+    h3 = hs * 0.03,
+    h4 = hs * 0.05;
   box(g, cx - w, yb, cz - w, cx + w, yb + h1, cz + w, { c: c.pierre, m: MAT.PLAIN, seed });
-  box(g, cx - w * 0.9, yb + h1, cz - w * 0.9, cx + w * 0.9, yb + h1 + h1b, cz + w * 0.9, { c: c.gres, m: MAT.PLAIN, seed });
+  box(g, cx - w * 0.88, yb + h1, cz - w * 0.88, cx + w * 0.88, yb + h1 + h1b, cz + w * 0.88, { c: c.gres, m: MAT.PLAIN, seed });
   const y1 = yb + h1 + h1b;
-  const w0 = w * 0.74,
+  const w0 = w * 0.72,
     w1 = w * 0.58;
   tronc(g, cx, y1, cz, w0, w1, h2, c.or, c.mOr, seed);
   const d = demiA(w0, w1, h2, h2 * 0.2);
-  plaques4(c, d, d, y1 + h2 * 0.2, h2 * 0.5, w * 0.34);
-  // Deux listels de bronze, au pied et en haut du fût.
-  for (const k of [0.05, 0.9]) bandeau(c, y1 + h2 * k, demiA(w0, w1, h2, h2 * k), demiA(w0, w1, h2, h2 * k), h2 * 0.035, 0.07, c.orSombre, c.mOr);
-  bandeau(c, y1 + h2, w1, w1, h3, w * 0.2, c.pierre);
+  plaques4(c, d, d, y1 + h2 * 0.2, h2 * 0.55, w * 0.34);
+  for (const k of [0.05, 0.92]) bandeau(c, y1 + h2 * k, demiA(w0, w1, h2, h2 * k), demiA(w0, w1, h2, h2 * k), h2 * 0.04, 0.07, c.orSombre, c.mOr);
+  bandeau(c, y1 + h2, w1, w1, h3, w * 0.18, c.pierre);
+  // Chapiteau évasé, qui porte la sphère.
   const y3 = y1 + h2 + h3;
-  tronc(g, cx, y3, cz, w * 0.66, w * 0.14, h4, c.orClair, c.mOr, seed);
-  ellipsoide(g, cx, y3 + h4 + hs * 0.035, cz, hs * 0.04, hs * 0.04, hs * 0.04, c.orClair, c.mOr);
+  tronc(g, cx, y3, cz, w * 0.5, w * 0.8, h4, c.orSombre, c.mOr, seed);
+  const yTop = y3 + h4;
+  // Sphère armillaire : un globe, l'anneau de l'équateur, deux méridiens et l'écliptique incliné de 23,5°, sur son axe polaire.
+  const Rs = hs * 0.17,
+    yS = yTop + Rs * 1.15;
+  const r = Rs * 0.06;
+  ellipsoide(g, cx, yS, cz, Rs * 0.27, Rs * 0.27, Rs * 0.27, c.orClair, c.mOr, 12, 8);
+  tore(g, [cx, yS, cz], Rs, r, [0, 1, 0], c.or, c.mOr, { seed });
+  tore(g, [cx, yS, cz], Rs * 0.98, r, [1, 0, 0], c.or, c.mOr, { seed });
+  tore(g, [cx, yS, cz], Rs * 0.98, r, [Math.cos(0.85), 0, Math.sin(0.85)], c.orSombre, c.mOr, { seed });
+  const tilt = 0.41;
+  tore(g, [cx, yS, cz], Rs * 1.03, r * 1.2, [Math.sin(tilt), Math.cos(tilt), 0], c.orClair, c.mOr, { seed });
+  const pol: V3 = [Math.sin(tilt) * Rs * 1.3, Math.cos(tilt) * Rs * 1.3, 0];
+  membre(g, [cx - pol[0], yS - pol[1], cz], [cx + pol[0], yS + pol[1], cz], r * 0.9, r * 0.9, c.orSombre, c.mOr, { seed });
+  for (const s of [-1, 1]) ellipsoide(g, cx + s * pol[0], yS + s * pol[1], cz, r * 2, r * 2, r * 2, c.orClair, c.mOr, 8, 5);
+  // Quatre jambes de force du chapiteau à l'équateur.
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+    membre(g, [cx + Math.cos(a) * w * 0.35, yTop, cz + Math.sin(a) * w * 0.35], [cx + Math.cos(a) * Rs, yS, cz + Math.sin(a) * Rs], r * 1.1, r * 0.8, c.orSombre, c.mOr, { seg: 6, seed });
+  }
   // Quatre bornes basses aux angles de la marche.
   for (const sx of [-1, 1])
     for (const sz of [-1, 1]) {
@@ -240,79 +262,103 @@ const borne: Dessin = (c) => {
     }
 };
 
-/** Banc public : grand banc de pierre à lattes de bronze et dossier, joues sculptées, deux lampadaires derrière lui (qui s'allument la nuit). */
+/** Banc public : un banc ondulé de pierre à lattes de bronze, dossier à crêtes, sous une treille d'arceaux fleuris ; deux lampadaires qui dépassent (ils s'allument la nuit). */
 const banc: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
-  const L = rb * 0.8,
-    P = rb * 0.22,
-    pw = rb * 0.14;
-  const hAss = hs * 0.19,
-    hDos = hs * 0.26;
+  const L = rb * 0.72,
+    P = rb * 0.2;
+  const n = 7;
+  const pas = (2 * L) / n;
+  const hAss = hs * 0.16;
+  const onde = (k: number) => rb * 0.11 * Math.sin(((k + 0.5) / n) * Math.PI * 2);
+  for (let k = 0; k < n; k++) {
+    const x = cx - L + (k + 0.5) * pas,
+      z = cz + onde(k);
+    // Assise : un bloc de pierre et trois lattes de bronze ; le dossier est plus haut aux crêtes de l'onde.
+    box(g, x - pas / 2 + 0.04, yb, z - P, x + pas / 2 - 0.04, yb + hAss, z + P, { c: c.pierre, m: MAT.PLAIN, seed });
+    for (let i = 0; i < 3; i++) {
+      const z0 = z - P + (i * 2 * P) / 3;
+      box(g, x - pas / 2 + 0.06, yb + hAss, z0 + 0.03, x + pas / 2 - 0.06, yb + hAss + hs * 0.025, z0 + (2 * P) / 3 - 0.03, { c: c.or, m: c.mOr, seed });
+    }
+    const hDos = hs * (0.1 + 0.07 * Math.cos(((k + 0.5) / n) * Math.PI * 2 * 2));
+    box(g, x - pas / 2 + 0.06, yb + hAss, z - P, x + pas / 2 - 0.06, yb + hAss + hDos, z - P + rb * 0.05, { c: c.gres, m: MAT.PLAIN, seed });
+    box(g, x - pas / 2 + 0.1, yb + hAss + hDos, z - P - 0.02, x + pas / 2 - 0.1, yb + hAss + hDos + hs * 0.02, z - P + rb * 0.06, { c: c.or, m: c.mOr, seed });
+  }
+  // Joues d'extrémité : un massif de pierre à volute de bronze.
   for (const sg of [-1, 1]) {
-    const xc = cx + sg * (L - pw / 2);
-    // Joue : un pied massif, un accoudoir et un volute de bronze.
-    box(g, xc - pw / 2, yb, cz - P, xc + pw / 2, yb + hAss, cz + P, { c: c.pierre, m: MAT.PLAIN, seed });
-    box(g, xc - pw * 0.6, yb + hAss, cz - P, xc + pw * 0.6, yb + hAss + hs * 0.035, cz + P * 0.9, { c: c.gres, m: MAT.PLAIN, seed });
-    box(g, xc - pw / 2, yb + hAss, cz - P, xc + pw / 2, yb + hAss + hDos, cz - P + rb * 0.06, { c: c.pierre, m: MAT.PLAIN, seed });
-    ellipsoide(g, xc, yb + hAss + hDos + hs * 0.015, cz - P + rb * 0.03, pw * 0.55, hs * 0.03, rb * 0.05, c.orSombre, c.mOr, 8, 5);
-    // Patte avant en forme de griffe.
-    cylinder(g, xc, yb, cz + P - rb * 0.03, pw * 0.5, hAss * 0.45, 8, c.gres, MAT.PLAIN, null, null, pw * 0.38);
+    const x = cx + sg * (L + rb * 0.06);
+    box(g, x - rb * 0.06, yb, cz + onde(sg < 0 ? 0 : n - 1) - P - 0.1, x + rb * 0.06, yb + hAss + hs * 0.12, cz + onde(sg < 0 ? 0 : n - 1) + P + 0.1, { c: c.pierre, m: MAT.PLAIN, seed });
+    ellipsoide(g, x, yb + hAss + hs * 0.13, cz + onde(sg < 0 ? 0 : n - 1), rb * 0.07, hs * 0.035, P * 0.9, c.orSombre, c.mOr, 8, 5);
   }
-  const lat = 5,
-    pas = (2 * (P - rb * 0.03)) / lat;
-  for (let i = 0; i < lat; i++) {
-    box(g, cx - L + pw, yb + hAss, cz - P + rb * 0.03 + i * pas + rb * 0.008, cx + L - pw, yb + hAss + hs * 0.03, cz - P + rb * 0.03 + (i + 1) * pas - rb * 0.008, {
-      c: c.or,
-      m: c.mOr,
-      seed,
-    });
+  plaqueDe(c, "+z", cx, cz + onde(3) + P + 0.02, yb + 0.1, hAss * 0.7, L * 0.28, 1);
+  // Treille : cinq arceaux de bronze qui enjambent le banc, reliés par des lisses, et des fleurs.
+  const rIn = P + rb * 0.12,
+    ySp = yb + hs * 0.1;
+  const rAr = 0.16;
+  for (let i = 0; i < 4; i++) {
+    const x = cx - L * 0.78 + (i * (2 * L * 0.78)) / 3;
+    arche(g, x, ySp, cz, rIn, rIn + rAr, 0.28, c.orSombre, c.mOr, { versX: true, seed, seg: 12 });
+    for (const sz of [-1, 1]) box(g, x - 0.14, yb, cz + sz * (rIn + rAr / 2) - 0.14, x + 0.14, ySp, cz + sz * (rIn + rAr / 2) + 0.14, { c: c.orSombre, m: c.mOr, seed });
+    for (const a of [0.6, 1.57, 2.55]) ellipsoide(g, x, ySp + Math.sin(a) * (rIn + 0.08), cz + Math.cos(a) * (rIn + 0.08), 0.26, 0.2, 0.26, i % 2 ? hex("#c9584a") : hex("#6aa84f"), MAT.FOLIAGE, 6, 4);
   }
-  for (const y of [0.1, 0.19]) {
-    box(g, cx - L + pw, yb + hAss + hs * y, cz - P - rb * 0.012, cx + L - pw, yb + hAss + hs * (y + 0.04), cz - P + rb * 0.05, { c: c.or, m: c.mOr, seed });
-  }
-  // Une plaque dédicace sur le dossier, côté rue.
-  plaqueDe(c, "+z", cx, cz - P + rb * 0.06, yb + hAss + hs * 0.115, hs * 0.05, L * 0.3, 1);
-  for (const sg of [-1, 1]) lampadaire(g, cx + sg * L * 0.92, yb, cz - P - rb * 0.18, hs * 0.97, { fut: c.orSombre, pied: c.pierre, lanterne: LANTERNE, echelle: 2.6, seed });
+  const yTop = ySp + rIn + rAr / 2;
+  membre(g, [cx - L * 0.78, yTop, cz], [cx + L * 0.78, yTop, cz], 0.07, 0.07, c.orSombre, c.mOr, { seg: 6, seed });
+  for (const sz of [-1, 1]) membre(g, [cx - L * 0.78, ySp + rIn * 0.7, cz + sz * rIn * 0.72], [cx + L * 0.78, ySp + rIn * 0.7, cz + sz * rIn * 0.72], 0.06, 0.06, c.orSombre, c.mOr, { seg: 6, seed });
+  for (const sg of [-1, 1]) lampadaire(g, cx + sg * (L + rb * 0.04), yb, cz - P - rb * 0.12, hs * 0.97, { fut: c.orSombre, pied: c.pierre, lanterne: LANTERNE, echelle: 2.6, seed });
 };
 
-/** Fontaine simple : margelle de pierre, eau, colonne de bronze, deux vasques, jet et couronne de petits jets. */
+/** Fontaine à sphère : trois bassins étagés, une grande sphère de bronze qui flotte au-dessus sur un jet, douze arcs d'eau qui la frappent, huit petits jets sur la margelle. */
 const fontaineSimple: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb } = c;
-  const R = rb * 0.9,
-    b = hs * 0.1;
-  cylinder(g, cx, yb, cz, R, b, 16, c.pierre, MAT.PLAIN, MAT.PLAIN, c.gres);
-  // Margelle : un anneau plus étroit et plus haut sur le bord du bassin.
-  cylinder(g, cx, yb + b, cz, R, hs * 0.025, 16, c.gres, MAT.PLAIN, null, null, R * 0.96);
-  cylinder(g, cx, yb + b, cz, R * 0.93, hs * 0.012, 16, EAU, MAT.WATER, MAT.WATER, EAU);
-  const y1 = yb + b;
-  cylinder(g, cx, y1, cz, rb * 0.09, hs * 0.3, 10, c.orSombre, c.mOr, null, null, rb * 0.07);
-  const y2 = y1 + hs * 0.3;
-  cylinder(g, cx, y2, cz, rb * 0.08, hs * 0.08, 14, c.or, c.mOr, MAT.WATER, EAU, rb * 0.5);
-  cylinder(g, cx, y2 + hs * 0.08, cz, rb * 0.06, hs * 0.16, 10, c.orSombre, c.mOr, null, null, rb * 0.04);
-  const y3 = y2 + hs * 0.24;
-  cylinder(g, cx, y3, cz, rb * 0.05, hs * 0.05, 12, c.or, c.mOr, MAT.WATER, EAU, rb * 0.24);
-  cylinder(g, cx, y3 + hs * 0.05, cz, rb * 0.04, 0.97 * hs + yb - (y3 + hs * 0.05), 8, EAU_CLAIRE, MAT.WATER, null, null, 0);
-  // Couronne de jets sur le bassin.
+  const R1 = rb * 0.9,
+    R2 = rb * 0.62,
+    R3 = rb * 0.36;
+  const b1 = hs * 0.09,
+    b2 = hs * 0.075,
+    b3 = hs * 0.07;
+  cylinder(g, cx, yb, cz, R1, b1, 18, c.pierre, MAT.PLAIN, MAT.PLAIN, c.gres);
+  cylinder(g, cx, yb + b1, cz, R1, hs * 0.02, 18, c.gres, MAT.PLAIN, null, null, R1 * 0.96);
+  cylinder(g, cx, yb + b1, cz, R1 * 0.93, hs * 0.01, 18, EAU, MAT.WATER, MAT.WATER, EAU);
+  const y2 = yb + b1;
+  cylinder(g, cx, y2, cz, R2, b2, 16, c.gres, MAT.PLAIN, MAT.WATER, EAU);
+  const y3 = y2 + b2;
+  cylinder(g, cx, y3, cz, R3, b3, 14, c.pierre, MAT.PLAIN, MAT.WATER, EAU);
+  const y4 = y3 + b3;
+  // Sphère flottante sur sa colonne d'eau.
+  const Rs = hs * 0.13;
+  const yC = y4 + hs * 0.1 + Rs;
+  cylinder(g, cx, y4, cz, rb * 0.05, hs * 0.1, 8, EAU_CLAIRE, MAT.WATER, null, null, rb * 0.03);
+  ellipsoide(g, cx, yC, cz, Rs, Rs, Rs, c.or, c.mOr, 18, 12);
+  // Méridiens et parallèles gravés sur la sphère.
+  tore(g, [cx, yC, cz], Rs * 1.005, Rs * 0.025, [0, 1, 0], c.orSombre, c.mOr, { seed: c.seed });
+  tore(g, [cx, yC, cz], Rs * 1.005, Rs * 0.025, [1, 0, 0], c.orSombre, c.mOr, { seed: c.seed });
+  tore(g, [cx, yC, cz], Rs * 1.005, Rs * 0.025, [0, 0, 1], c.orSombre, c.mOr, { seed: c.seed });
+  // Douze arcs d'eau du deuxième bassin vers la sphère, et un jet vertical par-dessus.
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2;
+    membre(g, [cx + Math.cos(a) * R2 * 0.85, y3 + 0.05, cz + Math.sin(a) * R2 * 0.85], [cx + Math.cos(a) * Rs * 0.8, yC - Rs * 0.2, cz + Math.sin(a) * Rs * 0.8], 0.07, 0.035, EAU_CLAIRE, MAT.WATER, { seg: 5, seed: c.seed });
+  }
+  cylinder(g, cx, yC + Rs * 0.9, cz, rb * 0.04, 0.97 * hs + yb - (yC + Rs * 0.9), 8, EAU_CLAIRE, MAT.WATER, null, null, 0);
+  // Huit petits jets sur le grand bassin, quatre bornes basses sur sa margelle.
   for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
-    const x = cx + Math.cos(a) * R * 0.62,
-      z = cz + Math.sin(a) * R * 0.62;
-    cylinder(g, x, y1, z, rb * 0.03, hs * 0.04, 6, c.orSombre, c.mOr, null, null);
-    cylinder(g, x, y1 + hs * 0.04, z, rb * 0.022, hs * 0.14, 6, EAU_CLAIRE, MAT.WATER, null, null, 0);
+    const x = cx + Math.cos(a) * R1 * 0.78,
+      z = cz + Math.sin(a) * R1 * 0.78;
+    cylinder(g, x, y2, z, rb * 0.03, hs * 0.04, 6, c.orSombre, c.mOr, null, null);
+    membre(g, [x, y2 + hs * 0.04, z], [x - Math.cos(a) * R1 * 0.3, y2 + hs * 0.09, z - Math.sin(a) * R1 * 0.3], 0.05, 0.03, EAU_CLAIRE, MAT.WATER, { seg: 5, seed: c.seed });
   }
-  // Quatre bornes basses sur la margelle : c'est elles qui disent « fontaine » de loin avec le jet.
   for (const [dx, dz] of [
     [1, 0],
     [-1, 0],
     [0, 1],
     [0, -1],
   ]) {
-    cylinder(g, cx + dx * R * 0.97, yb, cz + dz * R * 0.97, rb * 0.055, hs * 0.2, 8, c.orSombre, c.mOr, MAT.PLAIN, c.or, rb * 0.04);
-    ellipsoide(g, cx + dx * R * 0.97, yb + hs * 0.21, cz + dz * R * 0.97, rb * 0.05, rb * 0.05, rb * 0.05, c.or, c.mOr, 8, 5);
+    cylinder(g, cx + dx * R1 * 0.97, yb, cz + dz * R1 * 0.97, rb * 0.055, hs * 0.2, 8, c.orSombre, c.mOr, MAT.PLAIN, c.or, rb * 0.04);
+    ellipsoide(g, cx + dx * R1 * 0.97, yb + hs * 0.21, cz + dz * R1 * 0.97, rb * 0.05, rb * 0.05, rb * 0.05, c.or, c.mOr, 8, 5);
   }
 };
 
-/** Buste : piédestal de pierre à plaques et corniche, buste de bronze à épaules drapées, tête, chevelure et médaillon. */
+/** Buste couronné de lauriers : piédestal à plaques, épaules drapées de plis diagonaux, médaillon, tête à chevelure bouclée, couronne de lauriers (anneau et feuilles), nez, sourcils, oreilles. */
 const buste: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const w = rb * 0.4;
@@ -326,21 +372,37 @@ const buste: Dessin = (c) => {
   for (const k of [0.04, 0.93]) bandeau(c, yb + h1 + h2 * k, demiA(w * 0.9, w * 0.74, h2, h2 * k), demiA(w * 0.9, w * 0.74, h2, h2 * k), h2 * 0.03, 0.08, c.pierre);
   bandeau(c, yb + h1 + h2, w * 0.74, w * 0.74, h3, w * 0.3, c.pierre);
   const yP = yb + h1 + h2 + h3;
-  const hb = (0.98 * hs - (yP - yb)) / 0.78; // la tête du buste affleure la hauteur du palier
-  // Épaules et drapé : un volume large, deux plis latéraux, un médaillon sur la poitrine.
-  ellipsoide(g, cx, yP + 0.15 * hb, cz, 0.3 * hb, 0.15 * hb, 0.17 * hb, c.or, c.mOr);
-  for (const sg of [-1, 1]) ellipsoide(g, cx + sg * 0.22 * hb, yP + 0.1 * hb, cz + 0.04 * hb, 0.11 * hb, 0.1 * hb, 0.15 * hb, c.orSombre, c.mOr, 10, 6);
-  disque(g, cx, yP + 0.16 * hb, cz + 0.172 * hb, 0.045 * hb, "+z", c.orClair, c.mOr);
+  const hb = (0.98 * hs - (yP - yb)) / 0.84; // la couronne affleure la hauteur du palier
+  // Épaules et toge : un volume large, deux plis diagonaux sur la poitrine, une agrafe.
+  ellipsoide(g, cx, yP + 0.15 * hb, cz, 0.3 * hb, 0.15 * hb, 0.17 * hb, c.or, c.mOr, 16, 10);
+  for (const sg of [-1, 1]) {
+    ellipsoide(g, cx + sg * 0.22 * hb, yP + 0.1 * hb, cz + 0.04 * hb, 0.11 * hb, 0.1 * hb, 0.15 * hb, c.orSombre, c.mOr, 10, 6);
+    membre(g, [cx + sg * 0.26 * hb, yP + 0.2 * hb, cz + 0.11 * hb], [cx - sg * 0.02 * hb, yP + 0.05 * hb, cz + 0.17 * hb], 0.028 * hb, 0.02 * hb, c.orSombre, c.mOr, { seg: 6, seed });
+  }
+  disque(g, cx, yP + 0.17 * hb, cz + 0.175 * hb, 0.04 * hb, "+z", c.orClair, c.mOr);
   cylinder(g, cx, yP + 0.2 * hb, cz, 0.07 * hb, 0.2 * hb, 8, c.or, c.mOr, null, null);
-  // Tête : crâne, visage (nez, menton), chevelure, oreilles.
-  ellipsoide(g, cx, yP + 0.56 * hb, cz, 0.15 * hb, 0.2 * hb, 0.16 * hb, c.orClair, c.mOr, 16, 10);
-  ellipsoide(g, cx, yP + 0.63 * hb, cz - 0.01 * hb, 0.16 * hb, 0.15 * hb, 0.165 * hb, c.orSombre, c.mOr, 14, 8);
-  box(g, cx - 0.018 * hb, yP + 0.5 * hb, cz + 0.14 * hb, cx + 0.018 * hb, yP + 0.58 * hb, cz + 0.2 * hb, { c: c.orClair, m: c.mOr, seed });
+  // Tête : crâne, chevelure bouclée, visage (nez, sourcils, menton), oreilles.
+  const yT = yP + 0.56 * hb;
+  ellipsoide(g, cx, yT, cz, 0.15 * hb, 0.2 * hb, 0.16 * hb, c.orClair, c.mOr, 16, 10);
+  for (let k = 0; k < 10; k++) {
+    const a = Math.PI * (0.15 + (k / 9) * 0.7);
+    ellipsoide(g, cx + Math.cos(a + Math.PI) * 0.15 * hb, yT + 0.16 * hb, cz - Math.sin(a) * 0.1 * hb, 0.04 * hb, 0.04 * hb, 0.04 * hb, c.orSombre, c.mOr, 6, 4);
+  }
+  box(g, cx - 0.018 * hb, yT - 0.06 * hb, cz + 0.14 * hb, cx + 0.018 * hb, yT + 0.02 * hb, cz + 0.2 * hb, { c: c.orClair, m: c.mOr, seed });
+  for (const sg of [-1, 1]) {
+    box(g, cx + sg * 0.1 * hb - 0.045 * hb, yT + 0.04 * hb, cz + 0.145 * hb, cx + sg * 0.1 * hb + 0.045 * hb, yT + 0.055 * hb, cz + 0.17 * hb, { c: c.orSombre, m: c.mOr, seed });
+    ellipsoide(g, cx + sg * 0.155 * hb, yT, cz, 0.02 * hb, 0.045 * hb, 0.03 * hb, c.orClair, c.mOr, 6, 4);
+  }
   ellipsoide(g, cx, yP + 0.42 * hb, cz + 0.08 * hb, 0.06 * hb, 0.04 * hb, 0.05 * hb, c.orClair, c.mOr, 8, 5);
-  for (const sg of [-1, 1]) ellipsoide(g, cx + sg * 0.155 * hb, yP + 0.56 * hb, cz, 0.02 * hb, 0.045 * hb, 0.03 * hb, c.orClair, c.mOr, 6, 4);
+  // Couronne de lauriers : un anneau doré et douze feuilles inclinées.
+  tore(g, [cx, yT + 0.1 * hb, cz], 0.162 * hb, 0.016 * hb, [0, 1, 0], c.or, c.mOr, { seg: 24, segTube: 5, seed });
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2;
+    ellipsoide(g, cx + Math.cos(a) * 0.17 * hb, yT + 0.11 * hb + (k % 2) * 0.012 * hb, cz + Math.sin(a) * 0.17 * hb, 0.035 * hb, 0.012 * hb, 0.02 * hb, c.orClair, c.mOr, 6, 4);
+  }
 };
 
-/** Obélisque : trois assises, fût effilé à cartouches et colonnes de signes, pyramidion poli et pointe. */
+/** Obélisque hélicoïdal : trois assises, un fût qui vrille d'un tour et quart en bandes alternées de bronze et d'or, pyramidion poli prolongeant la torsion, pointe. */
 const obelisque: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const w = rb * 0.46;
@@ -355,31 +417,19 @@ const obelisque: Dessin = (c) => {
   plaques4(c, w * 0.8, w * 0.8, yb + h1 + h1b + h2 * 0.16, h2 * 0.68, w * 0.4);
   const ys = yb + h1 + h1b + h2;
   const w0 = w * 0.62,
-    w1 = w * 0.32;
-  tronc(g, cx, ys, cz, w0, w1, hF, c.or, c.mOr, seed);
-  const d = demiA(w0, w1, hF, hF * 0.12);
-  plaques4(c, d, d, ys + hF * 0.12, hF * 0.2, w0 * 0.3);
-  // Colonnes de signes : trois rainures verticales par face, au-dessus du cartouche.
-  for (const k of [-0.5, 0, 0.5]) {
-    const y0 = ys + hF * 0.38,
-      y1 = ys + hF * 0.9;
-    for (const [f, sgn] of [
-      ["+z", 1],
-      ["-z", -1],
-    ] as [Face, number][]) {
-      const half = demiA(w0, w1, hF, hF * 0.5) * 0.86;
-      boite(g, f, cx + k * half - 0.07, cx + k * half + 0.07, y0, y1, cz + sgn * (demiA(w0, w1, hF, hF * 0.5) - 0.02), 0.07, c.orSombre, c.mOr, seed);
-    }
-    for (const [f, sgn] of [
-      ["+x", 1],
-      ["-x", -1],
-    ] as [Face, number][]) {
-      const half = demiA(w0, w1, hF, hF * 0.5) * 0.86;
-      boite(g, f, cz + k * half - 0.07, cz + k * half + 0.07, ys + hF * 0.38, ys + hF * 0.9, cx + sgn * (demiA(w0, w1, hF, hF * 0.5) - 0.02), 0.07, c.orSombre, c.mOr, seed);
-    }
-  }
-  tronc(g, cx, ys + hF, cz, w1, 0, hP, c.orClair, c.mOr, seed);
+    w1 = w * 0.3;
+  const torsion = Math.PI * 1.25;
+  tourVrillee(g, cx, ys, cz, w0, w1, hF, torsion, 26, c.or, c.orSombre, c.mOr, { seed });
+  tourVrillee(g, cx, ys + hF, cz, w1, 0, hP, 0, 1, c.orClair, c.orClair, c.mOr, { angle0: torsion, seed });
   tronc(g, cx, ys + hF + hP, cz, w1 * 0.1, 0, hs * 0.04, c.orClair, c.mOr, seed);
+  // Quatre lions couchés de bronze aux angles de la première assise.
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      const x = cx + sx * w * 0.92,
+        z = cz + sz * w * 0.92;
+      ellipsoide(g, x, yb + h1 + w * 0.08, z, w * 0.14, w * 0.09, w * 0.2, c.orSombre, c.mOr, 8, 5);
+      ellipsoide(g, x + sx * w * 0.04, yb + h1 + w * 0.17, z + sz * w * 0.14, w * 0.07, w * 0.07, w * 0.07, c.orClair, c.mOr, 8, 5);
+    }
 };
 
 // --------------------------------------------------------------------------
@@ -422,6 +472,20 @@ const arcTriomphe: Dessin = (c) => {
       const zc = cz + (k - 2) * prof * 0.18;
       boite(g, sg > 0 ? "+x" : "-x", zc - 0.18, zc + 0.18, yAt + hs * 0.03, yAt + hs * 0.09, cx + sg * (Rs + 0.12), 0.1, c.orSombre, c.mOr, seed);
     }
+  for (const f of ["+z", "-z"] as Face[]) {
+    const s = f === "+z" ? 1 : -1;
+    disque(g, cx, yAt + hs * 0.06, cz + s * (prof / 2 + 0.17), hs * 0.035, f, c.orClair, c.mOr, 16);
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2;
+      boite(g, f, cx + Math.cos(a) * hs * 0.055 - 0.08, cx + Math.cos(a) * hs * 0.055 + 0.08, yAt + hs * 0.06 + Math.sin(a) * hs * 0.055 - 0.2, yAt + hs * 0.06 + Math.sin(a) * hs * 0.055 + 0.2, cz + s * (prof / 2 + 0.12), 0.06, c.orClair, c.mOr, seed);
+    }
+  }
+  // Cannelures des piliers : quatre rainures verticales de chaque côté de l'arche.
+  for (const sg of [-1, 1])
+    for (const k of [0.3, 0.5, 0.7]) {
+      const xr = cx + sg * (rIn + (Rs - rIn) * k);
+      for (const f of ["+z", "-z"] as Face[]) boite(g, f, xr - 0.04, xr + 0.04, yb + hs * 0.12, ySp - hs * 0.04, cz + (f === "+z" ? 1 : -1) * (prof / 2 + 0.02), 0.05, c.orSombre, c.mOr, seed);
+    }
   const yC = yAt + hs * 0.12;
   box(g, cx - Rs - 0.3, yC, cz - prof / 2 - 0.3, cx + Rs + 0.3, yC + hs * 0.03, cz + prof / 2 + 0.3, { c: c.pierre, m: MAT.PLAIN, seed });
   const yG = yC + hs * 0.03;
@@ -445,7 +509,7 @@ const horloge: Dessin = (c) => {
     h4 = hs * 0.18,
     h5 = hs * 0.025,
     hBeff = hs * 0.08,
-    h6 = hs * 0.13;
+    h6 = hs * 0.08;
   box(g, cx - w * 1.4, yb, cz - w * 1.4, cx + w * 1.4, yb + h1, cz + w * 1.4, { c: c.pierre, m: MAT.PLAIN, seed });
   bandeau(c, yb + h1, w * 1.2, w * 1.2, hs * 0.015, 0.1, c.orSombre, c.mOr);
   const y1 = yb + h1;
@@ -510,59 +574,93 @@ const horloge: Dessin = (c) => {
       z = f[1] === "z" ? cz + s * w * 0.62 : cz;
     tronc(g, x, yT, z, w * 0.2, 0, h6 * 0.3, c.orClair, c.mOr, seed);
   }
-  ellipsoide(g, cx, yT + h6 + hs * 0.012, cz, hs * 0.02, hs * 0.02, hs * 0.02, c.orClair, c.mOr, 8, 5);
-  tronc(g, cx, yT + h6, cz, w * 0.07, 0, hs * 0.04, c.orClair, c.mOr, seed);
+  // Orrery au sommet : un soleil éclairé, deux anneaux inclinés et des planètes en orbite.
+  const yO = yT + h6 + hs * 0.045,
+    Ro = hs * 0.04;
+  tronc(g, cx, yT + h6, cz, w * 0.06, w * 0.03, yO - (yT + h6), c.orSombre, c.mOr, seed);
+  ellipsoide(g, cx, yO, cz, Ro * 0.3, Ro * 0.3, Ro * 0.3, LANTERNE, MAT.LAMP, 10, 7);
+  tore(g, [cx, yO, cz], Ro, Ro * 0.045, [0, 1, 0], c.orSombre, c.mOr, { seg: 22, segTube: 4, seed });
+  tore(g, [cx, yO, cz], Ro * 0.66, Ro * 0.04, [0.45, 1, 0.25], c.orClair, c.mOr, { seg: 20, segTube: 4, seed });
+  ellipsoide(g, cx + Ro, yO, cz, Ro * 0.12, Ro * 0.12, Ro * 0.12, c.orClair, c.mOr, 8, 5);
+  ellipsoide(g, cx - Ro * 0.5, yO, cz + Ro * 0.86, Ro * 0.09, Ro * 0.09, Ro * 0.09, c.or, c.mOr, 8, 5);
+  ellipsoide(g, cx - Ro * 0.45, yO + Ro * 0.3, cz - Ro * 0.5, Ro * 0.1, Ro * 0.1, Ro * 0.1, c.orClair, c.mOr, 8, 5);
+  tronc(g, cx, yO + Ro * 0.3, cz, w * 0.03, 0, yb + 0.98 * hs - (yO + Ro * 0.3), c.orClair, c.mOr, seed);
 };
 
-/** Fontaine monumentale : grand bassin à gradins et balustrade, trois vasques étagées, mufles de bronze, jets satellites et jet central. */
+/** Fontaine monumentale : grand bassin à mufles de bronze, vasques étagées, quatre hippocampes crachant l'eau aux angles, et Neptune dressé au sommet, trident levé. */
 const fontaineMonumentale: Dessin = (c) => {
-  const { g, cx, cz, yb, hs, rb } = c;
+  const { g, cx, cz, yb, hs, rb, seed } = c;
   const R = rb * 0.94,
     b = hs * 0.08;
   cylinder(g, cx, yb, cz, R, b, 20, c.pierre, MAT.PLAIN, MAT.PLAIN, c.gres);
   cylinder(g, cx, yb + b, cz, R, hs * 0.02, 20, c.gres, MAT.PLAIN, null, null, R * 0.97);
   cylinder(g, cx, yb + b, cz, R * 0.92, hs * 0.008, 20, EAU, MAT.WATER, MAT.WATER, EAU);
-  // Mufles de bronze sur le pourtour du bassin, et quatre jets satellites.
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * Math.PI * 2;
     ellipsoide(g, cx + Math.cos(a) * R * 0.985, yb + b * 0.55, cz + Math.sin(a) * R * 0.985, rb * 0.04, rb * 0.04, rb * 0.04, c.orSombre, c.mOr, 8, 5);
   }
-  for (const [dx, dz] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
+  // Quatre hippocampes dans le bassin, sur les diagonales : croupe, buste cabré, crinière, queue en volute, jet d'eau.
+  for (const [sx, sz] of [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
   ]) {
-    const x = cx + dx * R * 0.62,
-      z = cz + dz * R * 0.62;
-    cylinder(g, x, yb + b, z, rb * 0.05, hs * 0.07, 8, c.orSombre, c.mOr, null, null);
-    cylinder(g, x, yb + b + hs * 0.07, z, rb * 0.035, hs * 0.14, 8, EAU_CLAIRE, MAT.WATER, null, null, 0);
+    const x = cx + sx * R * 0.55,
+      z = cz + sz * R * 0.55;
+    const yW = yb + b;
+    const dir: V3 = [-sx * 0.7071, 0, -sz * 0.7071]; // il regarde le centre
+    const at = (t: number, y: number, side = 0): V3 => [x + dir[0] * t - dir[2] * side, yW + y, z + dir[2] * t + dir[0] * side];
+    const p = (v: V3) => v;
+    ellipsoide(g, ...p(at(0, hs * 0.04)), rb * 0.1, hs * 0.035, rb * 0.075, c.or, c.mOr, 10, 6);
+    ellipsoide(g, ...p(at(rb * 0.1, hs * 0.07)), rb * 0.085, hs * 0.05, rb * 0.07, c.or, c.mOr, 10, 6);
+    ellipsoide(g, ...p(at(rb * 0.16, hs * 0.11)), rb * 0.065, hs * 0.05, rb * 0.055, c.orClair, c.mOr, 10, 6);
+    ellipsoide(g, ...p(at(rb * 0.2, hs * 0.145)), rb * 0.075, hs * 0.03, rb * 0.04, c.orClair, c.mOr, 8, 5);
+    for (const [t, y, r] of [
+      [-rb * 0.12, hs * 0.045, 0.06],
+      [-rb * 0.2, hs * 0.06, 0.05],
+      [-rb * 0.25, hs * 0.085, 0.04],
+      [-rb * 0.24, hs * 0.11, 0.03],
+    ] as const)
+      ellipsoide(g, ...p(at(t, y)), rb * r, rb * r, rb * r, c.orSombre, c.mOr, 8, 5);
+    membre(g, at(rb * 0.2, hs * 0.14), at(rb * 0.34, hs * 0.2), 0.06, 0.03, EAU_CLAIRE, MAT.WATER, { seg: 5, seed });
+    for (const side of [-1, 1]) membre(g, at(rb * 0.12, hs * 0.07, side * rb * 0.04), at(rb * 0.2, hs * 0.03, side * rb * 0.07), rb * 0.018, rb * 0.012, c.orSombre, c.mOr, { seg: 5, seed });
   }
   let y = yb + b;
   cylinder(g, cx, y, cz, rb * 0.2, hs * 0.2, 14, c.pierre, MAT.PLAIN, null, null, rb * 0.17);
-  // Quatre dauphins de bronze au pied de la colonne.
-  for (const [dx, dz] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ])
-    ellipsoide(g, cx + dx * rb * 0.24, y + hs * 0.07, cz + dz * rb * 0.24, rb * 0.055, hs * 0.05, rb * 0.055, c.or, c.mOr, 8, 5);
   y += hs * 0.2;
   cylinder(g, cx, y, cz, rb * 0.17, hs * 0.07, 18, c.gres, MAT.PLAIN, MAT.WATER, EAU, rb * 0.64);
   y += hs * 0.07;
-  cylinder(g, cx, y, cz, rb * 0.1, hs * 0.15, 12, c.orSombre, c.mOr, null, null);
-  y += hs * 0.15;
-  cylinder(g, cx, y, cz, rb * 0.1, hs * 0.06, 16, c.or, c.mOr, MAT.WATER, EAU, rb * 0.4);
-  y += hs * 0.06;
-  cylinder(g, cx, y, cz, rb * 0.06, hs * 0.14, 10, c.orSombre, c.mOr, null, null);
-  y += hs * 0.14;
-  cylinder(g, cx, y, cz, rb * 0.06, hs * 0.05, 14, c.orClair, c.mOr, MAT.WATER, EAU, rb * 0.22);
+  cylinder(g, cx, y, cz, rb * 0.1, hs * 0.1, 12, c.orSombre, c.mOr, null, null);
+  y += hs * 0.1;
+  cylinder(g, cx, y, cz, rb * 0.1, hs * 0.05, 16, c.or, c.mOr, MAT.WATER, EAU, rb * 0.36);
   y += hs * 0.05;
-  cylinder(g, cx, y, cz, rb * 0.05, 0.97 * hs + yb - y, 10, EAU_CLAIRE, MAT.WATER, null, null, 0);
+  // Neptune : jambes, pagne, torse, bras levé avec le trident, tête barbue couronnée, jet d'eau à ses pieds.
+  const hN = 0.96 * hs + yb - y;
+  const u = hN / 1.14; // le trident monte à 1,12 u
+  cylinder(g, cx, y, cz, rb * 0.08, u * 0.05, 10, c.pierre, MAT.PLAIN, null, null);
+  const y0 = y + u * 0.05;
+  for (const s of [-1, 1]) {
+    membre(g, [cx + s * u * 0.06, y0, cz], [cx + s * u * 0.045, y0 + u * 0.3, cz], u * 0.05, u * 0.045, c.or, c.mOr, { seg: 7, seed });
+  }
+  tronc(g, cx, y0 + u * 0.28, cz, u * 0.1, u * 0.085, u * 0.08, c.orSombre, c.mOr, seed, u * 0.07, u * 0.06);
+  tronc(g, cx, y0 + u * 0.36, cz, u * 0.085, u * 0.11, u * 0.26, c.or, c.mOr, seed, u * 0.055, u * 0.07);
+  const yE = y0 + u * 0.62;
+  ellipsoide(g, cx, yE + u * 0.02, cz, u * 0.1, u * 0.03, u * 0.06, c.or, c.mOr, 10, 6);
+  ellipsoide(g, cx, yE + u * 0.11, cz, u * 0.055, u * 0.065, u * 0.055, c.orClair, c.mOr, 12, 8);
+  ellipsoide(g, cx, yE + u * 0.06, cz + u * 0.04, u * 0.04, u * 0.05, u * 0.03, c.orSombre, c.mOr, 8, 5); // barbe
+  tronc(g, cx, yE + u * 0.16, cz, u * 0.05, u * 0.02, u * 0.04, c.orClair, c.mOr, seed); // couronne
+  // Bras droit levé tenant le trident (hampe et trois dents), bras gauche tendu.
+  const hand: V3 = [cx + u * 0.15, yE + u * 0.18, cz];
+  membre(g, [cx + u * 0.1, yE + u * 0.0, cz], [cx + u * 0.15, yE + u * 0.1, cz], u * 0.026, u * 0.022, c.or, c.mOr, { seg: 6, seed });
+  membre(g, [cx + u * 0.15, yE + u * 0.1, cz], hand, u * 0.022, u * 0.02, c.or, c.mOr, { seg: 6, seed });
+  membre(g, [hand[0], hand[1] - u * 0.1, hand[2]], [hand[0], hand[1] + u * 0.2, hand[2]], u * 0.012, u * 0.012, c.orSombre, c.mOr, { seg: 6, seed });
+  for (const s of [-1, 0, 1]) tronc(g, hand[0] + s * u * 0.035, hand[1] + u * 0.2, hand[2], u * 0.008, 0, u * 0.07, c.orClair, c.mOr, seed);
+  membre(g, [cx + u * 0.035, yE + u * 0.06, cz], [cx - u * 0.04, yE + u * 0.05, cz], u * 0.02, u * 0.02, c.or, c.mOr, { seg: 6, seed });
+  membre(g, [cx - u * 0.1, yE + u * 0.0, cz], [cx - u * 0.19, yE + u * 0.06, cz + u * 0.05], u * 0.026, u * 0.02, c.or, c.mOr, { seg: 6, seed });
 };
 
-/** Statue équestre : haut piédestal à plaques et frise, cheval de bronze (corps, encolure, tête, crinière, jambes à sabots, queue) et cavalier au sabre levé. */
+/** Statue équestre : haut piédestal à plaques et frise, cheval de bronze CABRÉ (jambes arrière plantées, avant-train dressé, pattes repliées, queue qui flotte) et cavalier penché au sabre levé. */
 const statueEquestre: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const hx = rb * 0.56,
@@ -579,102 +677,129 @@ const statueEquestre: Dessin = (c) => {
   bandeau(c, yb + h1 + h2 - hs * 0.012, hx * 0.9, hz * 0.88, hs * 0.012, 0.1, c.orSombre, c.mOr);
   box(g, cx - hx * 0.98, yb + h1 + h2, cz - hz * 0.94, cx + hx * 0.98, yb + h1 + h2 + h3, cz + hz * 0.94, { c: c.pierre, m: MAT.PLAIN, seed });
   const yP = yb + h1 + h2 + h3;
-  const U = 0.98 * hs - (yP - yb);
-  const x0 = cx - 0.05 * U; // le cheval déborde un peu du piédestal, la tête vers +x
-  // Corps, poitrail, encolure en deux temps, tête, oreilles, crinière.
-  ellipsoide(g, x0 - 0.02 * U, yP + 0.4 * U, cz, 0.28 * U, 0.12 * U, 0.1 * U, c.or, c.mOr, 16, 10);
-  ellipsoide(g, x0 + 0.19 * U, yP + 0.46 * U, cz, 0.13 * U, 0.13 * U, 0.095 * U, c.or, c.mOr, 12, 8);
-  ellipsoide(g, x0 + 0.25 * U, yP + 0.57 * U, cz, 0.075 * U, 0.12 * U, 0.06 * U, c.or, c.mOr, 12, 8);
-  ellipsoide(g, x0 + 0.31 * U, yP + 0.69 * U, cz, 0.07 * U, 0.1 * U, 0.055 * U, c.or, c.mOr, 12, 8);
-  ellipsoide(g, x0 + 0.34 * U, yP + 0.76 * U, cz, 0.06 * U, 0.05 * U, 0.045 * U, c.orClair, c.mOr, 12, 8);
-  ellipsoide(g, x0 + 0.4 * U, yP + 0.73 * U, cz, 0.065 * U, 0.032 * U, 0.032 * U, c.orClair, c.mOr, 10, 6);
-  for (const sz of [-1, 1]) tronc(g, x0 + 0.32 * U, yP + 0.79 * U, cz + sz * 0.03 * U, 0.012 * U, 0, 0.05 * U, c.orClair, c.mOr, seed);
-  ellipsoide(g, x0 + 0.25 * U, yP + 0.65 * U, cz, 0.025 * U, 0.14 * U, 0.02 * U, c.orSombre, c.mOr, 8, 6);
-  // Jambes à sabots : les antérieures droites, les postérieures un peu repliées.
-  for (const [sx, sz] of [
-    [1, -1],
-    [1, 1],
-    [-1, -1],
-    [-1, 1],
-  ]) {
-    const x = x0 + (sx > 0 ? 0.2 : -0.21) * U,
-      z = cz + sz * 0.065 * U;
-    tronc(g, x, yP + 0.05 * U, z, 0.04 * U, 0.028 * U, sx > 0 ? 0.3 * U : 0.26 * U, c.orSombre, c.mOr, seed);
-    box(g, x - 0.04 * U, yP, z - 0.04 * U, x + 0.04 * U, yP + 0.055 * U, z + 0.04 * U, { c: c.pierre, m: MAT.PLAIN, seed });
+  const U = (0.98 * hs - (yP - yb)) / 1.12;
+  const x0 = cx - 0.04 * U;
+  const P = (x: number, y: number, z = 0): V3 => [x0 + x * U, yP + y * U, cz + z * U];
+  const patte = (a: V3, b: V3, ra: number, rb2: number, col: Couleur = c.orSombre) => membre(g, a, b, ra * U, rb2 * U, col, c.mOr, { seg: 7, seed });
+  // Jambes arrière plantées : sabot, paturon, jarret et cuisse.
+  for (const sz of [-1, 1]) {
+    box(g, x0 - 0.27 * U, yP, cz + sz * 0.065 * U - 0.045 * U, x0 - 0.17 * U, yP + 0.045 * U, cz + sz * 0.065 * U + 0.045 * U, { c: c.pierre, m: MAT.PLAIN, seed });
+    patte(P(-0.22, 0.045, sz * 0.065), P(-0.2, 0.2, sz * 0.065), 0.025, 0.03);
+    patte(P(-0.2, 0.2, sz * 0.065), P(-0.27, 0.3, sz * 0.07), 0.03, 0.045);
+    patte(P(-0.27, 0.3, sz * 0.07), P(-0.22, 0.42, sz * 0.07), 0.045, 0.06);
   }
-  // Queue en trois nœuds.
-  ellipsoide(g, x0 - 0.3 * U, yP + 0.38 * U, cz, 0.03 * U, 0.06 * U, 0.03 * U, c.orSombre, c.mOr, 8, 6);
-  ellipsoide(g, x0 - 0.33 * U, yP + 0.28 * U, cz, 0.026 * U, 0.07 * U, 0.026 * U, c.orSombre, c.mOr, 8, 6);
-  ellipsoide(g, x0 - 0.34 * U, yP + 0.19 * U, cz, 0.022 * U, 0.06 * U, 0.022 * U, c.orSombre, c.mOr, 8, 6);
-  // Tapis de selle, puis le cavalier au sabre levé : buste, tête casquée à plumet, bras.
-  box(g, x0 - 0.08 * U, yP + 0.5 * U, cz - 0.11 * U, x0 + 0.1 * U, yP + 0.53 * U, cz + 0.11 * U, { c: c.orClair, m: c.mOr, seed });
-  ellipsoide(g, x0 + 0.01 * U, yP + 0.65 * U, cz, 0.055 * U, 0.12 * U, 0.06 * U, c.orSombre, c.mOr, 12, 8);
-  ellipsoide(g, x0 + 0.01 * U, yP + 0.82 * U, cz, 0.045 * U, 0.05 * U, 0.045 * U, c.orClair, c.mOr, 12, 8);
-  tronc(g, x0 + 0.01 * U, yP + 0.86 * U, cz, 0.01 * U, 0, 0.06 * U, c.orClair, c.mOr, seed);
-  box(g, x0 + 0.08 * U - 0.01 * U, yP + 0.7 * U, cz - 0.01 * U, x0 + 0.08 * U + 0.01 * U, yP + 0.99 * U, cz + 0.01 * U, { c: c.orClair, m: c.mOr, seed });
-  box(g, x0 + 0.04 * U, yP + 0.7 * U, cz - 0.02 * U, x0 + 0.09 * U, yP + 0.73 * U, cz + 0.02 * U, { c: c.or, m: c.mOr, seed });
+  // Corps cabré : croupe basse, ventre, poitrail haut ; encolure arquée et tête penchée.
+  ellipsoide(g, ...P(-0.22, 0.43), 0.13 * U, 0.12 * U, 0.1 * U, c.or, c.mOr, 14, 9);
+  ellipsoide(g, ...P(-0.07, 0.53), 0.15 * U, 0.115 * U, 0.1 * U, c.or, c.mOr, 14, 9);
+  ellipsoide(g, ...P(0.08, 0.64), 0.13 * U, 0.12 * U, 0.1 * U, c.or, c.mOr, 14, 9);
+  ellipsoide(g, ...P(0.17, 0.78), 0.07 * U, 0.12 * U, 0.06 * U, c.or, c.mOr, 12, 8);
+  ellipsoide(g, ...P(0.23, 0.9), 0.06 * U, 0.09 * U, 0.055 * U, c.or, c.mOr, 12, 8);
+  ellipsoide(g, ...P(0.3, 0.97), 0.07 * U, 0.05 * U, 0.045 * U, c.orClair, c.mOr, 12, 8);
+  ellipsoide(g, ...P(0.37, 0.93), 0.065 * U, 0.032 * U, 0.032 * U, c.orClair, c.mOr, 10, 6);
+  for (const sz of [-1, 1]) tronc(g, x0 + 0.29 * U, yP + 1.0 * U, cz + sz * 0.03 * U, 0.012 * U, 0, 0.05 * U, c.orClair, c.mOr, seed);
+  // Crinière : six touffes le long de l'encolure.
+  for (let k = 0; k < 6; k++) ellipsoide(g, ...P(0.1 + k * 0.035, 0.78 + k * 0.035, 0), 0.022 * U, 0.05 * U, 0.02 * U, c.orSombre, c.mOr, 6, 4);
+  // Pattes avant repliées, l'une plus haute : épaule, genou, sabot.
+  patte(P(0.1, 0.62, -0.07), P(0.27, 0.62, -0.07), 0.05, 0.035, c.or);
+  patte(P(0.27, 0.62, -0.07), P(0.34, 0.5, -0.07), 0.035, 0.028);
+  box(g, x0 + 0.32 * U, yP + 0.46 * U, cz - 0.07 * U - 0.035 * U, x0 + 0.4 * U, yP + 0.52 * U, cz - 0.07 * U + 0.035 * U, { c: c.pierre, m: MAT.PLAIN, seed });
+  patte(P(0.1, 0.62, 0.07), P(0.24, 0.74, 0.07), 0.05, 0.035, c.or);
+  patte(P(0.24, 0.74, 0.07), P(0.32, 0.64, 0.07), 0.035, 0.028);
+  box(g, x0 + 0.3 * U, yP + 0.59 * U, cz + 0.07 * U - 0.035 * U, x0 + 0.38 * U, yP + 0.65 * U, cz + 0.07 * U + 0.035 * U, { c: c.pierre, m: MAT.PLAIN, seed });
+  // Queue qui flotte en arrière, en cinq nœuds.
+  for (const [x, y, r] of [
+    [-0.3, 0.45, 0.032],
+    [-0.34, 0.4, 0.03],
+    [-0.37, 0.32, 0.028],
+    [-0.38, 0.22, 0.025],
+    [-0.36, 0.13, 0.022],
+  ] as const)
+    ellipsoide(g, ...P(x, y), r * U, r * 1.6 * U, r * U, c.orSombre, c.mOr, 8, 5);
+  // Selle et cavalier penché en avant, sabre levé.
+  box(g, x0 - 0.04 * U, yP + 0.6 * U, cz - 0.11 * U, x0 + 0.1 * U, yP + 0.63 * U, cz + 0.11 * U, { c: c.orClair, m: c.mOr, seed });
+  ellipsoide(g, ...P(0.03, 0.74), 0.055 * U, 0.12 * U, 0.06 * U, c.orSombre, c.mOr, 12, 8);
+  ellipsoide(g, ...P(0.08, 0.9), 0.045 * U, 0.05 * U, 0.045 * U, c.orClair, c.mOr, 12, 8);
+  tronc(g, x0 + 0.08 * U, yP + 0.94 * U, cz, 0.01 * U, 0, 0.05 * U, c.orClair, c.mOr, seed);
+  patte(P(0.06, 0.82, 0.05), P(0.12, 0.93, 0.05), 0.016, 0.013, c.orSombre);
+  patte(P(0.12, 0.93, 0.05), P(0.17, 1.05, 0.05), 0.013, 0.011, c.or);
+  patte(P(0.15, 1.0, 0.05), P(0.3, 1.12, 0.05), 0.008, 0.005, c.orClair); // le sabre
+  patte(P(0.045, 0.72, -0.04), P(0.16, 0.7, -0.045), 0.016, 0.013, c.orSombre); // la main tenant les rênes
 };
 
-/** Mur des remerciements : mur de grès couvert de plaquettes, deux pylônes à braseros et une stèle centrale à médaillon. */
+/** Mur des remerciements : un mur en S de grès couvert de plaquettes de bronze sur ses deux faces, couronné d'un ruban doré qui suit sa courbe, deux pylônes à braseros, une stèle centrale à médaillon, deux bancs dans les creux de l'onde. */
 const murRemerciements: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const Lx = rb * 0.9;
-  const ep = 1.05; // demi-épaisseur du mur
+  const ep = 0.8; // demi-épaisseur du mur
   const h1 = hs * 0.05,
     hw = hs * 0.32;
-  box(g, cx - Lx, yb, cz - ep - 0.3, cx + Lx, yb + h1, cz + ep + 0.3, { c: c.pierre, m: MAT.PLAIN, seed });
+  const n = 13;
+  const pas = (2 * (Lx - 0.9)) / n;
+  const onde = (t: number) => rb * 0.17 * Math.sin(t * Math.PI * 2);
+  const xk = (k: number) => cx - (Lx - 0.9) + (k + 0.5) * pas;
+  const zk = (k: number) => cz + onde((k + 0.5) / n);
+  // Semelle, puis le mur par tronçons qui suivent l'onde.
+  for (let k = 0; k < n; k++) box(g, xk(k) - pas / 2 - 0.02, yb, zk(k) - ep - 0.3, xk(k) + pas / 2 + 0.02, yb + h1, zk(k) + ep + 0.3, { c: c.pierre, m: MAT.PLAIN, seed });
   const y1 = yb + h1;
-  box(g, cx - Lx + 0.4, y1, cz - ep, cx + Lx - 0.4, y1 + hw, cz + ep, { c: c.gres, m: MAT.PLAIN, seed });
-  box(g, cx - Lx + 0.3, y1 + hw, cz - ep - 0.15, cx + Lx - 0.3, y1 + hw + hs * 0.035, cz + ep + 0.15, { c: c.pierre, m: MAT.PLAIN, seed });
-  // Plaquettes : des rangées de plaques de bronze, quelques-unes dorées, sur les deux faces.
-  const cols = 11,
-    rows = 5,
-    x0 = cx - (Lx - 1.4),
-    pas = (2 * (Lx - 1.4)) / cols,
-    ph = (hw * 0.7) / rows,
-    yT = y1 + hw * 0.14;
-  for (let i = 0; i < cols; i++) {
-    const xc = x0 + (i + 0.5) * pas;
-    if (Math.abs(xc - cx) < 1.5) continue; // derrière la stèle
+  for (let k = 0; k < n; k++) {
+    box(g, xk(k) - pas / 2, y1, zk(k) - ep, xk(k) + pas / 2, y1 + hw, zk(k) + ep, { c: c.gres, m: MAT.PLAIN, seed });
+    box(g, xk(k) - pas / 2 - 0.02, y1 + hw, zk(k) - ep - 0.15, xk(k) + pas / 2 + 0.02, y1 + hw + hs * 0.035, zk(k) + ep + 0.15, { c: c.pierre, m: MAT.PLAIN, seed });
+    // Plaquettes : cinq rangées de bronze sur chaque face, quelques-unes dorées.
+    const rows = 5,
+      ph = (hw * 0.7) / rows,
+      yT = y1 + hw * 0.14;
+    if (Math.abs(xk(k) - cx) < 1.5) continue; // derrière la stèle
     for (let j = 0; j < rows; j++) {
-      const col = (i * 5 + j * 3) % 4 === 0 ? c.orClair : c.orSombre;
-      panneau(g, "+z", xc - pas * 0.42, xc + pas * 0.42, yT + j * ph + ph * 0.1, yT + (j + 1) * ph - ph * 0.1, cz + ep + 0.03, col, c.mOr, seed);
-      panneau(g, "-z", xc - pas * 0.42, xc + pas * 0.42, yT + j * ph + ph * 0.1, yT + (j + 1) * ph - ph * 0.1, cz - ep - 0.03, col, c.mOr, seed);
+      const col = (k * 5 + j * 3) % 4 === 0 ? c.orClair : c.orSombre;
+      panneau(g, "+z", xk(k) - pas * 0.4, xk(k) + pas * 0.4, yT + j * ph + ph * 0.1, yT + (j + 1) * ph - ph * 0.1, zk(k) + ep + 0.03, col, c.mOr, seed);
+      panneau(g, "-z", xk(k) - pas * 0.4, xk(k) + pas * 0.4, yT + j * ph + ph * 0.1, yT + (j + 1) * ph - ph * 0.1, zk(k) - ep - 0.03, col, c.mOr, seed);
     }
   }
+  // Ruban de bronze qui court sur le faîte en suivant la courbe.
+  for (let k = 0; k < n - 1; k++) membre(g, [xk(k), y1 + hw + hs * 0.06, zk(k)], [xk(k + 1), y1 + hw + hs * 0.06, zk(k + 1)], 0.09, 0.09, c.or, c.mOr, { seg: 6, seed });
   // Pylônes d'extrémité à braseros, couronnés d'une corniche.
-  for (const sg of [-1, 1]) {
-    const xc = cx + sg * (Lx - 0.65);
+  for (const [k, sg] of [
+    [0, -1],
+    [n - 1, 1],
+  ] as const) {
+    const xc = xk(k) + sg * 0.3,
+      zc = zk(k);
     const hp = hs * 0.52;
-    box(g, xc - 0.65, y1, cz - ep - 0.1, xc + 0.65, y1 + hp, cz + ep + 0.1, { c: c.gres, m: MAT.PLAIN, seed });
-    bandeau(c, y1 + hp * 0.9, 0, 0, hs * 0.012, 0, c.pierre);
-    box(g, xc - 0.8, y1 + hp * 0.92, cz - ep - 0.22, xc + 0.8, y1 + hp * 0.92 + hs * 0.02, cz + ep + 0.22, { c: c.pierre, m: MAT.PLAIN, seed });
-    tronc(g, xc, y1 + hp, cz, 0.78, 0.5, hs * 0.04, c.or, c.mOr, seed, 0.95, 0.65);
-    flamme(g, xc, y1 + hp + hs * 0.04, cz, 0.36, hs * 0.08, FLAMME);
+    box(g, xc - 0.65, y1, zc - ep - 0.1, xc + 0.65, y1 + hp, zc + ep + 0.1, { c: c.gres, m: MAT.PLAIN, seed });
+    box(g, xc - 0.8, y1 + hp * 0.92, zc - ep - 0.22, xc + 0.8, y1 + hp * 0.92 + hs * 0.02, zc + ep + 0.22, { c: c.pierre, m: MAT.PLAIN, seed });
+    tronc(g, xc, y1 + hp, zc, 0.78, 0.5, hs * 0.04, c.or, c.mOr, seed, 0.95, 0.65);
+    flamme(g, xc, y1 + hp + hs * 0.04, zc, 0.36, hs * 0.08, FLAMME);
   }
   // Stèle centrale à médaillon, plus haute que le mur.
   const hSt = hs * 0.76;
-  tronc(g, cx, y1, cz, 1.2, 0.98, hSt, c.gres, MAT.PLAIN, seed, ep * 0.8, ep * 0.66);
+  tronc(g, cx, y1, cz, 1.2, 0.98, hSt, c.gres, MAT.PLAIN, seed, ep * 0.9, ep * 0.76);
   const yCap = y1 + hSt;
-  tronc(g, cx, yCap, cz, 1.1, 0.38, hs * 0.08, c.or, c.mOr, seed, ep * 0.72, 0.36);
+  tronc(g, cx, yCap, cz, 1.1, 0.38, hs * 0.08, c.or, c.mOr, seed, ep * 0.8, 0.36);
   flamme(g, cx, yCap + hs * 0.08, cz, 0.4, hs * 0.06, FLAMME);
   const ym = y1 + hSt * 0.62,
-    pz = demiA(ep * 0.8, ep * 0.66, hSt, hSt * 0.62);
+    pz = demiA(ep * 0.9, ep * 0.76, hSt, hSt * 0.62);
   for (const f of ["+z", "-z"] as Face[]) {
     const s = f === "+z" ? 1 : -1;
     disque(g, cx, ym, cz + s * (pz + 0.03), 0.9, f, c.or, c.mOr, 24);
     disque(g, cx, ym, cz + s * (pz + 0.06), 0.66, f, PLAQUE_FOND, MAT.PLAIN, 24);
     disque(g, cx, ym, cz + s * (pz + 0.09), 0.38, f, c.orClair, c.mOr, 20);
   }
-  plaqueDe(c, "+z", cx, cz + demiA(ep * 0.8, ep * 0.66, hSt, hSt * 0.1), y1 + hSt * 0.1, hs * 0.1, 0.8);
-  plaqueDe(c, "-z", cx, cz - demiA(ep * 0.8, ep * 0.66, hSt, hSt * 0.1), y1 + hSt * 0.1, hs * 0.1, 0.8);
+  plaqueDe(c, "+z", cx, cz + demiA(ep * 0.9, ep * 0.76, hSt, hSt * 0.1), y1 + hSt * 0.1, hs * 0.1, 0.8);
+  plaqueDe(c, "-z", cx, cz - demiA(ep * 0.9, ep * 0.76, hSt, hSt * 0.1), y1 + hSt * 0.1, hs * 0.1, 0.8);
+  // Deux bancs de pierre dans les creux de l'onde, du côté de la rue.
+  for (const k of [2, 10]) {
+    const creux = onde((k + 0.5) / n) < 0 ? 1 : -1;
+    const bz = zk(k) + creux * (ep + 0.9);
+    box(g, xk(k) - 1.1, yb, bz - 0.35, xk(k) + 1.1, yb + hs * 0.05, bz + 0.35, { c: c.pierre, m: MAT.PLAIN, seed });
+    box(g, xk(k) - 1.15, yb + hs * 0.05, bz - 0.4, xk(k) + 1.15, yb + hs * 0.065, bz + 0.4, { c: c.or, m: c.mOr, seed });
+  }
 };
 
 // --------------------------------------------------------------------------
 // Rang prestigieux (paliers 10 à 15)
 // --------------------------------------------------------------------------
 
-/** Arche monumentale : deux pylônes d'or à aiguilles, grand anneau en plein cintre, clé de voûte, soleil et flèche centrale. */
+/** Arche monumentale : deux pylônes d'or à aiguilles lumineuses, grand anneau en plein cintre doublé d'un cercle intérieur à rayons (une rosace), clé de voûte, soleil à seize rayons, guirlande d'ampoules sur l'arc, flèche centrale. */
 const archeMonumentale: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const rIn = rb * 0.5,
@@ -691,14 +816,37 @@ const archeMonumentale: Dessin = (c) => {
     box(g, sg < 0 ? cx - rOut : cx + rIn, y1, cz - prof / 2, sg < 0 ? cx - rIn : cx + rOut, ySp, cz + prof / 2, { c: c.or, m: c.mOr, seed });
     plaqueDe(c, "+z", xc, cz + prof / 2, y1 + hs * 0.04, (ySp - y1) * 0.55, ep * 0.32);
     plaqueDe(c, "-z", xc, cz - prof / 2, y1 + hs * 0.04, (ySp - y1) * 0.55, ep * 0.32);
-    // Contreforts à pans coupés et bandeaux de bronze sur le pylône.
-    for (const k of [0.25, 0.5, 0.75]) bandeau(c, y1 + (ySp - y1) * k, 0, 0, 0, 0, c.or);
+    // Bandeaux et losanges de bronze sur le pylône.
     for (const k of [0.8, 0.9]) boite(g, "+z", xc - ep * 0.45, xc + ep * 0.45, y1 + (ySp - y1) * k, y1 + (ySp - y1) * k + hs * 0.012, cz + prof / 2, 0.14, c.orSombre, c.mOr, seed);
-    // Aiguille sur chaque pylône.
+    for (const k of [0.15, 0.32, 0.48]) {
+      for (const f of ["+z", "-z"] as Face[]) {
+        const s = f === "+z" ? 1 : -1;
+        disque(g, xc, y1 + (ySp - y1) * (k + 0.2) + hs * 0.05, cz + s * (prof / 2 + 0.05), ep * 0.1, f, c.orClair, c.mOr, 8);
+      }
+    }
+    // Aiguille effilée sur chaque pylône, une boule éclairée à son pied et un fleuron au bout.
     tronc(g, xc, ySp, cz, ep * 0.42, ep * 0.12, hs * 0.3, c.orClair, c.mOr, seed);
     tronc(g, xc, ySp + hs * 0.3, cz, ep * 0.12, 0, hs * 0.07, c.orClair, c.mOr, seed);
+    ellipsoide(g, xc, ySp + hs * 0.375, cz, ep * 0.1, ep * 0.1, ep * 0.1, LANTERNE, MAT.LAMP, 8, 6);
+    // Contreforts en volute : deux jambes de force obliques de chaque côté du pylône.
+    for (const f of [-1, 1]) membre(g, [xc + sg * ep * 0.5, y1, cz + f * prof * 0.5], [xc + sg * ep * 0.2, ySp * 0.82 + yb * 0.18, cz + f * prof * 0.5], ep * 0.09, ep * 0.05, c.orSombre, c.mOr, { seg: 6, seed });
   }
   arche(g, cx, ySp, cz, rIn, rOut, prof, c.or, c.mOr, { seed, seg: 24 });
+  // Cercle intérieur à rayons : une rosace dans l'arc, avec douze rayons qui partent de la clé de voûte.
+  const rC = rIn * 0.92;
+  for (const s of [-1, 1]) {
+    arche(g, cx, ySp, cz + s * (prof / 2 - 0.12), rC - 0.1, rC, 0.1, c.orClair, c.mOr, { seed, seg: 20 });
+  }
+  for (let k = 1; k < 12; k++) {
+    const a = (k / 12) * Math.PI;
+    membre(g, [cx, ySp + rC * 0.15, cz], [cx + Math.cos(a) * rC, ySp + Math.sin(a) * rC, cz], 0.07, 0.045, c.orSombre, c.mOr, { seg: 5, seed });
+  }
+  ellipsoide(g, cx, ySp + rC * 0.15, cz, 0.3, 0.3, 0.3, c.orClair, c.mOr, 8, 6);
+  // Guirlande d'ampoules sur l'extrados de l'arc (elles s'allument la nuit).
+  for (let k = 0; k <= 18; k++) {
+    const a = (k / 18) * Math.PI;
+    for (const s of [-1, 1]) ellipsoide(g, cx + Math.cos(a) * (rOut + 0.12), ySp + Math.sin(a) * (rOut + 0.12), cz + s * (prof / 2 + 0.1), 0.15, 0.15, 0.15, LANTERNE, MAT.LAMP, 6, 4);
+  }
   box(g, cx - 0.45 * ep, ySp + rIn - 0.1, cz - prof / 2 - 0.14, cx + 0.45 * ep, ySp + rOut + 0.4, cz + prof / 2 + 0.14, { c: c.orClair, m: c.mOr, seed });
   const rs = rb * 0.34,
     yS = ySp + rOut + 0.4 + rs * 0.9;
@@ -707,7 +855,6 @@ const archeMonumentale: Dessin = (c) => {
     disque(g, cx, yS, cz + s * 0.22, rs, f, c.orClair, c.mOr, 28);
     disque(g, cx, yS, cz + s * 0.26, rs * 0.72, f, c.orSombre, c.mOr, 28);
     disque(g, cx, yS, cz + s * 0.3, rs * 0.4, f, c.orClair, c.mOr, 20);
-    // Rayons du soleil.
     for (let k = 0; k < 16; k++) {
       const a = (k / 16) * Math.PI * 2;
       const x = cx + Math.cos(a) * rs * 1.18,
@@ -719,61 +866,62 @@ const archeMonumentale: Dessin = (c) => {
   tronc(g, cx, yS + rs, cz, rs * 0.14, 0, yb + 0.98 * hs - (yS + rs), c.orClair, c.mOr, seed);
 };
 
-/** Tour d'observatoire : fût à fenêtres éclairées et balcons, plate-forme à garde-corps, grand dôme doré braquant sa lunette, mât au sommet. */
+/** Tour d'observatoire : une tour qui vrille d'un tour et demi, dont l'arête est un cordon de lumière, une plate-forme à balustrade, une grande sphère armillaire de bronze braquée sur une lunette, et son axe polaire en guise de mât. */
 const tourObservatoire: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
-  const rB = rb * 0.46,
-    rH = rb * 0.36;
-  const hSo = hs * 0.04,
+  const hSo = hs * 0.03,
     hF = hs * 0.66;
-  cylinder(g, cx, yb, cz, rb * 0.66, hSo, 14, c.pierre, MAT.PLAIN, MAT.PAVING, COL.paving);
+  cylinder(g, cx, yb, cz, rb * 0.72, hSo, 14, c.pierre, MAT.PLAIN, MAT.PAVING, COL.paving);
   const y1 = yb + hSo;
-  cylinder(g, cx, y1, cz, rB, hF, 14, mixer(c.gres, c.or, 0.4), MAT.PLAIN, null, null, rH);
-  const rAt = (dy: number) => rB + ((rH - rB) * dy) / hF;
-  for (const k of [0.2, 0.5, 0.8]) {
-    cylinder(g, cx, y1 + hF * k, cz, rAt(hF * k) + 0.2, hs * 0.012, 14, c.or, c.mOr, MAT.PLAIN, c.orClair);
+  const w0 = rb * 0.34,
+    w1 = rb * 0.22;
+  const torsion = Math.PI * 3;
+  const fut = mixer(c.gres, c.or, 0.4);
+  tourVrillee(g, cx, y1, cz, w0, w1, hF, torsion, 36, fut, c.or, MAT.PLAIN, { seed });
+  // Un cordon de fenêtres éclairées le long d'une arête, qui suit la torsion : une lumière par tranche.
+  for (let i = 0; i < 36; i++) {
+    const t = (i + 0.5) / 36;
+    const a = torsion * t + Math.PI / 4;
+    const w = (w0 + (w1 - w0) * t) * Math.SQRT2;
+    const x = cx + Math.cos(a) * w,
+      z = cz + Math.sin(a) * w;
+    const y = y1 + hF * t;
+    box(g, x - 0.17, y - 0.28, z - 0.17, x + 0.17, y + 0.28, z + 0.17, { c: LANTERNE, m: MAT.LAMP, seed });
   }
-  // Sept étages de fenêtres éclairées, sur les quatre faces.
-  for (const f of ["+z", "-z", "+x", "-x"] as Face[]) {
-    const centre = f[1] === "z" ? cx : cz;
-    for (let k = 0; k < 7; k++) {
-      const dy = hF * (0.06 + k * 0.13);
-      const plan = (f[1] === "z" ? cz : cx) + (f[0] === "+" ? 1 : -1) * (rAt(dy) - 0.05);
-      boite(g, f, centre - 0.2, centre + 0.2, y1 + dy, y1 + dy + hs * 0.045, plan, 0.12, LANTERNE, MAT.LAMP, seed);
-    }
-  }
+  // Anneaux de bronze à trois hauteurs.
+  for (const k of [0.25, 0.5, 0.75]) tore(g, [cx, y1 + hF * k, cz], (w0 + (w1 - w0) * k) * 1.55, 0.14, [0, 1, 0], c.or, c.mOr, { seg: 20, segTube: 5, seed });
+  // Plate-forme et garde-corps.
   const y2 = y1 + hF;
-  cylinder(g, cx, y2, cz, rH, hs * 0.03, 14, c.gres, MAT.PLAIN, null, null, rb * 0.7);
-  const y3 = y2 + hs * 0.03;
-  cylinder(g, cx, y3, cz, rb * 0.7, hs * 0.02, 14, c.pierre, MAT.PLAIN, MAT.PAVING, COL.paving);
-  const y4 = y3 + hs * 0.02;
+  cylinder(g, cx, y2, cz, rb * 0.62, hs * 0.018, 16, c.pierre, MAT.PLAIN, MAT.PAVING, COL.paving);
+  const y3 = y2 + hs * 0.018;
   for (let i = 0; i < 18; i++) {
     const a = (i / 18) * Math.PI * 2;
-    const x = cx + Math.cos(a) * rb * 0.67,
-      z = cz + Math.sin(a) * rb * 0.67;
-    box(g, x - 0.08, y4, z - 0.08, x + 0.08, y4 + hs * 0.03, z + 0.08, { c: c.orSombre, m: c.mOr, seed });
+    box(g, cx + Math.cos(a) * rb * 0.6 - 0.07, y3, cz + Math.sin(a) * rb * 0.6 - 0.07, cx + Math.cos(a) * rb * 0.6 + 0.07, y3 + hs * 0.028, cz + Math.sin(a) * rb * 0.6 + 0.07, { c: c.orSombre, m: c.mOr, seed });
   }
-  cylinder(g, cx, y4 + hs * 0.027, cz, rb * 0.67, hs * 0.006, 18, c.orSombre, c.mOr, null, null);
-  const rD = rb * 0.52,
-    hD = hs * 0.045,
-    ry = hs * 0.1;
-  cylinder(g, cx, y4, cz, rD, hD, 16, c.gres, MAT.PLAIN, MAT.PLAIN, c.gres);
-  const y5 = y4 + hD;
-  ellipsoide(g, cx, y5, cz, rD * 1.04, ry, rD * 1.04, c.or, c.mOr, 20, 10);
-  // Nervures du dôme, et une fente d'où sort la lunette : un long tube horizontal, objectif au bout.
-  for (let k = 0; k < 8; k++) {
-    const a = (k / 8) * Math.PI * 2;
-    box(g, cx + Math.cos(a) * rD * 0.62 - 0.07, y5 + ry * 0.55, cz + Math.sin(a) * rD * 0.62 - 0.07, cx + Math.cos(a) * rD * 0.62 + 0.07, y5 + ry * 0.62, cz + Math.sin(a) * rD * 0.62 + 0.07, { c: c.orClair, m: c.mOr, seed });
+  tore(g, [cx, y3 + hs * 0.028, cz], rb * 0.6, 0.06, [0, 1, 0], c.orSombre, c.mOr, { seg: 24, segTube: 4, seed });
+  // Sphère armillaire : équateur, deux méridiens, écliptique ; un globe doré au centre ; sa lunette.
+  const Rs = hs * 0.085,
+    yS = y3 + hs * 0.028 + Rs * 1.2;
+  const r = Rs * 0.05;
+  ellipsoide(g, cx, yS, cz, Rs * 0.3, Rs * 0.3, Rs * 0.3, c.orClair, c.mOr, 14, 9);
+  tore(g, [cx, yS, cz], Rs, r, [0, 1, 0], c.or, c.mOr, { seed });
+  tore(g, [cx, yS, cz], Rs * 0.99, r, [1, 0, 0], c.or, c.mOr, { seed });
+  tore(g, [cx, yS, cz], Rs * 0.99, r, [Math.cos(0.8), 0, Math.sin(0.8)], c.orSombre, c.mOr, { seed });
+  const tilt = 0.41;
+  tore(g, [cx, yS, cz], Rs * 1.04, r * 1.3, [Math.sin(tilt), Math.cos(tilt), 0], c.orClair, c.mOr, { seed });
+  const pol: V3 = [Math.sin(tilt) * Rs * 1.45, Math.cos(tilt) * Rs * 1.45, 0];
+  membre(g, [cx - pol[0], yS - pol[1], cz], [cx + pol[0], yS + pol[1], cz], r * 1.2, r * 1.2, c.orSombre, c.mOr, { seed });
+  ellipsoide(g, cx + pol[0], yS + pol[1], cz, r * 2.6, r * 2.6, r * 2.6, c.orClair, c.mOr, 8, 6);
+  for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+    membre(g, [cx + Math.cos(a) * rb * 0.3, y3 + hs * 0.028, cz + Math.sin(a) * rb * 0.3], [cx + Math.cos(a) * Rs * 0.9, yS - Rs * 0.4, cz + Math.sin(a) * Rs * 0.9], r * 1.3, r, c.orSombre, c.mOr, { seg: 6, seed });
   }
-  const yL = y5 + ry * 0.35;
-  box(g, cx - 0.4, yL, cz + rD * 0.4, cx + 0.4, yL + 0.8, cz + rD * 1.45, { c: c.orSombre, m: c.mOr, seed });
-  box(g, cx - 0.5, yL - 0.06, cz + rD * 1.4, cx + 0.5, yL + 0.86, cz + rD * 1.55, { c: c.orClair, m: c.mOr, seed });
-  const hMat = yb + 0.98 * hs - (y5 + ry);
-  cylinder(g, cx, y5 + ry, cz, 0.1, hMat, 6, c.orSombre, c.mOr, null, null, 0.04);
-  ellipsoide(g, cx, y5 + ry + hMat * 0.8, cz, 0.22, 0.22, 0.22, c.orClair, c.mOr, 8, 6);
+  // Lunette : un long tube conique qui sort de la sphère, objectif au bout.
+  membre(g, [cx - Rs * 0.2, yS - Rs * 0.1, cz - Rs * 0.1], [cx + Rs * 1.2, yS + Rs * 0.38, cz + Rs * 0.75], Rs * 0.1, Rs * 0.16, c.orSombre, c.mOr, { seg: 8, seed });
+  membre(g, [cx + Rs * 1.2, yS + Rs * 0.38, cz + Rs * 0.75], [cx + Rs * 1.3, yS + Rs * 0.42, cz + Rs * 0.82], Rs * 0.18, Rs * 0.18, c.orClair, c.mOr, { seg: 8, calotteB: true, seed });
 };
 
-/** Statue emblématique : haut piédestal de marbre à plaques, figure drapée de bronze à diadème de rayons, torche levée, tablette et plis de la robe. */
+/** Statue emblématique : haut piédestal de marbre à plaques et contreforts, figure drapée de bronze (plis de la robe, manteau, sandales et chaîne brisée), diadème de sept rayons, bras levé tenant une torche à balcon, tablette contre la hanche. */
 const statueEmblematique: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const w = rb * 0.62;
@@ -789,33 +937,53 @@ const statueEmblematique: Dessin = (c) => {
   plaques4(c, d, d, yb + h1 + h2 + h3 * 0.18, h3 * 0.3, w * 0.5);
   plaques4(c, demiA(w * 0.78, w * 0.64, h3, h3 * 0.58), demiA(w * 0.78, w * 0.64, h3, h3 * 0.58), yb + h1 + h2 + h3 * 0.58, h3 * 0.3, w * 0.5);
   bandeau(c, yb + h1 + h2 + h3, w * 0.64, w * 0.64, h4, w * 0.12, c.pierre);
+  // Quatre contreforts d'angle sur le soubassement.
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      tronc(g, cx + sx * w * 0.8, yb + h1, cz + sz * w * 0.8, w * 0.1, w * 0.05, h2 + h3 * 0.35, c.gres, MAT.PLAIN, seed);
+    }
   const yP = yb + h1 + h2 + h3 + h4;
   const H = (yb + 0.98 * hs - yP) / 1.1; // la flamme de la torche monte à 1,1 H
-  // Manteau derrière la figure, puis la robe : un cône évasé, une taille, un buste.
-  tronc(g, cx, yP + H * 0.04, cz - H * 0.07, H * 0.1, H * 0.07, H * 0.62, c.orSombre, c.mOr, seed, H * 0.025, H * 0.02);
-  cylinder(g, cx, yP, cz, H * 0.115, H * 0.44, 16, c.or, c.mOr, null, null, H * 0.07);
-  for (let k = 0; k < 8; k++) {
-    const a = (k / 8) * Math.PI * 2 + 0.2;
-    tronc(g, cx + Math.cos(a) * H * 0.1, yP + H * 0.02, cz + Math.sin(a) * H * 0.1, H * 0.012, H * 0.006, H * 0.4, c.orSombre, c.mOr, seed);
+  const P = (x: number, y: number, z = 0): V3 => [cx + x * H, yP + y * H, cz + z * H];
+  const m = (a: V3, b: V3, ra: number, rb2: number, col: Couleur = c.or) => membre(g, a, b, ra * H, rb2 * H, col, c.mOr, { seg: 8, seed });
+  // Sandales et chaîne brisée sous les pieds.
+  for (const s of [-1, 1]) box(g, cx + s * 0.06 * H - 0.055 * H, yP, cz - 0.04 * H, cx + s * 0.06 * H + 0.055 * H, yP + 0.03 * H, cz + 0.14 * H, { c: c.orSombre, m: c.mOr, seed });
+  tore(g, [cx, yP + 0.012 * H, cz + 0.05 * H], 0.1 * H, 0.009 * H, [0, 1, 0], c.orClair, c.mOr, { seg: 16, segTube: 4, seed });
+  tore(g, [cx + 0.1 * H, yP + 0.012 * H, cz + 0.07 * H], 0.025 * H, 0.008 * H, [0.3, 1, 0], c.orClair, c.mOr, { seg: 10, segTube: 4, seed });
+  // Manteau flottant derrière la figure, puis la robe : un cône évasé strié de plis.
+  ellipsoide(g, ...P(0, 0.3, -0.085), 0.1 * H, 0.3 * H, 0.03 * H, c.orSombre, c.mOr, 10, 8);
+  ellipsoide(g, ...P(0.07, 0.5, -0.08), 0.05 * H, 0.18 * H, 0.025 * H, c.orSombre, c.mOr, 8, 6);
+  cylinder(g, cx, yP + 0.03 * H, cz, H * 0.115, H * 0.41, 16, c.or, c.mOr, null, null, H * 0.07);
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2 + 0.1;
+    const f = k % 2 ? 0.9 : 1;
+    m(P(Math.cos(a) * 0.075 * f, 0.43, Math.sin(a) * 0.075 * f), P(Math.cos(a) * 0.122 * f, 0.03, Math.sin(a) * 0.122 * f), 0.011, 0.009, c.orSombre);
   }
-  cylinder(g, cx, yP + H * 0.44, cz, H * 0.07, H * 0.19, 14, c.or, c.mOr, null, null, H * 0.085);
-  ellipsoide(g, cx, yP + H * 0.64, cz, H * 0.1, H * 0.035, H * 0.06, c.or, c.mOr, 14, 8);
-  cylinder(g, cx, yP + H * 0.65, cz, H * 0.022, H * 0.05, 10, c.or, c.mOr, null, null);
-  ellipsoide(g, cx, yP + H * 0.72, cz, H * 0.045, H * 0.058, H * 0.045, c.orClair, c.mOr, 14, 10);
-  // Diadème : sept rayons en éventail.
-  couronne(c, cx, yP + H * 0.77, cz, H * 0.018, H * 0.1, 7);
-  // Bras droit levé avec la torche : manche, avant-bras, main, manche évasée, flamme.
-  const xb = cx + H * 0.09;
-  tronc(g, xb, yP + H * 0.6, cz, H * 0.026, H * 0.02, H * 0.15, c.or, c.mOr, seed);
-  tronc(g, xb, yP + H * 0.75, cz, H * 0.02, H * 0.016, H * 0.17, c.or, c.mOr, seed);
-  ellipsoide(g, xb, yP + H * 0.93, cz, H * 0.022, H * 0.025, H * 0.022, c.orClair, c.mOr, 8, 6);
-  cylinder(g, xb, yP + H * 0.94, cz, H * 0.014, H * 0.04, 8, c.orSombre, c.mOr, null, null);
-  cylinder(g, xb, yP + H * 0.975, cz, H * 0.022, H * 0.03, 12, c.orClair, c.mOr, MAT.PLAIN, c.orSombre, H * 0.05);
-  flamme(g, xb, yP + H * 1.0, cz, H * 0.04, H * 0.09, FLAMME);
-  // Bras gauche plié, portant une tablette contre le flanc.
-  tronc(g, cx - H * 0.09, yP + H * 0.5, cz, H * 0.024, H * 0.022, H * 0.12, c.or, c.mOr, seed);
-  box(g, cx - H * 0.14, yP + H * 0.47, cz - H * 0.015, cx - H * 0.1, yP + H * 0.56, cz + H * 0.07, { c: c.orClair, m: c.mOr, seed });
-  box(g, cx - H * 0.142, yP + H * 0.49, cz + H * 0.07, cx - H * 0.098, yP + H * 0.54, cz + H * 0.075, { c: PLAQUE_FOND, m: MAT.PLAIN, seed });
+  cylinder(g, cx, yP + 0.44 * H, cz, H * 0.07, H * 0.19, 14, c.or, c.mOr, null, null, H * 0.085);
+  ellipsoide(g, ...P(0, 0.645), 0.1 * H, 0.035 * H, 0.06 * H, c.or, c.mOr, 14, 8);
+  cylinder(g, cx, yP + 0.65 * H, cz, H * 0.022, H * 0.05, 10, c.or, c.mOr, null, null);
+  // Tête : visage, nez, diadème de sept rayons en éventail.
+  ellipsoide(g, ...P(0, 0.725), 0.045 * H, 0.058 * H, 0.045 * H, c.orClair, c.mOr, 14, 10);
+  box(g, cx - 0.006 * H, yP + 0.715 * H, cz + 0.042 * H, cx + 0.006 * H, yP + 0.735 * H, cz + 0.058 * H, { c: c.orClair, m: c.mOr, seed });
+  for (let k = 0; k < 7; k++) {
+    const phi = (k - 3) * 0.42;
+    const base: V3 = P(Math.sin(phi) * 0.04, 0.765 + Math.cos(phi) * 0.02);
+    membre(g, base, [base[0] + Math.sin(phi) * 0.09 * H, base[1] + Math.cos(phi) * 0.09 * H, base[2]], 0.009 * H, 0.002 * H, c.orClair, c.mOr, { seg: 5, seed });
+  }
+  // Bras droit levé : épaule, coude, main, hampe, balcon de la torche (un anneau), coupe et flamme.
+  m(P(0.075, 0.61), P(0.13, 0.72, 0.025), 0.03, 0.024);
+  m(P(0.13, 0.72, 0.025), P(0.115, 0.88), 0.024, 0.019);
+  ellipsoide(g, ...P(0.115, 0.895), 0.022 * H, 0.025 * H, 0.022 * H, c.orClair, c.mOr, 8, 6);
+  m(P(0.115, 0.89), P(0.115, 0.97), 0.014, 0.012, c.orSombre);
+  tore(g, P(0.115, 0.955), 0.034 * H, 0.006 * H, [0, 1, 0], c.orClair, c.mOr, { seg: 14, segTube: 4, seed });
+  tronc(g, cx + 0.115 * H, yP + 0.96 * H, cz, 0.02 * H, 0.04 * H, 0.03 * H, c.orClair, c.mOr, seed);
+  flamme(g, cx + 0.115 * H, yP + 0.99 * H, cz, 0.04 * H, 0.11 * H, FLAMME);
+  // Bras gauche plié contre la hanche, portant une tablette (un cadre doré et une dalle sombre).
+  m(P(-0.075, 0.61), P(-0.11, 0.5, 0.03), 0.028, 0.023);
+  m(P(-0.11, 0.5, 0.03), P(-0.09, 0.53, 0.08), 0.023, 0.02);
+  box(g, cx - 0.145 * H, yP + 0.47 * H, cz + 0.03 * H, cx - 0.085 * H, yP + 0.58 * H, cz + 0.05 * H, { c: c.orClair, m: c.mOr, seed });
+  box(g, cx - 0.135 * H, yP + 0.485 * H, cz + 0.05 * H, cx - 0.095 * H, yP + 0.565 * H, cz + 0.055 * H, { c: PLAQUE_FOND, m: MAT.PLAIN, seed });
+  for (const y of [0.52, 0.54, 0.56]) box(g, cx - 0.13 * H, yP + (y - 0.004) * H, cz + 0.055 * H, cx - 0.1 * H, yP + (y + 0.004) * H, cz + 0.058 * H, { c: c.orClair, m: c.mOr, seed });
 };
 
 /** Temple national : stylobate à marches, colonnade, cella à porte dorée, entablement à frise, deux frontons à médaillon, dôme et lanterne éclairée la nuit. */
@@ -871,76 +1039,95 @@ const temple: Dessin = (c) => {
     box(g, x - 0.17, yT + hs * 0.02, z - 0.17, x + 0.17, yT + hs * 0.07, z + 0.17, { c: LANTERNE, m: MAT.LAMP, seed });
   }
   ellipsoide(g, cx, yT + hs * 0.09, cz, rD * 1.04, hs * 0.16, rD * 1.04, c.or, c.mOr, 22, 11);
+  // Seize nervures dorées, du pied du dôme à sa lanterne.
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    let prev: V3 = [cx + Math.cos(a) * rD * 1.045, yT + hs * 0.09, cz + Math.sin(a) * rD * 1.045];
+    for (let j = 1; j <= 6; j++) {
+      const t = (j / 6) * (Math.PI / 2) * 0.96;
+      const next: V3 = [cx + Math.cos(a) * rD * 1.045 * Math.cos(t), yT + hs * 0.09 + hs * 0.165 * Math.sin(t), cz + Math.sin(a) * rD * 1.045 * Math.cos(t)];
+      membre(g, prev, next, 0.07, 0.07, c.orClair, c.mOr, { seg: 4, seed });
+      prev = next;
+    }
+  }
   const yL = yT + hs * 0.09 + hs * 0.155;
   cylinder(g, cx, yL - 0.1, cz, rD * 0.2, hs * 0.05, 10, c.orSombre, c.mOr, null, null, rD * 0.16);
   box(g, cx - 0.4, yL + hs * 0.04, cz - 0.4, cx + 0.4, yL + hs * 0.085, cz + 0.4, { c: LANTERNE, m: MAT.LAMP, seed });
   tronc(g, cx, yL + hs * 0.085, cz, 0.5, 0.05, yb + 0.98 * hs - (yL + hs * 0.085), c.orClair, c.mOr, seed);
 };
 
-/** Statue géante : colosse sur son haut piédestal, jambes écartées, bras levés (flamme à droite, globe à gauche), couronne de rayons et disque solaire dans le dos. */
+/** Statue géante : un colosse qui enjambe un passage, les pieds sur deux socles, jambes en arche, pagne à plis, torse en V, tête couronnée sur son disque solaire, un bras brandissant la flamme, l'autre portant un globe gravé. */
 const statueGeante: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
-  const w = rb * 0.66;
-  const h1 = hs * 0.04,
-    h2 = hs * 0.025,
-    h3 = hs * 0.25,
-    h4 = hs * 0.03;
-  box(g, cx - w, yb, cz - w, cx + w, yb + h1, cz + w, { c: c.pierre, m: MAT.PLAIN, seed });
-  box(g, cx - w * 0.9, yb + h1, cz - w * 0.9, cx + w * 0.9, yb + h1 + h2, cz + w * 0.9, { c: c.pierre, m: MAT.PLAIN, seed });
-  tronc(g, cx, yb + h1 + h2, cz, w * 0.8, w * 0.62, h3, c.gres, MAT.PLAIN, seed);
-  const d = demiA(w * 0.8, w * 0.62, h3, h3 * 0.2);
-  plaques4(c, d, d, yb + h1 + h2 + h3 * 0.16, h3 * 0.3, w * 0.46);
-  plaques4(c, demiA(w * 0.8, w * 0.62, h3, h3 * 0.58), demiA(w * 0.8, w * 0.62, h3, h3 * 0.58), yb + h1 + h2 + h3 * 0.58, h3 * 0.3, w * 0.46);
-  for (const k of [0.04, 0.5, 0.96]) bandeau(c, yb + h1 + h2 + h3 * k - hs * 0.004, demiA(w * 0.8, w * 0.62, h3, h3 * k), demiA(w * 0.8, w * 0.62, h3, h3 * k), hs * 0.008, 0.1, c.orSombre, c.mOr);
-  bandeau(c, yb + h1 + h2 + h3, w * 0.62, w * 0.62, h4, w * 0.12, c.pierre);
-  const yP = yb + h1 + h2 + h3 + h4;
-  const H = yb + 0.98 * hs - yP;
-  // Jambes écartées : cuisses et mollets effilés, bottes.
+  const F = 0.98 * hs; // hauteur de la flamme au-dessus de la dernière marche
+  const Y = (f: number) => yb + F * f;
+  const sx = rb * 0.62; // écartement des pieds
+  const hSocle = F * 0.05;
+  // Deux socles de pierre à plaques de part et d'autre du passage.
   for (const sg of [-1, 1]) {
-    const xj = cx + sg * H * 0.07;
-    tronc(g, xj, yP + H * 0.06, cz, H * 0.042, H * 0.034, H * 0.34, c.or, c.mOr, seed, H * 0.048, H * 0.04);
-    box(g, xj - H * 0.05, yP, cz - H * 0.05, xj + H * 0.05, yP + H * 0.07, cz + H * 0.1, { c: c.orSombre, m: c.mOr, seed });
+    const xc = cx + sg * sx;
+    box(g, xc - rb * 0.36, yb, cz - rb * 0.46, xc + rb * 0.36, yb + hSocle, cz + rb * 0.46, { c: c.pierre, m: MAT.PLAIN, seed });
+    plaqueDe(c, "+z", xc, cz + rb * 0.46, yb + hSocle * 0.2, hSocle * 0.6, rb * 0.22);
+    plaqueDe(c, sg > 0 ? "+x" : "-x", cz, xc + sg * rb * 0.36, yb + hSocle * 0.2, hSocle * 0.6, rb * 0.25);
   }
-  // Pagne, ceinture, torse en V, épaules.
-  tronc(g, cx, yP + H * 0.32, cz, H * 0.125, H * 0.09, H * 0.1, c.orSombre, c.mOr, seed, H * 0.065, H * 0.055);
-  box(g, cx - H * 0.09, yP + H * 0.42, cz - H * 0.058, cx + H * 0.09, yP + H * 0.44, cz + H * 0.058, { c: c.orClair, m: c.mOr, seed });
-  tronc(g, cx, yP + H * 0.44, cz, H * 0.08, H * 0.115, H * 0.22, c.or, c.mOr, seed, H * 0.05, H * 0.062);
-  // Médaillon solaire sur la poitrine.
-  disque(g, cx, yP + H * 0.58, cz + H * 0.062, H * 0.03, "+z", c.orClair, c.mOr, 20);
-  ellipsoide(g, cx - H * 0.115, yP + H * 0.66, cz, H * 0.032, H * 0.03, H * 0.042, c.orSombre, c.mOr, 8, 6);
-  ellipsoide(g, cx + H * 0.115, yP + H * 0.66, cz, H * 0.032, H * 0.03, H * 0.042, c.orSombre, c.mOr, 8, 6);
-  cylinder(g, cx, yP + H * 0.665, cz, H * 0.028, H * 0.045, 10, c.or, c.mOr, null, null);
-  ellipsoide(g, cx, yP + H * 0.745, cz, H * 0.058, H * 0.07, H * 0.058, c.orClair, c.mOr, 16, 10);
-  couronne(c, cx, yP + H * 0.805, cz, H * 0.02, H * 0.09, 7);
-  // Disque solaire dans le dos de la tête : un plan derrière elle, visible de face comme de dos.
-  const yH = yP + H * 0.75;
-  const zH = cz - H * 0.075;
+  const yPied = yb + hSocle;
+  // Jambes massives : botte, mollet, genou, cuisse, jusqu'aux hanches (le passage se voit entre elles).
+  for (const sg of [-1, 1]) {
+    const X = (x: number) => cx + sg * x;
+    box(g, X(sx) - rb * 0.3, yPied, cz - rb * 0.3, X(sx) + rb * 0.3, yPied + F * 0.045, cz + rb * 0.42, { c: c.orSombre, m: c.mOr, seed });
+    membre(g, [X(sx), yPied + F * 0.04, cz + rb * 0.05], [X(sx * 0.92), Y(0.25), cz + rb * 0.1], rb * 0.27, rb * 0.25, c.or, c.mOr, { seg: 10, seed });
+    ellipsoide(g, X(sx * 0.92), Y(0.25), cz + rb * 0.12, rb * 0.27, rb * 0.22, rb * 0.27, c.orClair, c.mOr, 12, 8);
+    membre(g, [X(sx * 0.92), Y(0.25), cz + rb * 0.1], [X(sx * 0.45), Y(0.43), cz], rb * 0.25, rb * 0.36, c.or, c.mOr, { seg: 10, seed });
+    // Jambière à bandes dorées sur le mollet.
+    for (const k of [0.09, 0.14, 0.19]) tore(g, [X(sx * 0.96), Y(k), cz + rb * 0.07], rb * 0.27, rb * 0.03, [0, 1, 0.05], c.orClair, c.mOr, { seg: 14, segTube: 4, seed });
+  }
+  // Pagne à plis, ceinture à médaillon, torse en V.
+  tronc(g, cx, Y(0.41), cz, rb * 0.78, rb * 0.62, F * 0.07, c.orSombre, c.mOr, seed, rb * 0.42, rb * 0.36);
+  for (let k = -4; k <= 4; k++) tronc(g, cx + k * rb * 0.16, Y(0.41), cz + rb * 0.4, rb * 0.025, rb * 0.014, F * 0.068, c.orClair, c.mOr, seed, rb * 0.02, rb * 0.012);
+  box(g, cx - rb * 0.64, Y(0.48), cz - rb * 0.37, cx + rb * 0.64, Y(0.505), cz + rb * 0.37, { c: c.orClair, m: c.mOr, seed });
+  disque(g, cx, Y(0.492), cz + rb * 0.38, rb * 0.13, "+z", c.orSombre, c.mOr, 16);
+  // Torse sculpté : abdomen, cage thoracique et pectoraux plutôt qu'un bloc.
+  ellipsoide(g, cx, Y(0.545), cz, rb * 0.56, F * 0.06, rb * 0.34, c.or, c.mOr, 14, 8);
+  ellipsoide(g, cx, Y(0.625), cz, rb * 0.82, F * 0.09, rb * 0.42, c.or, c.mOr, 16, 10);
+  for (const sg of [-1, 1]) {
+    ellipsoide(g, cx + sg * rb * 0.34, Y(0.655), cz + rb * 0.22, rb * 0.32, F * 0.045, rb * 0.24, c.orClair, c.mOr, 10, 6);
+    membre(g, [cx + sg * rb * 0.08, Y(0.5), cz + rb * 0.3], [cx + sg * rb * 0.02, Y(0.6), cz + rb * 0.4], rb * 0.03, rb * 0.02, c.orSombre, c.mOr, { seg: 5, seed });
+  }
+  disque(g, cx, Y(0.61), cz + rb * 0.43, rb * 0.12, "+z", c.orClair, c.mOr, 20);
+  // Épaules, cou, tête, couronne de rayons, disque solaire dans le dos.
+  for (const sg of [-1, 1]) ellipsoide(g, cx + sg * rb * 0.84, Y(0.725), cz, rb * 0.26, rb * 0.2, rb * 0.3, c.orSombre, c.mOr, 10, 7);
+  cylinder(g, cx, Y(0.725), cz, rb * 0.2, F * 0.035, 10, c.or, c.mOr, null, null);
+  const yT = Y(0.79);
+  ellipsoide(g, cx, yT, cz, rb * 0.3, rb * 0.36, rb * 0.3, c.orClair, c.mOr, 16, 10);
+  box(g, cx - rb * 0.035, yT - rb * 0.08, cz + rb * 0.29, cx + rb * 0.035, yT + rb * 0.06, cz + rb * 0.38, { c: c.orClair, m: c.mOr, seed });
+  couronne(c, cx, yT + rb * 0.33, cz, rb * 0.1, F * 0.06, 7);
+  const zH = cz - rb * 0.42;
   for (const f of ["+z", "-z"] as Face[]) {
     const s = f === "+z" ? 1 : -1;
-    disque(g, cx, yH, zH + s * 0.03, H * 0.125, f, c.orClair, c.mOr, 28);
-    disque(g, cx, yH, zH + s * 0.06, H * 0.1, f, c.orSombre, c.mOr, 28);
+    disque(g, cx, yT, zH + s * 0.04, rb * 0.62, f, c.orClair, c.mOr, 28);
+    disque(g, cx, yT, zH + s * 0.08, rb * 0.5, f, c.orSombre, c.mOr, 28);
     for (let k = 0; k < 14; k++) {
       const a = (k / 14) * Math.PI * 2;
-      const x = cx + Math.cos(a) * H * 0.15,
-        y = yH + Math.sin(a) * H * 0.15;
-      boite(g, f, x - H * 0.008, x + H * 0.008, y - H * 0.02, y + H * 0.02, zH + s * 0.02, 0.05, c.orClair, c.mOr, seed);
+      boite(g, f, cx + Math.cos(a) * rb * 0.74 - 0.16, cx + Math.cos(a) * rb * 0.74 + 0.16, yT + Math.sin(a) * rb * 0.74 - 0.4, yT + Math.sin(a) * rb * 0.74 + 0.4, zH + s * 0.03, 0.12, c.orClair, c.mOr, seed);
     }
   }
-  // Bras levés le long du corps : la flamme à droite, le globe à gauche.
-  const yA = yP + H * 0.62;
-  for (const sg of [-1, 1]) {
-    const xs = cx + sg * H * 0.12;
-    tronc(g, xs, yA, cz, H * 0.026, H * 0.022, H * 0.14, c.or, c.mOr, seed);
-    box(g, xs - H * 0.02, yA + H * 0.14 - H * 0.005, cz - H * 0.02, xs + H * 0.02, yA + H * 0.16, cz + H * 0.02, { c: c.orClair, m: c.mOr, seed });
-    tronc(g, xs + sg * H * 0.01, yA + H * 0.14, cz, H * 0.02, H * 0.017, H * 0.12, c.or, c.mOr, seed);
-  }
-  flamme(g, cx + H * 0.125, yA + H * 0.275, cz, H * 0.033, H * 0.1, FLAMME);
-  cylinder(g, cx + H * 0.125, yA + H * 0.26, cz, H * 0.012, H * 0.02, 8, c.orSombre, c.mOr, null, null);
-  ellipsoide(g, cx - H * 0.125, yA + H * 0.3, cz, H * 0.042, H * 0.042, H * 0.042, c.orClair, c.mOr, 14, 10);
-  cylinder(g, cx - H * 0.125, yA + H * 0.26, cz, H * 0.018, H * 0.02, 8, c.orSombre, c.mOr, null, null);
+  // Bras droit levé avec la torche (épaule, coude, main, hampe, coupe, flamme) ; bras gauche portant un globe.
+  const R_ = (x: number, y: number, z = 0): V3 => [cx + x, Y(y), cz + z];
+  membre(g, R_(rb * 0.86, 0.72), R_(rb * 0.98, 0.78, rb * 0.15), rb * 0.2, rb * 0.17, c.or, c.mOr, { seg: 9, seed });
+  membre(g, R_(rb * 0.98, 0.78, rb * 0.15), R_(rb * 0.88, 0.88), rb * 0.17, rb * 0.14, c.or, c.mOr, { seg: 9, seed });
+  ellipsoide(g, ...R_(rb * 0.88, 0.9), rb * 0.16, rb * 0.16, rb * 0.16, c.orClair, c.mOr, 8, 6);
+  membre(g, R_(rb * 0.88, 0.9), R_(rb * 0.88, 0.955), rb * 0.08, rb * 0.08, c.orSombre, c.mOr, { seg: 6, seed });
+  tore(g, [cx + rb * 0.88, Y(0.945), cz], rb * 0.2, rb * 0.03, [0, 1, 0], c.orClair, c.mOr, { seg: 14, segTube: 4, seed });
+  tronc(g, cx + rb * 0.88, Y(0.955), cz, rb * 0.1, rb * 0.22, F * 0.02, c.orClair, c.mOr, seed);
+  flamme(g, cx + rb * 0.88, Y(0.975), cz, rb * 0.2, F * 0.04, FLAMME);
+  membre(g, R_(-rb * 0.86, 0.72), R_(-rb * 0.97, 0.75, rb * 0.25), rb * 0.2, rb * 0.17, c.or, c.mOr, { seg: 9, seed });
+  membre(g, R_(-rb * 0.97, 0.75, rb * 0.25), R_(-rb * 0.72, 0.79, rb * 0.45), rb * 0.17, rb * 0.14, c.or, c.mOr, { seg: 9, seed });
+  ellipsoide(g, ...R_(-rb * 0.68, 0.85, rb * 0.45), rb * 0.27, rb * 0.27, rb * 0.27, c.orClair, c.mOr, 14, 10);
+  tore(g, [cx - rb * 0.68, Y(0.85), cz + rb * 0.45], rb * 0.275, rb * 0.02, [0, 1, 0], c.orSombre, c.mOr, { seg: 20, segTube: 4, seed });
+  tore(g, [cx - rb * 0.68, Y(0.85), cz + rb * 0.45], rb * 0.275, rb * 0.02, [1, 0, 0.4], c.orSombre, c.mOr, { seg: 20, segTube: 4, seed });
 };
 
-/** Monument ultime : trois gradins de marbre aux quatre braseros, grand pylône d'or à plaques, bandeaux et pilastres, quatre obélisques d'angle, lanterne, globe et flèche. */
+/** Monument ultime : trois gradins aux quatre braseros et petits obélisques, une flèche d'or qui vrille d'un tour et demi, trois anneaux qui l'entourent en orbite, une lanterne et un soleil de rayons à son sommet. */
 const monumentUltime: Dessin = (c) => {
   const { g, cx, cz, yb, hs, rb, seed } = c;
   const he = hs * 0.012;
@@ -956,30 +1143,34 @@ const monumentUltime: Dessin = (c) => {
       tronc(g, xo, yb + 2 * he, zo, rb * 0.1, rb * 0.045, hs * 0.2, c.or, c.mOr, seed);
       tronc(g, xo, yb + 2 * he + hs * 0.2, zo, rb * 0.045, 0, hs * 0.02, c.orClair, c.mOr, seed);
     }
-  const hF = hs * 0.64,
-    w0 = rb * 0.5,
-    w1 = rb * 0.2;
-  tronc(g, cx, yT, cz, w0, w1, hF, c.or, c.mOr, seed);
-  // Pilastres d'angle et quatre étages de bandeaux, plaques sur deux niveaux.
-  for (const sx of [-1, 1])
-    for (const sz of [-1, 1]) {
-      const dx = demiA(w0, w1, hF, 0);
-      tronc(g, cx + sx * (dx - w0 * 0.07), yT, cz + sz * (dx - w0 * 0.07), w0 * 0.08, w1 * 0.1, hF * 0.97, c.orClair, c.mOr, seed);
-    }
-  const d = demiA(w0, w1, hF, hF * 0.08);
-  plaques4(c, d, d, yT + hF * 0.08, hs * 0.1, w0 * 0.5);
-  const d2 = demiA(w0, w1, hF, hF * 0.3);
-  plaques4(c, d2, d2, yT + hF * 0.3, hs * 0.08, w0 * 0.38);
-  for (const k of [0.22, 0.45, 0.62, 0.8, 0.92]) {
-    const half = demiA(w0, w1, hF, hF * k) + rb * 0.03;
-    box(g, cx - half, yT + hF * k, cz - half, cx + half, yT + hF * k + hs * 0.01, cz + half, { c: c.orClair, m: c.mOr, seed });
+  // Soubassement carré à plaques, puis la flèche vrillée.
+  const hP = hs * 0.07;
+  tronc(g, cx, yT, cz, rb * 0.5, rb * 0.44, hP, c.gres, MAT.PLAIN, seed);
+  const dP = demiA(rb * 0.5, rb * 0.44, hP, hP * 0.2);
+  plaques4(c, dP, dP, yT + hP * 0.2, hP * 0.6, rb * 0.24);
+  bandeau(c, yT + hP, rb * 0.44, rb * 0.44, hs * 0.012, rb * 0.04, c.orSombre, c.mOr);
+  const yF = yT + hP + hs * 0.012;
+  const hF = hs * 0.6;
+  const w0 = rb * 0.42,
+    w1 = rb * 0.08;
+  tourVrillee(g, cx, yF, cz, w0, w1, hF, Math.PI * 3, 48, c.or, c.orClair, c.mOr, { seed });
+  // Trois anneaux en orbite, inclinés chacun d'un côté, qui flottent autour de la flèche.
+  for (const [k, R, tilt] of [
+    [0.3, 0.8, [0.35, 1, 0]],
+    [0.52, 0.64, [-0.3, 1, 0.3]],
+    [0.72, 0.48, [0.2, 1, -0.4]],
+  ] as const) {
+    tore(g, [cx, yF + hF * k, cz], rb * R, 0.2, tilt as unknown as V3, c.orClair, c.mOr, { seg: 36, segTube: 6, seed });
+    tore(g, [cx, yF + hF * k, cz], rb * R * 0.97, 0.07, tilt as unknown as V3, c.orSombre, c.mOr, { seg: 36, segTube: 4, seed });
   }
-  const yS = yT + hF;
-  box(g, cx - rb * 0.2, yS, cz - rb * 0.2, cx + rb * 0.2, yS + hs * 0.045, cz + rb * 0.2, { c: LANTERNE, m: MAT.LAMP, seed });
-  tronc(g, cx, yS + hs * 0.045, cz, rb * 0.26, rb * 0.17, hs * 0.012, c.orClair, c.mOr, seed);
-  const yG = yS + hs * 0.057;
-  ellipsoide(g, cx, yG + hs * 0.035, cz, hs * 0.035, hs * 0.035, hs * 0.035, c.orClair, c.mOr, 16, 10);
-  tronc(g, cx, yG + hs * 0.07, cz, rb * 0.06, 0, yb + 0.98 * hs - (yG + hs * 0.07), c.orClair, c.mOr, seed);
+  // Sommet : lanterne éclairée, soleil de quatorze rayons, flèche et flamme.
+  const yS = yF + hF;
+  ellipsoide(g, cx, yS + hs * 0.035, cz, hs * 0.03, hs * 0.035, hs * 0.03, LANTERNE, MAT.LAMP, 14, 9);
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2;
+    membre(g, [cx + Math.cos(a) * hs * 0.034, yS + hs * 0.035 + Math.sin(a) * hs * 0.034, cz], [cx + Math.cos(a) * hs * 0.065, yS + hs * 0.035 + Math.sin(a) * hs * 0.065, cz], rb * 0.025, rb * 0.012, c.orClair, c.mOr, { seg: 5, seed });
+  }
+  tronc(g, cx, yS + hs * 0.07, cz, rb * 0.04, 0, yb + 0.98 * hs - (yS + hs * 0.07), c.orClair, c.mOr, seed);
 };
 
 /** Silhouette de chaque type du catalogue (src/lib/game/monuments.ts). */

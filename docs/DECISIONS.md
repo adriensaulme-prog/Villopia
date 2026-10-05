@@ -5623,7 +5623,8 @@ mutuellement ; un par bloc les espace d'au moins 80 m et les rend lisibles du ce
 #### D — Stade et Grand stade : plusieurs blocs réservés
 
 *Taille.* Le Stade occupe un carré de **2 × 2 blocs** (144 m de côté, rues intérieures comprises, plateforme de
-136 m, 36 m de haut) et le Grand stade **3 × 3 blocs** (224 m, plateforme de 216 m, 60 m de haut), contre un seul
+136 m, 36 m de haut) et le Grand stade **3 × 3 blocs** (224 m, plateforme de 216 m, 60 m de haut — ramené à 3 × 2 blocs après le
+retour d'Adrien, voir l'entrée suivante), contre un seul
 bloc avant (Stade 30 m de large, Grand stade ~50 m). Pelouse tracée : 63 × 38 m et 106 × 67 m (le terrain de football
 réglementaire est de 105 × 68 m).
 *Placement* (`megaprojetsVille.ts`). Le site part de la case d'ancrage de son stade et s'étend **vers l'extérieur** de
@@ -5635,7 +5636,7 @@ première case libre à partir de la leur.
 *Ce que ça change dans la ville.* Les blocs réservés n'ont ni lots ni cour ; les **rues intérieures disparaissent**
 (chaussées, trottoirs, lampadaires, arbres d'alignement, abribus, voitures : `buildRoadsAndTraffic(…, sansRue)` et
 `cotesInternes` de `buildBlock`), le pourtour garde sa rue et ses lampadaires. Quand la ville atteint le site, elle
-perd donc jusqu'à 4 ou 9 blocs d'habitations (le §45 en retirait un) — voir §10 point 43.
+perd donc jusqu'à 4 ou 6 blocs d'habitations (le §45 en retirait un ; 9 pour le Grand stade avant son passage à 3 × 2) — voir §10 point 43.
 *Bâtiments* (`megaprojetsEquipements.ts`, réécrits) : cuvette à deux niveaux de gradins (sièges bleus et blancs au
 Stade, bleus et rouges au Grand stade) séparés par un déambulatoire vitré, mur à 48 ou 96 pilastres avec vomitoires
 sombres, corniche, bandeaux vitrés, bannières, toits des tribunes sur mâts (Stade) ou toit-couronne blanc sur 28 mâts
@@ -5654,6 +5655,66 @@ d'affichage, rangées d'arbres.
   `megaprojetsVille` et `megaprojetsSilhouettes` adaptés ; suite unitaire complète : 508 tests verts, `tsc` et lint
   propres. Revue visuelle dans la vraie scène (avant / après) : monuments, statue géante, stades, secteur d'Énergie,
   fond de `/pays` (page réelle, dans le navigateur de l'application).
+
+---
+
+### Grand stade ramené à 3 × 2 blocs, monuments plus atypiques (retour d'Adrien du 05/10/2026, suite du §49)
+
+**Retour d'Adrien après essai du jeu.** « Le Grand stade est trop grand, c'est disproportionné. Certains monuments
+ne sont pas assez bien faits : fais des choses avec plus de détail et atypiques. » Cette entrée complète celle du §49
+(qui reste exacte pour le reste) et la remplace sur la taille du Grand stade.
+
+#### Grand stade : un tiers de surface en moins, plus long que large
+
+- **Site : 3 × 2 blocs** (224 × 144 m, plateforme de 216 × 136 m, 48 m de haut) au lieu de 3 × 3 (224 × 224 m, 60 m de
+  haut). La cuvette fait **168 × 122 m** (au lieu de 203 × 168 m), la pelouse **87 × 55 m** (terrain réglementaire
+  105 × 68 m, un peu réduit pour que la cuvette tienne). Il reste plus grand que le Stade (2 × 2 blocs, cuvette de
+  122 × 99 m), et sa forme rappelle un vrai stade (rapport 1,4).
+- **Sites rectangulaires** : `SITES_MULTI_BLOCS` (`megaprojets.ts`) donne maintenant `x` et `z` ; `Site` a un `Rz`
+  (égal à `R` pour tous les autres mégaprojets) ; `blocsDuSite(case, nx, nz)` ; `PlaceMegaprojet` perd `taille` et
+  gagne `nx`, `nz`, `rayonZ` ; `ZoneSansArbre` gagne `demiZ`. Même règle de placement : le rectangle part de la case
+  d'ancrage vers l'extérieur, hors des blocs de monuments, à 150 m de l'Énergie par son bord (testé).
+- **Bâtiment redessiné** pour ce rectangle : parkings aux deux bouts (avec une allée centrale pour l'entrée), parvis en
+  couronne, 80 pilastres, 20 vomitoires, 24 mâts, entrées sur les quatre côtés. Sommets : 15 500 (17 800 avant).
+- Le Grand stade ne perd plus que **6 blocs** d'habitations quand la ville atteint le site (9 avant) : §10 point 43.
+
+#### Monuments : dix redessinés, formes atypiques
+
+De nouvelles briques (`monumentsFormes.ts`) : `membre` (un cylindre effilé entre deux points quelconques : bras,
+jambes, pattes, rayons), `tore` (anneaux), `tourVrillee` (une tour carrée qui tourne sur elle-même, bandes alternées).
+Elles permettent des formes impossibles à la boîte et au cylindre droit.
+
+| Monument | Avant | Maintenant |
+|---|---|---|
+| Borne commémorative | bloc de pierre et boule | **sphère armillaire** de bronze (équateur, deux méridiens, écliptique incliné de 23,5°, axe polaire) sur un chapiteau |
+| Banc public | banc droit, deux lampadaires | **banc ondulé** (une onde de sept tronçons, dossier à crêtes) sous une **treille** d'arceaux fleuris |
+| Fontaine simple | un jet et deux vasques | trois bassins étagés, une **sphère de bronze flottante** frappée par douze arcs d'eau, méridiens gravés |
+| Buste | tête, épaules | **couronne de lauriers** (anneau et douze feuilles), chevelure bouclée, toge à plis diagonaux, agrafe |
+| Obélisque | fût droit | **fût hélicoïdal** : un tour et quart, bandes de bronze et d'or, pyramidion qui prolonge la torsion, quatre lions couchés |
+| Horloge municipale | toit pointu | idem, avec un **orrery** au sommet (soleil éclairé, anneaux inclinés, planètes) |
+| Fontaine monumentale | trois vasques | quatre **hippocampes** crachant l'eau, **Neptune** et son trident au sommet |
+| Statue équestre | cheval au pas | **cheval cabré** : jambes arrière plantées, avant-train dressé, pattes repliées, queue flottante, cavalier penché |
+| Mur des remerciements | mur droit | **mur en S** à plaquettes sur ses deux faces, ruban doré sur le faîte, deux bancs dans les creux |
+| Arche monumentale | arc et soleil | arc **doublé d'une rosace à rayons**, guirlande d'ampoules éclairées, boules lumineuses sur les aiguilles, contreforts |
+| Tour d'observatoire | tour ronde à dôme | **tour qui vrille d'un tour et demi**, cordon de fenêtres éclairées le long d'une arête, **sphère armillaire** et lunette |
+| Statue emblématique | figure drapée | plis de la robe, manteau flottant, sandales sur la chaîne brisée, diadème de sept rayons, torche à balcon, tablette |
+| Statue géante | colosse sur un piédestal | **colosse qui enjambe un passage** : pieds sur deux socles, jambes en arche, torse sculpté, pagne à plis, globe gravé |
+| Monument ultime | pylône droit | **flèche d'or vrillée** d'un tour et demi, **trois anneaux en orbite**, soleil de quatorze rayons éclairé |
+| Arc de triomphe, temple | — | retouchés : soleil et cannelures (arc), seize nervures dorées sur le dôme (temple) |
+
+(Rang modeste : borne, banc, fontaine simple, buste, obélisque — ni lampes ni métal poli, mais plus de forme et de
+détail ; la règle du §43 « un rang plus haut est plus riche » tient toujours.) Les gabarits (rayon, hauteur) ne changent
+pas ; chaque monument tient toujours dans son cercle de socle et sous sa hauteur (testé, `monumentsDetail.test.ts`).
+
+#### Poids et vérifications
+
+- Code : **67,8 Ko gzip** pour toute la scène 3D (mesuré à l'esbuild, minifié), soit +4,0 Ko pour ce retour et +10,4 Ko
+  depuis avant le §49 (57,5 Ko). Aucune dépendance, image, modèle 3D ni migration.
+- Les 16 monuments pèsent 49 000 sommets en tout (jusqu'à 5 800 pour le plus riche) ; la règle « un rang plus haut est
+  plus riche » du §43 tient toujours (tout prestigieux dépasse tout modeste).
+- Tests : `monumentsAtypiques.test.ts` (8 : briques `membre`, `tore`, `tourVrillee`, passage ouvert entre les jambes
+  du colosse, torsion de l'obélisque, lumières des tours), `megaprojetsStades.test.ts` adapté aux rectangles ; suite
+  unitaire complète : **516 tests verts**, `tsc` et lint propres. Revue visuelle dans la vraie scène, avant / après.
 
 ---
 
@@ -6175,7 +6236,8 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     14,5 m, donc un rayon de 6,6 m au plus. → **À ajuster par Adrien après avoir regardé en jeu** : une ligne par type
     dans `GABARITS` (`monuments.ts`), la hauteur seulement si le monument est déjà à la limite de largeur.
 43. **Stade et Grand stade sur plusieurs blocs (§49 D) : le coût en habitations.** Quand une ville atteint un de ces
-    sites, elle perd 4 ou 9 blocs d'habitations (le §45 en retirait un) et les rues qui les traversent disparaissent.
+    sites, elle perd 4 (Stade) ou 6 (Grand stade, 3 × 2 depuis le retour d'Adrien : « trop grand, disproportionné »)
+    blocs d'habitations (le §45 en retirait un) et les rues qui les traversent disparaissent.
     Les sites sont à la bordure de la ville (§37) : ce n'est pas le cœur, mais c'est un quartier entier. → **À
     confirmer par Adrien** : acceptable tel quel, ou un site plus petit (par exemple 1 × 2 blocs pour le Stade) ; la
     taille est une constante (`SITES_MULTI_BLOCS`, `megaprojets.ts`), le reste suit.

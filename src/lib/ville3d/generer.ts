@@ -243,7 +243,7 @@ export function generate(
   // Côtés des blocs d'un site de plusieurs blocs qui touchent un autre bloc du même site : pas de trottoir ni de lampadaire.
   const cotesInternes = new Map<string, Set<Facade>>();
   for (const p of placesMega.values()) {
-    if (p.taille === 1) continue;
+    if (p.nx * p.nz === 1) continue;
     const dans = new Set(p.blocs.map((b) => b.bi + "," + b.bj));
     for (const b of p.blocs) {
       const cotes = new Set<Facade>();
@@ -255,13 +255,15 @@ export function generate(
     }
   }
   // Rues qui traversent un site de plusieurs blocs : elles disparaissent avec lui.
-  const ruesInternes = [...placesMega.values()].filter((p) => p.taille > 1).map((p) => p.rect);
+  const ruesInternes = [...placesMega.values()].filter((p) => p.nx * p.nz > 1).map((p) => p.rect);
   // Rien ne se plante sur un monument (sa parcelle de 14,5 m) ni sur l'emprise d'un mégaprojet (carré, marge de 3 m pour sa plateforme ; tout le carré de blocs pour un site de plusieurs blocs).
-  const demiSite = (p: { rayon: number; taille: number; rect: [number, number, number, number] }, marge: number) =>
-    p.taille > 1 ? (p.rect[2] - p.rect[0]) / 2 + marge - 3 : p.rayon + marge;
+  const zoneSite = (p: { x: number; z: number; rayon: number; nx: number; nz: number; rect: [number, number, number, number] }, marge: number): ZoneSansArbre =>
+    p.nx * p.nz > 1
+      ? { x: p.x, z: p.z, demi: (p.rect[2] - p.rect[0]) / 2 + marge - 3, demiZ: (p.rect[3] - p.rect[1]) / 2 + marge - 3 }
+      : { x: p.x, z: p.z, demi: p.rayon + marge };
   const emplacementsSurCour: ZoneSansArbre[] = [
     ...[...places.values()].map((p) => ({ x: p.x, z: p.z, demi: 8 })),
-    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: demiSite(p, 3) })),
+    ...[...placesMega.values()].map((p) => zoneSite(p, 3)),
   ];
 
   buildRoadsAndTraffic(g, act, key, Math.ceil(cityR / T), ruesInternes);
@@ -278,7 +280,7 @@ export function generate(
   if (tech.tramway) buildTramway(g, key, cityR);
   if (tech.drones) buildDrones(g, key, cityR);
   buildCountryside(g, key, ao, cityR, [
-    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, demi: demiSite(p, 6) })),
+    ...[...placesMega.values()].map((p) => zoneSite(p, 6)),
     ...zonesEnergie(key, elanEnergie),
   ]);
   buildCountryRoads(g, key, ao, cityR);

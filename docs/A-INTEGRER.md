@@ -369,8 +369,11 @@ journal existant, puis ce fichier peut être supprimé.*
 > paysage de campagne propre au pays consulté, sans ville. **A+B** : les 16 monuments font de 7 à 62 m (statue géante
 > 56 m), sont redessinés avec plus de détail, et se posent sur une parcelle de façade au bord de la rue, façade
 > tournée vers elle, un par bloc dans les 16 blocs centraux — **ils ont tous quitté les cours, une fois**. **D** : le
-> Stade occupe 2 × 2 blocs et le Grand stade 3 × 3, rues intérieures effacées — **ils ont changé de place, une
-> fois**. Fonctions pures de la graine, aucune migration, aucune dépendance, aucune image, aucune marque (+6,4 Ko
+> Stade occupe 2 × 2 blocs et le Grand stade 3 × 2 (3 × 3 d'abord, ramené à 3 × 2 sur retour d'Adrien : « trop
+> grand, disproportionné »), rues intérieures effacées — **ils ont changé de place, une fois**. **Suite (même jour)** :
+> dix monuments redessinés en formes atypiques et plus détaillées (sphère armillaire, obélisque hélicoïdal, cheval
+> cabré, colosse qui enjambe un passage, tours vrillées, mur en S…), voir `DECISIONS.md` §4 « Grand stade ramené à
+> 3 × 2 blocs, monuments plus atypiques ». Fonctions pures de la graine, aucune migration, aucune dépendance, aucune image, aucune marque (+6,4 Ko
 > gzip de code). **Points à trancher par Adrien** : `DECISIONS.md` §10 points 42 à 46 (gabarits des monuments, coût en
 > habitations des deux stades, un monument par bloc, fond de `/pays`, texte du §49). Détail : `DECISIONS.md` §4
 > « Énergie à l'écart, paysage pour /pays, monuments et stades agrandis ».

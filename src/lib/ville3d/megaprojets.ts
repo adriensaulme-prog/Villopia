@@ -28,7 +28,7 @@
  * grands, sur plusieurs blocs réservés ». Un bloc ne suffisait pas à un stade (22 m de large pour
  * le Stade : plus petit qu'un immeuble) : le Stade occupe maintenant un carré de 2 × 2 blocs, rues
  * intérieures comprises (144 m de côté), et le Grand stade 3 × 3 blocs (224 m) — la taille de vrais
- * stades, pelouse de 63 × 38 m et de 106 × 67 m. Voir `tailleMegaprojet`, megaprojetsVille.ts (qui
+ * stades, pelouse de 63 × 38 m et de 90 × 55 m. Voir `tailleMegaprojet`, megaprojetsVille.ts (qui
  * réserve les blocs) et terrain.ts (les rues intérieures disparaissent).
  */
 import type { RNG } from "./aleatoire";
@@ -53,43 +53,51 @@ const RAYONS_MEGAPROJET = [11, 15, 19, 23, 27] as const;
 const HAUTEURS_MEGAPROJET = [11, 17, 25, 40, 55] as const;
 
 /**
- * Mégaprojets qui occupent plusieurs blocs (A-INTEGRER §49 D) : un carré de `blocs` × `blocs`, et
+ * Mégaprojets qui occupent plusieurs blocs (A-INTEGRER §49 D) : un rectangle de `x` × `z` blocs, et
  * la hauteur H dont dispose le bâtiment. Tous les autres tiennent dans un seul bloc.
+ * Retour d'Adrien du 05/10/2026 (« le Grand stade est trop grand, disproportionné ») : le Grand stade
+ * est passé de 3 × 3 blocs à 3 × 2 (224 × 144 m, un tiers de surface en moins), plus long que large
+ * comme un vrai stade ; il reste plus grand que le Stade (2 × 2).
  */
-const SITES_MULTI_BLOCS: Readonly<Partial<Record<TypeMegaprojet, { blocs: 2 | 3; H: number }>>> = {
-  stade: { blocs: 2, H: 36 },
-  grand_stade: { blocs: 3, H: 60 },
+const SITES_MULTI_BLOCS: Readonly<Partial<Record<TypeMegaprojet, { x: 2 | 3; z: 2 | 3; H: number }>>> = {
+  stade: { x: 2, z: 2, H: 36 },
+  grand_stade: { x: 3, z: 2, H: 48 },
 };
 
 /** Pas d'un bloc à l'autre (bloc de 64 m + rue de 16 m) et rue qui les sépare. */
 const PAS_BLOC = PERIOD * T;
 const RUE = PAS_BLOC - BS;
 
-/** Côté du carré de `n` × `n` blocs et des rues qui les séparent (144 m pour 2 × 2, 224 m pour 3 × 3). */
+/** Côté de `n` blocs alignés et des rues qui les séparent (144 m pour 2, 224 m pour 3). */
 export const coteBlocs = (n: number) => n * PAS_BLOC - RUE;
 
 /** Marge entre le bord du carré de blocs et la plateforme du mégaprojet : le trottoir de 3 m du bloc et un mètre de jeu. */
 const MARGE_TROTTOIR = SW + 1;
 
-/** Nombre de blocs de côté du site d'un mégaprojet (1 pour presque tous, 2 pour le Stade, 3 pour le Grand stade). */
-export function blocsMegaprojet(type: string): 1 | 2 | 3 {
-  return (Object.prototype.hasOwnProperty.call(SITES_MULTI_BLOCS, type) && SITES_MULTI_BLOCS[type as TypeMegaprojet]?.blocs) || 1;
+/** Nombre de blocs du site d'un mégaprojet, le long de x et de z (1 × 1 pour presque tous, 2 × 2 pour le Stade, 3 × 2 pour le Grand stade). */
+export function blocsMegaprojet(type: string): { nx: number; nz: number } {
+  const multi = Object.prototype.hasOwnProperty.call(SITES_MULTI_BLOCS, type) ? SITES_MULTI_BLOCS[type as TypeMegaprojet] : undefined;
+  return multi ? { nx: multi.x, nz: multi.z } : { nx: 1, nz: 1 };
 }
 
 export interface TailleMegaprojet {
-  /** Demi-côté de l'emprise carrée (la plateforme). */
+  /** Demi-côté de l'emprise (la plateforme) le long de x. */
   R: number;
+  /** Demi-côté de l'emprise le long de z (égal à R sauf pour un site rectangulaire). */
+  Rz: number;
   /** Hauteur dont dispose le bâtiment au-dessus de sa plateforme. */
   H: number;
-  /** Nombre de blocs de côté du site. */
-  blocs: 1 | 2 | 3;
+  /** Nombre de blocs du site le long de x et de z. */
+  nx: number;
+  nz: number;
 }
 
 /** Emprise et hauteur d'un mégaprojet : celles de son stade, sauf le Stade et le Grand stade (plusieurs blocs). */
 export function tailleMegaprojet(type: string, stade: number): TailleMegaprojet {
   const multi = Object.prototype.hasOwnProperty.call(SITES_MULTI_BLOCS, type) ? SITES_MULTI_BLOCS[type as TypeMegaprojet] : undefined;
-  if (multi) return { R: coteBlocs(multi.blocs) / 2 - MARGE_TROTTOIR, H: multi.H, blocs: multi.blocs };
-  return { R: rayonMegaprojet(stade), H: hauteurMegaprojet(stade), blocs: 1 };
+  if (multi) return { R: coteBlocs(multi.x) / 2 - MARGE_TROTTOIR, Rz: coteBlocs(multi.z) / 2 - MARGE_TROTTOIR, H: multi.H, nx: multi.x, nz: multi.z };
+  const R = rayonMegaprojet(stade);
+  return { R, Rz: R, H: hauteurMegaprojet(stade), nx: 1, nz: 1 };
 }
 
 const dansLesStades = (stade: number) => Math.min(Math.max(Math.round(stade), 0), RAYONS_MEGAPROJET.length - 1);
@@ -152,8 +160,9 @@ export function buildMegaprojet(
 ) {
   const taille = tailleMegaprojet(type, stade);
   const R = Math.min(taille.R, rayonMax),
+    Rz = (taille.Rz * R) / taille.R,
     H = (taille.H * R) / taille.R;
   const dessiner = Object.prototype.hasOwnProperty.call(SILHOUETTES, type) ? SILHOUETTES[type as TypeMegaprojet] : generique;
-  dessiner({ g, cx, cz, R, H, r, seed });
-  ao.push({ x0: cx - R, z0: cz - R, x1: cx + R, z1: cz + R, w: 1, h: H });
+  dessiner({ g, cx, cz, R, Rz, H, r, seed });
+  ao.push({ x0: cx - R, z0: cz - Rz, x1: cx + R, z1: cz + Rz, w: 1, h: H });
 }

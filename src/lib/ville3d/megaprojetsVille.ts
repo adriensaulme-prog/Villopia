@@ -55,8 +55,8 @@
  * gardent exactement leur place.
  *
  * A-INTEGRER §49 D (retour d'Adrien du 05/10/2026) : le Stade et le Grand stade
- * occupent plusieurs blocs (megaprojets.ts, `tailleMegaprojet` : 2 × 2 et 3 × 3).
- * Leur site est un CARRÉ de blocs qui part de la case de leur stade et s'étend
+ * occupent plusieurs blocs (megaprojets.ts, `tailleMegaprojet` : 2 × 2 et 3 × 2).
+ * Leur site est un RECTANGLE de blocs qui part de la case de leur stade et s'étend
  * vers l'extérieur de la ville (vers les x et z de même signe que la case) : les
  * blocs qu'il ajoute sont donc plus loin du centre que sa case, jamais entre elle
  * et la ville, et il ne chevauche jamais un axe central. Tous ses blocs sont
@@ -100,9 +100,12 @@ export interface PlaceMegaprojet {
    * (graine, palier) seulement, comme la position.
    */
   rayon: number;
-  /** Nombre de blocs de côté du site : 1 pour presque tous, 2 pour le Stade, 3 pour le Grand stade. */
-  taille: 1 | 2 | 3;
-  /** Tous les blocs réservés (un seul, ou `taille` × `taille`), aucun lot ne s'y construit. */
+  /** Demi-côté de la plateforme le long de z (égal à `rayon` sauf pour un site rectangulaire, le Grand stade). */
+  rayonZ: number;
+  /** Nombre de blocs du site le long de x et de z : 1 × 1 pour presque tous, 2 × 2 pour le Stade, 3 × 2 pour le Grand stade. */
+  nx: number;
+  nz: number;
+  /** Tous les blocs réservés (un seul, ou `nx` × `nz`), aucun lot ne s'y construit. */
   blocs: { bi: number; bj: number }[];
   /** Rectangle des blocs réservés, rues intérieures comprises : [x0, z0, x1, z1]. */
   rect: [number, number, number, number];
@@ -151,12 +154,12 @@ const TOUS_LES_PALIERS: readonly number[] = CATALOGUE_MEGAPROJETS.map((_, i) => 
 /** Cases d'avance, au-delà de la plus lointaine case de départ, où un mégaprojet écarté du secteur d'Énergie ou gêné par un autre peut aller se poser. */
 const MARGE_DEPLACEMENT = 200;
 
-/** Blocs d'un carré de `n` × `n` qui part de `c` vers l'extérieur de la ville (de même signe que sa case), sans jamais chevaucher un axe central. */
-export function blocsDuSite(c: { bi: number; bj: number }, n: number): { bi: number; bj: number }[] {
+/** Blocs d'un rectangle de `nx` × `nz` qui part de `c` vers l'extérieur de la ville (de même signe que sa case), sans jamais chevaucher un axe central. */
+export function blocsDuSite(c: { bi: number; bj: number }, nx: number, nz: number): { bi: number; bj: number }[] {
   const di = c.bi >= 0 ? 1 : -1,
     dj = c.bj >= 0 ? 1 : -1;
   const blocs: { bi: number; bj: number }[] = [];
-  for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) blocs.push({ bi: c.bi + di * a, bj: c.bj + dj * b });
+  for (let a = 0; a < nx; a++) for (let b = 0; b < nz; b++) blocs.push({ bi: c.bi + di * a, bj: c.bj + dj * b });
   return blocs;
 }
 
@@ -187,15 +190,16 @@ function placesDeTous(key: string): ReadonlyMap<number, PlaceMegaprojet> {
   const M = Math.ceil(Math.sqrt(Math.max(...indices) + MARGE_DEPLACEMENT) / 2) + 5;
   const cases = casesTriees(key, M);
   const tailles = TOUS_LES_PALIERS.map((p) => blocsMegaprojet(megaprojetDuPalier(p)?.type ?? ""));
+  const multi = (t: { nx: number; nz: number }) => t.nx * t.nz > 1;
 
   const sites = new Map<string, SiteCase>();
-  const siteDe = (i: number, n: number): SiteCase => {
-    const cleSite = i + "|" + n;
+  const siteDe = (i: number, t: { nx: number; nz: number }): SiteCase => {
+    const cleSite = i + "|" + t.nx + "x" + t.nz;
     let site = sites.get(cleSite);
     if (!site) {
       const c = cases[i];
-      const blocs = blocsDuSite(c, n);
-      if (n === 1) {
+      const blocs = blocsDuSite(c, t.nx, t.nz);
+      if (!multi(t)) {
         const rect = rectCourBloc(key, c.bi, c.bj);
         // Jamais en pratique (un bloc a toujours au moins deux parcelles intérieures) : centre du bloc.
         const [x0, z0, x1, z1] = rect ?? [c.bi * 80 + 8, c.bj * 80 + 8, c.bi * 80 + 72, c.bj * 80 + 72];
@@ -232,39 +236,40 @@ function placesDeTous(key: string): ReadonlyMap<number, PlaceMegaprojet> {
     }
     return site;
   };
-  const tropPresDeLEnergie = (i: number, n: number) => siteDe(i, n).distanceEnergie < DISTANCE_MIN_ENERGIE;
+  const tropPresDeLEnergie = (i: number, t: { nx: number; nz: number }) => siteDe(i, t).distanceEnergie < DISTANCE_MIN_ENERGIE;
 
   // Blocs que personne d'autre ne peut prendre : ceux des monuments (les 16 blocs les plus centraux, §49 B).
   const reserves = new Set(casesCentrales(key, NB_BLOCS_MONUMENTS).map(cleBloc));
-  const libre = (i: number, n: number) => siteDe(i, n).blocs.every((b) => !reserves.has(cleBloc(b)));
-  const reserver = (i: number, n: number) => siteDe(i, n).blocs.forEach((b) => reserves.add(cleBloc(b)));
+  const libre = (i: number, t: { nx: number; nz: number }) => siteDe(i, t).blocs.every((b) => !reserves.has(cleBloc(b)));
+  const reserver = (i: number, t: { nx: number; nz: number }) => siteDe(i, t).blocs.forEach((b) => reserves.add(cleBloc(b)));
 
   // 1. Les mégaprojets d'un bloc dont la case de départ est hors d'atteinte du secteur d'Énergie la gardent.
   const choix = new Map<number, number>();
   const aPlacer: number[] = [];
   TOUS_LES_PALIERS.forEach((palier, k) => {
-    if (tailles[k] === 1 && !tropPresDeLEnergie(indices[k], 1) && libre(indices[k], 1)) {
+    if (!multi(tailles[k]) && !tropPresDeLEnergie(indices[k], tailles[k]) && libre(indices[k], tailles[k])) {
       choix.set(palier, indices[k]);
-      reserver(indices[k], 1);
+      reserver(indices[k], tailles[k]);
     } else aPlacer.push(k);
   });
   // 2. Les autres (le Stade, le Grand stade, les mégaprojets écartés du secteur d'Énergie) prennent, dans l'ordre
   // du catalogue, la première case libre à partir de la leur : un carré de blocs entièrement libre, hors du secteur.
   for (const k of aPlacer) {
-    const n = tailles[k];
-    let i = n === 1 ? indices[k] + 1 : indices[k];
-    while (i < cases.length && (!libre(i, n) || tropPresDeLEnergie(i, n))) i++;
+    const t = tailles[k];
+    let i = multi(t) ? indices[k] : indices[k] + 1;
+    while (i < cases.length && (!libre(i, t) || tropPresDeLEnergie(i, t))) i++;
     choix.set(TOUS_LES_PALIERS[k], i);
-    reserver(i, n);
+    reserver(i, t);
   }
 
   const places = new Map<number, PlaceMegaprojet>();
   TOUS_LES_PALIERS.forEach((palier, k) => {
-    const n = tailles[k];
-    const site = siteDe(choix.get(palier)!, n);
+    const t = tailles[k];
+    const site = siteDe(choix.get(palier)!, t);
     const def = megaprojetDuPalier(palier);
-    const rayon = n === 1 ? Math.min(rayonMegaprojet(def?.stade ?? 0), site.marge) : tailleMegaprojet(def?.type ?? "", def?.stade ?? 0).R;
-    places.set(palier, { x: site.x, z: site.z, bi: site.bi, bj: site.bj, rayon, taille: n, blocs: site.blocs, rect: site.rect });
+    const taille = tailleMegaprojet(def?.type ?? "", def?.stade ?? 0);
+    const rayon = multi(t) ? taille.R : Math.min(rayonMegaprojet(def?.stade ?? 0), site.marge);
+    places.set(palier, { x: site.x, z: site.z, bi: site.bi, bj: site.bj, rayon, rayonZ: multi(t) ? taille.Rz : rayon, nx: t.nx, nz: t.nz, blocs: site.blocs, rect: site.rect });
   });
   if (memo.size >= 32) memo.clear();
   memo.set(key, places);

@@ -92,7 +92,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
   it("chaque mégaprojet d'un bloc est au centre de la cour de son bloc, loin des rues", () => {
     for (const cle of CLES) {
       for (const [, p] of placesMegaprojets(cle, PALIERS)) {
-        if (p.taille > 1) continue;
+        if (p.nx * p.nz > 1) continue;
         const x0 = blockX0(p.bi),
           z0 = blockX0(p.bj);
         expect(p.x).toBeGreaterThan(x0 + 14);
@@ -200,7 +200,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("la position n'a pas changé d'un mètre : toujours le centre de la cour de la case (celle d'avant le §45)", () => {
       for (const cle of CLES)
         for (const [, p] of placesMegaprojets(cle, PALIERS)) {
-          if (p.taille > 1) continue;
+          if (p.nx * p.nz > 1) continue;
           const rect = rectCourBloc(cle, p.bi, p.bj)!;
           expect(p.x).toBeCloseTo((rect[0] + rect[2]) / 2, 9);
           expect(p.z).toBeCloseTo((rect[1] + rect[3]) / 2, 9);
@@ -210,7 +210,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("l'emprise tient dans le bloc : jamais de débord sur une rue ni sur le bloc voisin, quelle que soit la ville", () => {
       for (const cle of CLES)
         for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
-          if (p.taille > 1) continue;
+          if (p.nx * p.nz > 1) continue;
           const bx = blockX0(p.bi),
             bz = blockX0(p.bj);
           const msg = `${cle} palier ${palier}`;
@@ -225,7 +225,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     it("les plus gros (stade 3 et 4) sont réduits à la place qu'ils ont plutôt que de déborder ; les petits gardent leur rayon de stade", () => {
       for (const cle of CLES)
         for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
-          if (p.taille > 1) continue;
+          if (p.nx * p.nz > 1) continue;
           if (stadeDe(palier) <= 2) expect(p.rayon, `${cle} ${palier}`).toBe(rayonMegaprojet(stadeDe(palier)));
           // 24,75 m : la distance minimale entre le centre d'une cour et le bord de son bloc (cour de 14,5 × 29 m décalée de 7,25 m).
           expect(p.rayon, `${cle} ${palier}`).toBeCloseTo(Math.min(rayonMegaprojet(stadeDe(palier)), 24.75), 9);
