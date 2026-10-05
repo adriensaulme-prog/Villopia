@@ -10,6 +10,7 @@ import {
   APART_FROM,
   BS,
   COL,
+  DEMI_ROUTE_CAMPAGNE,
   ENERGIE_MAX_INSTALLATIONS,
   ENERGIE_PAR_INSTALLATION,
   ENERGIE_SEUIL_CENTRALE,
@@ -36,7 +37,7 @@ import {
   type VocationQuartier,
 } from "./quartiers";
 import { buildCentraleEnergie, buildEolienne, buildPanneauSolaire } from "./energie";
-import { emplacementCentrale, emplacementEnergie, emplacementMegaprojet } from "./emplacements";
+import { emplacementCentrale, emplacementEnergie } from "./emplacements";
 import { buildMegaprojet } from "./megaprojets";
 import { niveauPourPopulation } from "@/lib/game/niveauVille";
 import { technologiesDepuisPalier, type TechnologiesVille } from "@/lib/game/technologies";
@@ -512,9 +513,16 @@ export function rectCourBloc(key: string, bi: number, bj: number): Rect | null {
 /**
  * Forêts à positions fixes (tirées une fois par ville, un générateur par
  * forêt et par arbre) : quand la ville s'étend, elle efface les arbres qui
- * tombent sur son emprise sans déplacer les autres.
+ * tombent sur son emprise sans déplacer les autres. `evite` : zones (centre
+ * + rayon) où l'on ne plante rien — mégaprojets et installations d'Énergie.
  */
-export function buildCountryside(g: Geo, key: string, ao: TamponAO[], cityR: number) {
+export function buildCountryside(
+  g: Geo,
+  key: string,
+  ao: TamponAO[],
+  cityR: number,
+  evite: readonly { x: number; z: number; r: number }[] = []
+) {
   for (let k = 0; k < 110; k++) {
     const r = rngFrom(key + "|foret|" + k);
     const a = r() * Math.PI * 2,
@@ -530,10 +538,31 @@ export function buildCountryside(g: Geo, key: string, ao: TamponAO[], cityR: num
         z = cz + rr(q, -spread, spread);
       if (Math.max(Math.abs(x), Math.abs(z)) < cityR + 14) continue;
       if (Math.abs(x) < 12 || Math.abs(z) < 12) continue;
+      // Pas d'arbre sur un mégaprojet ou une installation d'Énergie (A-INTEGRER §37) : le tirage a lieu, on ne plante simplement pas.
+      if (evite.some((p) => Math.hypot(p.x - x, p.z - z) < p.r)) continue;
       if (coni && q() < 0.8) conifer(g, x, z, rr(q, 0.9, 1.25), q, ao);
       else tree(g, x, z, 0, rr(q, 1.1, 1.6), q, ao);
     }
   }
+}
+
+/** Nombre d'installations d'Énergie (éoliennes, panneaux solaires) à cet élan, hors centrale. */
+const nbInstallationsEnergie = (elan: number) =>
+  Math.max(0, Math.min(ENERGIE_MAX_INSTALLATIONS, Math.floor(elan / ENERGIE_PAR_INSTALLATION)));
+
+/**
+ * Zones (centre + rayon) que l'Énergie occupe à cet élan, pour que la campagne
+ * n'y plante pas d'arbres (buildCountryside). La centrale s'étend de ~13 m à
+ * gauche à ~30 m à droite de son centre (pylônes de raccordement).
+ */
+export function zonesEnergie(key: string, elan: number): { x: number; z: number; r: number }[] {
+  const zones: { x: number; z: number; r: number }[] = [];
+  for (let k = 0; k < nbInstallationsEnergie(elan); k++) zones.push({ ...emplacementEnergie(key, k), r: 14 });
+  if (elan >= ENERGIE_SEUIL_CENTRALE) {
+    const { x, z } = emplacementCentrale(key);
+    zones.push({ x: x + 8, z, r: 24 });
+  }
+  return zones;
 }
 
 /**
@@ -546,7 +575,7 @@ export function buildCountryside(g: Geo, key: string, ao: TamponAO[], cityR: num
  * jamais avalé.
  */
 export function buildEnergieCampagne(g: Geo, key: string, ao: TamponAO[], elan: number) {
-  const n = Math.max(0, Math.min(ENERGIE_MAX_INSTALLATIONS, Math.floor(elan / ENERGIE_PAR_INSTALLATION)));
+  const n = nbInstallationsEnergie(elan);
   for (let k = 0; k < n; k++) {
     const { x, z } = emplacementEnergie(key, k);
     const r = rngFrom(key + "|energie|type|" + k);
@@ -562,16 +591,25 @@ export function buildEnergieCampagne(g: Geo, key: string, ao: TamponAO[], elan: 
 }
 
 /**
- * Mégaprojets construits, dans leur secteur (emplacements.ts, §25) : une
- * case de grille par palier, jamais relative au rayon courant de la ville
- * (qui grandit avec la population) : un mégaprojet déjà construit ne
- * bouge plus.
+ * Mégaprojets construits, à la place que leur donne megaprojetsVille.ts
+ * (A-INTEGRER §37) : la cour d'une case fixe, à la bordure de la ville
+ * quand leur palier s'est ouvert, jamais relative au rayon courant de la
+ * ville (qui grandit avec la population) : un mégaprojet déjà construit ne
+ * bouge plus. Les places viennent de generate() (même calcul que le bouton
+ * « Voir où il est »).
  */
-export function buildMegaprojetsCampagne(g: Geo, key: string, ao: TamponAO[], megaprojets: MegaprojetConstruit[]) {
+export function buildMegaprojetsCampagne(
+  g: Geo,
+  key: string,
+  ao: TamponAO[],
+  megaprojets: MegaprojetConstruit[],
+  places: ReadonlyMap<number, { x: number; z: number }>
+) {
   for (const m of megaprojets) {
-    const { x, z } = emplacementMegaprojet(key, m.palier);
+    const place = places.get(m.palier);
+    if (!place) continue;
     const r = rngFrom(key + "|megaprojet|type|" + m.palier);
-    buildMegaprojet(g, x, z, m.type, m.activite, m.palier, r, ao, Math.floor(r() * 900) + 50);
+    buildMegaprojet(g, place.x, place.z, m.type, m.activite, m.palier, r, ao, Math.floor(r() * 900) + 50);
   }
 }
 
@@ -666,7 +704,7 @@ export function buildDrones(g: Geo, key: string, cityR: number, n = 6) {
 
 /** Routes de campagne : les deux axes centraux repartent du bord actuel de la ville vers l'horizon, bordés d'arbres. */
 export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: number) {
-  const hw = 5,
+  const hw = DEMI_ROUTE_CAMPAGNE,
     far = 3800,
     y = 0.03,
     E = cityR;

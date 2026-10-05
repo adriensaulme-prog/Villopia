@@ -22,6 +22,13 @@ import type { ControleurSceneVille, ParametresVille } from "@/lib/ville3d/scene"
 interface ContexteScene {
   definirVille(params: ParametresVille): void;
   definirDate(date: Date | null): void;
+  /**
+   * Change seulement le thème de la ville déjà annoncée (les autres paramètres sont ceux du
+   * dernier definirVille) : aperçu d'un pack dans la Boutique, bascule immédiate dans « Ma
+   * ville » (docs/A-INTEGRER.md §30). Ne retient rien côté serveur ; la page suivante annonce
+   * sa propre ville et efface l'aperçu.
+   */
+  definirTheme(theme: string): void;
   /** « Voir où il est » (A-INTEGRER §25) : trajet de caméra + repère lumineux, sans effet tant que la 3D n'est pas prête. */
   allerA(x: number, z: number): void;
 }
@@ -56,6 +63,10 @@ export function SceneVilleFond({ children }: { children: React.ReactNode }) {
     definirDate(date) {
       dateForceeRef.current = date;
       controleurRef.current?.definirDate(date);
+    },
+    definirTheme(theme) {
+      enAttenteRef.current = { ...enAttenteRef.current, theme };
+      controleurRef.current?.definirVille(enAttenteRef.current);
     },
     allerA(x, z) {
       controleurRef.current?.allerA(x, z);

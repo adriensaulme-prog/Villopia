@@ -212,6 +212,9 @@ journal existant, puis ce fichier peut être supprimé.*
 > repris) ; plus un nouveau défaut sur le placement des arbres de
 > jardin, sans marge minimale avec la maison.
 
+> **§37 — fait le 05/10/2026** (mégaprojets à la bordure de la ville,
+> centrale hors de la route ; Énergie et son bouton « voir où il est »
+> inchangés).
 > **§37 (décision finale Énergie/mégaprojets + bug centrale sur une
 > route, 05/10/2026) : nouveau** — Adrien confirme qu'Énergie reste à
 > l'extérieur (rien à changer là), demande que les mégaprojets viennent
@@ -220,11 +223,24 @@ journal existant, puis ce fichier peut être supprimé.*
 > un bug : la centrale électrique apparaît parfois à moitié sur une
 > route.
 
+> **§38 — fait le 05/10/2026** (vieux formulaire de thème retiré de
+> « Ma ville » ; `PacksVille` est le seul contrôle ; vrai clic testé en
+> e2e : écran, scène 3D, base, rechargement et retour au classique ; aucun
+> bug restant dans la boutique). **Reste à faire par Adrien : appliquer la
+> migration `0047_boutique_packs.sql` sur la base de dev** (la table
+> `packs` n'y existe pas — vérifié le 05/10/2026 ; rien ne casse en
+> attendant, la boutique retombe sur « tout thème connu est libre »).
+> Détail : `DECISIONS.md` §4 « Bouton « Appliquer » du thème sans effet ».
 > **§38 (bouton « Appliquer » du thème haussmannien sans effet, 05/10/2026) :
 > nouveau, cause probable identifiée** — pas un bug de la boutique
 > elle-même (§30, déjà construite et fonctionnelle) mais un vieux
 > formulaire resté en double sur « Ma ville », jamais retiré quand la
 > boutique a été construite.
+
+> **§39 (les tours grises en béton ne s'éclairent jamais la nuit,
+> 05/10/2026) : nouveau, cause confirmée dans le shader** — la tour
+> béton (`construireTourBeton`) n'a aucune géométrie de fenêtre, donc
+> rien à éclairer ; les tours vitrées, elles, s'éclairent déjà bien.
 
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
@@ -2198,6 +2214,23 @@ prolongé, ou arrêter de prolonger les grands axes routiers aussi loin
 dans la campagne, ou vérifier/exclure la bande de route au moment du
 tirage de position. Le choix est laissé à Claude Code, comme d'usage
 pour ce niveau de détail d'implémentation.
+
+**Traité le 05/10/2026 (Claude Code)** : (A) les mégaprojets ne sont plus
+dans une ceinture à 450 m. Chaque palier a une case fixe, la première que
+la ville ne peut pas avoir prise quand ce palier s'ouvre (donc juste hors
+de la ville, à 190-280 m du centre pour les quatre premiers), et le
+mégaprojet se pose au centre de la cour de cette case
+(`src/lib/ville3d/megaprojetsVille.ts`, fonction pure de la graine et du
+palier, aucune migration). Une fois posé il ne bouge jamais : quand la
+ville atteint sa case, le bloc se construit autour de lui. Énergie reste
+à l'extérieur et son bouton « Voir où il est » est conservé. (B) la
+centrale et les autres installations d'Énergie sont écartées de la route
+de campagne au tirage (`GARDE_ROUTE_ENERGIE`, 25 m de l'axe) ; la route et
+le secteur ne changent pas. Écart à signaler : l'ancrage des mégaprojets
+est pris à l'**ouverture du palier**, pas à l'instant exact de la
+construction (celle-ci n'enregistre pas la taille de la ville). Détail
+dans `DECISIONS.md` §4 « Mégaprojets à la bordure de la ville et centrale
+hors de la route ».
 ## 38. Bouton « Appliquer » sans effet pour le thème haussmannien (retour d'Adrien, 05/10/2026)
 
 **Retour d'Adrien** : en cliquant sur « Appliquer » pour le bâtiment
@@ -2239,3 +2272,27 @@ entièrement remplacé par `PacksVille`, qui fait la même chose en mieux
 sur `PacksVille`, que le changement de thème s'applique bien et se
 reflète dans le rendu 3D — si un vrai bug subsiste une fois le doublon
 retiré, le creuser à ce moment-là plutôt que de deviner à l'avance.
+## 39. Les tours grises en béton ne s'éclairent jamais la nuit (retour d'Adrien, 05/10/2026)
+
+**Retour d'Adrien** : les tours grises ne s'éclairent pas la nuit (à la
+différence des tours vitrées colorées, qui le font déjà bien).
+
+**Confirmé en lisant le shader et le code de construction.** Les
+fenêtres éclairées la nuit viennent du matériau « mur-rideau vitré »
+(`src/lib/ville3d/shaders.ts`, bloc `m == 3`) : `emis = lit * uNight *
+...` calcule au hasard quelles fenêtres restent allumées et leur donne
+une couleur chaude. Ce matériau est utilisé par `construireTourVerre`
+et les autres tours vitrées. La tour béton
+(`construireTourBeton`, `src/lib/ville3d/batiments.ts`) utilise
+exclusivement `MAT.CONCRETE` (matériau `m == 8`, « béton brut de
+chantier ») pour son podium ET son fût — un matériau qui n'a par
+construction **aucune géométrie de fenêtre et aucun `emis`** dans le
+shader : il n'y a littéralement rien à éclairer, pas un bug de calcul
+de la nuit mais une tour qui n'a jamais eu de fenêtres du tout.
+
+**À faire** : donner à `construireTourBeton` de vraies fenêtres sur son
+fût (bandeaux de béton + ouvertures vitrées, plutôt que des dalles
+pleines comme aujourd'hui) en réutilisant le matériau `m == 3` pour ces
+ouvertures — dans le même esprit que le podium commercial (`m == 15`)
+qui mélange déjà béton et vitrages. Détail d'implémentation laissé à
+Claude Code.

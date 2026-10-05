@@ -15,11 +15,12 @@ dans l'éditeur SQL de Supabase.
 
 ## Ce qu'il faut juger
 
-1. **Sur "Ma ville"** : un nouveau sélecteur "Thème de la ville" à côté
-   de la recommandation d'activité. Choisis "Haussmannien" puis
-   "Appliquer" — les immeubles de ta ville prennent l'allure
-   parisienne (façade pierre claire, garde-corps en fer forgé, étage
-   mansardé en zinc).
+1. **Sur "Ma ville"** : la section repliable "Thèmes de la ville" (en
+   bas du panneau, sous Monuments ; l'ancien sélecteur à côté de la
+   recommandation d'activité a été retiré, A-INTEGRER §38). Ouvre-la,
+   puis "Appliquer" sur "Haussmannien" — les immeubles de ta ville
+   prennent l'allure parisienne (façade pierre claire, garde-corps en
+   fer forgé, étage mansardé en zinc).
 2. **Pack partiel, comme prévu par le document** : seuls les immeubles
    changent d'aspect. Les maisons et les tours restent "classique" —
    Haussmann, c'est avant tout des immeubles parisiens, pas des

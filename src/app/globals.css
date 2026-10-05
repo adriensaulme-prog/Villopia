@@ -1057,3 +1057,108 @@ body {
     display: inline-flex;
   }
 }
+
+/* ---------- Boutique et thèmes de la ville (A-INTEGRER §30) ---------- */
+.pack-palette {
+  display: inline-flex;
+  flex: none;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.pack-palette i {
+  display: block;
+  width: 14px;
+  height: 18px;
+}
+.pack-nom {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.packs-ville .packs-explication {
+  margin-top: 6px;
+}
+.packs-ville > .note {
+  margin-top: 6px;
+}
+.pack-erreur {
+  color: var(--bad);
+}
+.packs-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.pack-carte {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--panel);
+}
+.pack-carte.applique {
+  border-color: var(--good);
+}
+.pack-carte.verrouille .pack-palette {
+  opacity: 0.7;
+}
+.pack-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.pack-tete .h3 {
+  margin-right: auto;
+}
+.pack-carte .note {
+  margin: 0;
+}
+.pack-actions {
+  margin-top: 2px;
+}
+.pack-apercu {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  border: 1px solid var(--focus);
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: var(--focus-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+/* Onglet Boutique (§30) : dernier onglet de la barre du haut. La barre du bas du mobile est
+   déjà pleine à 5 onglets, et la barre du haut manque de place sous ~900 px : dans ces deux
+   cas l'onglet laisse la place à une icône (.boutique-lien) à côté de la cloche. */
+.tab {
+  white-space: nowrap;
+}
+.boutique-lien {
+  display: none;
+  font-size: 17px;
+  line-height: 1;
+  text-decoration: none;
+}
+@media (min-width: 641px) and (max-width: 1040px) {
+  .tab {
+    padding: 8px 10px;
+  }
+  .topbar .brand {
+    font-size: 0;
+    gap: 0;
+  }
+}
+@media (max-width: 900px) {
+  .tab-secondaire {
+    display: none;
+  }
+  .boutique-lien {
+    display: inline-flex;
+  }
+}

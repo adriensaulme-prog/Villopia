@@ -13,6 +13,8 @@ import { premierRangZone, type VocationsBlocs } from "@/lib/ville3d/generer";
 import type { VocationQuartier } from "@/lib/ville3d/quartiers";
 import { typeMonument } from "@/lib/game/monuments";
 import type { MegaprojetConstruit, MonumentDebloque } from "@/lib/ville3d/terrain";
+import { cleDe } from "@/lib/ville3d/emplacements";
+import { placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
 import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { SincroniserScene } from "@/components/SincroniserScene";
@@ -26,8 +28,9 @@ import { BulletinMunicipal, type EvenementBulletin } from "@/components/Bulletin
 import { Megaprojets, type EtatMegaprojet } from "@/components/Megaprojets";
 import { Technologies } from "@/components/Technologies";
 import { Monuments } from "@/components/Monuments";
-import { definirRecommandation, definirTheme } from "@/app/villes/actions";
-import { THEMES } from "@/lib/game/themes";
+import { definirRecommandation } from "@/app/villes/actions";
+import { PacksVille } from "@/components/PacksVille";
+import { lirePacksDuJoueur } from "@/lib/supabase/packs";
 
 // Repli si le pays de la ville n'a pas encore de géo/fuseau renseignés
 // (quelques territoires ISO 3166-1 sur 250 — voir DECISIONS.md §4,
@@ -182,6 +185,11 @@ export default async function VillePage() {
     revenus: number;
     cout_revenus: number;
   }[];
+  // « Voir où il est » (A-INTEGRER §37) : la place des mégaprojets construits, calculée ici (côté serveur).
+  const placesMega = placesMegaprojets(
+    cleDe(ville.id),
+    chantiers.filter((c) => c.statut === "construit").map((c) => c.palier)
+  );
   const etatMegaprojets: EtatMegaprojet[] = chantiers.map((c) => ({
     palier: c.palier,
     type: c.type as EtatMegaprojet["type"],
@@ -193,6 +201,7 @@ export default async function VillePage() {
     coutMateriaux: c.cout_materiaux,
     revenus: c.revenus,
     coutRevenus: c.cout_revenus,
+    place: placesMega.get(c.palier),
   }));
   const nbMegaprojetsDebloques = nbMegaprojetsOuverts(ville.population_max);
   const megaprojetsConstruits: MegaprojetConstruit[] = chantiers
@@ -245,6 +254,9 @@ export default async function VillePage() {
   const visiteFraiche = derniereVisiteActivite?.created_at
     ? Date.now() - new Date(derniereVisiteActivite.created_at as string).getTime() < DUREE_VISITE_FRAICHE_MS
     : false;
+
+  // A-INTEGRER §30 : packs de thèmes que le joueur possède (section secondaire de Ma ville).
+  const packsDuJoueur = await lirePacksDuJoueur(supabase, user.id);
 
   // Jalon 18 : tirage quotidien de manifestation (opportuniste, comme
   // verifier_president ci-dessus) et bulletin municipal de sa propre
@@ -354,22 +366,6 @@ export default async function VillePage() {
             {traduire(locale, "activite.definirRecommandation")}
           </button>
         </form>
-        <form action={definirTheme} className="row">
-          <input type="hidden" name="villeId" value={ville.id} />
-          <label className="field" style={{ flex: 1 }}>
-            <span>{traduire(locale, "theme.titre")}</span>
-            <select name="theme" className="select" defaultValue={ville.theme}>
-              {THEMES.map((t) => (
-                <option key={t} value={t}>
-                  {traduire(locale, `theme.${t}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn small" type="submit">
-            {traduire(locale, "theme.appliquer")}
-          </button>
-        </form>
         <p className="note">
           {traduire(locale, "region.actuelle")} : {nomRegion} ·{" "}
           <Link href="/ville/region" style={{ color: "var(--focus)" }}>
@@ -436,6 +432,7 @@ export default async function VillePage() {
         />
         <Technologies locale={locale} paliersDebloques={nbTechnologiesDebloquees ?? 0} pointsRecherche={pointsRecherche} />
         <Monuments locale={locale} cleVille={ville.id} paliersDebloques={nbMonumentsDebloquesVille} influenceMax={ville.influence_max} />
+        <PacksVille locale={locale} villeId={ville.id} themeApplique={ville.theme} packs={packsDuJoueur} />
         <div className="act">
           <span className="h3">{traduire(locale, "villes.visiter")}</span>
           <p>

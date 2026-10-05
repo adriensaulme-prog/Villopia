@@ -7,7 +7,6 @@ import { choisirMegaprojet } from "@/app/villes/actions";
 import { optionsPalier, coutMegaprojet, type TypeMegaprojet } from "@/lib/game/megaprojets";
 import { EMOJI_ACTIVITE } from "@/components/JaugesActivites";
 import { BoutonVoirOu } from "@/components/BoutonVoirOu";
-import { cleDe, emplacementMegaprojet } from "@/lib/ville3d/emplacements";
 
 export interface EtatMegaprojet {
   palier: number;
@@ -20,6 +19,12 @@ export interface EtatMegaprojet {
   coutMateriaux: number;
   revenus: number;
   coutRevenus: number;
+  /**
+   * Où il se dresse dans la scène 3D (megaprojetsVille.ts), pour « Voir où il est » :
+   * calculé côté serveur par la page, car la position passe par la génération d'un bloc
+   * et ne doit pas alourdir le paquet client. Seulement pour un mégaprojet construit.
+   */
+  place?: { x: number; z: number };
 }
 
 function Progres({ valeur, cible }: { valeur: number; cible: number }) {
@@ -111,11 +116,12 @@ export function Megaprojets({
               {chantier.statut === "construit"
                 ? traduire(locale, "megaprojet.construit")
                 : traduire(locale, "megaprojet.enChantier")}
-              {chantier.statut === "construit" ? (
+              {chantier.statut === "construit" && chantier.place ? (
                 <>
                   {" "}
                   <BoutonVoirOu
-                    {...emplacementMegaprojet(cleDe(villeId), chantier.palier)}
+                    x={chantier.place.x}
+                    z={chantier.place.z}
                     libelle={traduire(locale, "monument.voir")}
                     titre={`${traduire(locale, "monument.voir")} : ${traduire(locale, `megaprojet.type.${chantier.type}`)}`}
                   />

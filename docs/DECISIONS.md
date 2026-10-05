@@ -4572,6 +4572,146 @@ classement actuel par défaut. `guide.test.ts` mis à jour. Capture vérifiée.
 
 ---
 
+### Mégaprojets à la bordure de la ville et centrale hors de la route (A-INTEGRER §37) — 05/10/2026
+
+**Demande d'Adrien.** (A) Énergie reste à l'extérieur (rien à changer, bouton
+« voir où il est » à **conserver**) ; les mégaprojets viennent à la **bordure de la
+ville** au lieu de la ceinture fixe à 450 m+, et un mégaprojet déjà construit
+**ne bouge jamais**, même quand la ville grandit ensuite. (B) Bug : la centrale
+électrique apparaît parfois à moitié sur une route. Les deux points sont laissés
+à mon choix d'implémentation ; **aucune migration, aucun changement de règle de jeu.**
+
+**A. Comment concilier « à la bordure » et « jamais déplacé » (décidé ici).**
+La bordure change à chaque palier de population ; on ne la recalcule donc jamais :
+chaque palier a une **case fixe**, tout juste hors de la ville *au moment où ce
+palier s'ouvre*, et la position est une **fonction pure de (graine de la ville,
+palier)** — `src/lib/ville3d/megaprojetsVille.ts`, même famille que
+`monumentsVille.ts`. Aucune colonne en base : la scène 3D et le bouton « Voir où
+il est » lisent exactement le même calcul.
+- *Quelle case.* Dans l'ordre de distance de `cases.ts` (qui ne dépend que de la
+  graine), la case d'indice **K + FENETRE_CANDIDATS − 1**, où K est le nombre de
+  blocs ouverts au seuil du palier (`seuilMegaprojet()`, plafonné au rendu). Le
+  zonage (25b) ne regarde que les `rang + 24` premières cases : à l'ouverture du
+  palier, aucun bloc ne peut donc occuper cette case, **quelles que soient les
+  vocations** (testé sur 3 tirages de vocations × zonage ou non). Au-delà du
+  plafond de rendu (250 000 hab.), la ville cesse de s'étendre : les paliers
+  suivants prennent les cases d'après (un cran par palier), que nul bloc
+  n'atteindra jamais.
+- *Où dans la case.* Au centre de la **cour commune** du bloc, comme les monuments.
+  Quand la ville atteint plus tard cette case, son bloc se construit **autour** du
+  mégaprojet (`sansCour`, `generer.ts` : la fontaine et les arbres de la cour
+  disparaissent) : il se retrouve dans la ville, **à sa place d'origine**. Les
+  friches (`buildIdleBlock`) et les forêts (`buildCountryside`, nouveau paramètre
+  `evite`) ne plantent plus d'arbre dans les 12 m.
+- *Distance.* À l'ouverture du palier, la case est à une à trois cases du bloc
+  ouvert le plus proche ; à **190-280 m du centre pour les paliers 0 à 3**, 280-360 m
+  pour le 4 (au lieu de 450 m et plus). Paliers suivants, au-delà du plafond de
+  rendu : ~280-450 m jusqu'au palier 40, ~600 m au palier 100, ~680 m au 180
+  (ville à 9 M d'habitants) — toujours dans le sol dessiné (±4 000 m) et le pan de
+  caméra (1 100 m). `AXE_MEGAPROJETS` et `emplacementMegaprojet()` sont supprimés ;
+  la ceinture à 450 m ne sert plus qu'à Énergie.
+- *Côté interface.* Le composant `Megaprojets` est un composant client : importer
+  `terrain.ts` (via `rectCourBloc`) alourdirait le paquet initial (§1 point 6). Les
+  deux pages (`/ville`, `/villes`) calculent donc la place côté serveur et la passent
+  dans `EtatMegaprojet.place`.
+
+**Écart à signaler.** Adrien suggérait d'ancrer « au moment de la construction ». Je
+l'ancre à l'**ouverture du palier** : la base n'enregistre que `construit_le`, pas la
+taille de la ville à cet instant, et calculer la bordure à partir de l'état courant
+au moment de l'affichage la ferait bouger. Si la ville a déjà dépassé la case quand
+le maire achève le chantier, le mégaprojet apparaît directement dans la cour d'un
+bloc ouvert (elle perd alors sa fontaine et ses arbres, comme pour un monument).
+L'ancrage exact à la construction demanderait une colonne et une migration : à
+décider avec Adrien si ce comportement ne lui convient pas.
+
+**Effets de bord assumés.**
+- Les mégaprojets **déjà construits** dans les bases de dev changent de place une
+  fois (ancienne grille à 450 m → nouvelle case) ; rien n'est encore en production,
+  et ils ne bougeront plus ensuite.
+- Un mégaprojet construit retire la décoration de la cour de son bloc (une cour par
+  mégaprojet), sans effet sur le reste du bloc.
+- Taille inchangée (socle 2,4 m + 0,4 m par palier, comme au §25) : toujours petit
+  à côté d'un bloc de 64 m ; l'agrandir reste à décider avec Adrien.
+
+**B. Centrale à moitié sur une route.** Cause confirmée, mais la note désignait la
+mauvaise fonction : `buildRoadsAndTraffic()` s'arrête au rayon de la ville ; c'est
+`buildCountryRoads()` qui prolonge les deux grands axes jusqu'à 3 800 m, sur 10 m de
+large avec des arbres d'alignement jusqu'à ~13 m de l'axe. L'axe +x traverse donc
+le **milieu** du secteur d'Énergie (±30° autour de +x) : un tirage proche de l'axe
+(environ 1 sur 10) posait la centrale, ou une ferme solaire, sur la chaussée.
+- *Choix.* Écarter au tirage plutôt que retirer la route (ses prolongements sont
+  voulus) ou décaler le secteur (`AXE_ENERGIE` et ses tests restent valables) :
+  `emplacementEnergie()` et `emplacementCentrale()` repoussent du même côté, à
+  `GARDE_ROUTE_ENERGIE` = 25 m de l'axe (13 m de bande route + arbres, plus 12 m
+  d'emprise de la plus large installation, la ferme solaire) + un petit tirage pour ne
+  pas aligner les objets déplacés. **Seuls les tirages qui tombaient dans la bande
+  bougent** (une fois) ; les autres installations gardent leur place. Constantes
+  `DEMI_ROUTE_CAMPAGNE` et `DEMI_BANDE_ROUTE_CAMPAGNE` dans `constantes.ts`,
+  partagées avec `buildCountryRoads()`.
+- Le bouton « Voir où il est » d'Énergie (`JaugesActivites`) est **conservé tel quel**
+  et lit toujours les mêmes fonctions.
+- Les forêts n'empiètent plus sur l'Énergie (`zonesEnergie()`).
+
+**Testé.** `tests/unit/megaprojetsVille.test.ts` (nouveau, 10) : case libre à
+l'ouverture du palier malgré le zonage ; à une à trois cases de la ville et bien
+en deçà de 450 m ; au centre de la cour, loin des rues ; cases distinctes même
+au-delà du plafond de rendu ; position indépendante des autres paliers et de la
+population ; dans la scène, même position à 5 000, 15 000, 40 000, 100 000, 250 000
+et 9 000 000 d'habitants ; rien d'autre ne se superpose ; la cour perd exactement sa
+décoration (comptage de sommets). `ville3dEmplacements.test.ts` (8, refait) : plus
+aucune installation d'Énergie à moins de 25 m de l'axe sur 400 villes, et seuls les
+tirages sur la route sont déplacés. **Sabotages vérifiés rouges** : retirer l'écart
+de route, retirer `sansCour` pour les mégaprojets, retirer l'évitement des friches.
+Suite unitaire complète verte, `tsc` propre. Vérifié à l'œil sur une page temporaire
+(supprimée) : à 5 000 habitants le mégaprojet est juste au bord de la ville, à
+250 000 il est au même endroit dans la cour d'un bloc entouré de maisons, et la
+centrale est nettement à l'écart de la route. `voir-ou-megaprojets-energie.spec.ts`
+adapté à la nouvelle fonction mais **pas rejoué** (il demande Supabase).
+
+### Bouton « Appliquer » du thème sans effet : doublon retiré (A-INTEGRER §38) — 05/10/2026
+
+**Retour d'Adrien.** Cliquer sur « Appliquer » pour le thème haussmannien ne change rien.
+
+**Cause (plausible, pas reproduite).** `/ville` portait deux contrôles de thème. Le
+vieux formulaire HTML brut (`<form action={definirTheme}>`, en haut du panneau) était
+le seul visible d'emblée, sans aucun retour d'erreur. À `HEAD`, `definirTheme` est
+encore une action de formulaire (`FormData`) et le formulaire fonctionne ; mais la
+boutique l'a changée en `definirTheme(villeId, theme)` : dans tout état où l'action
+a la nouvelle signature et la page l'ancien formulaire, celui-ci lui passe un
+`FormData` à la place du `villeId`, et le refus est silencieux — ni changement ni
+message. Le vrai système (`<PacksVille>`, `useChoixTheme`) était replié sous un
+`<details>`, plus bas. Dans les deux cas, retirer le doublon est la bonne correction.
+
+**Fait.** Le formulaire et son import `THEMES` sont retirés de `src/app/ville/page.tsx`
+(au moment de la reprise du §38, ce retrait était déjà dans l'arbre de travail non
+commité, avec la clé `theme.titre` du dictionnaire : rien d'autre à retirer).
+`PacksVille` est désormais le seul moyen de changer de thème sur « Ma ville ».
+
+**Testé pour de vrai.** `jalon-bibliotheque-theme-haussmannien.spec.ts` (le test de la
+page, qui visait l'ancien `<select>`, est refait) joue le vrai parcours : connexion,
+ouverture de « Thèmes de la ville », clic sur « Appliquer : Haussmannien » → badge
+« Appliqué », scène 3D en haussmannien, `cities.theme` à jour en base, aucune alerte ;
+rechargement → le thème tient ; retour au classique par le même chemin ; et il vérifie
+que l'ancien `<select name=theme>` n'existe plus. Pour lire le thème réellement rendu,
+la scène pose `data-theme` sur le canvas (même principe que `data-repere`, §25).
+**Aucun bug restant** dans `PacksVille` / `useChoixTheme` / `definirTheme`.
+
+**À savoir.**
+- L'enregistrement passe par une action serveur que Next met en file derrière la visite
+  automatique (`visiterVille`) ; en dev, avec le re-rendu de `/ville` (~26 appels
+  Supabase), il peut tarder de plusieurs secondes. L'écran, lui, change tout de suite
+  (changement optimiste, bouton désactivé le temps de l'enregistrement). Pas de
+  correction : c'est le comportement normal d'une action serveur, mais d'où des
+  délais de 60 s dans le test.
+- **La migration `0047_boutique_packs.sql` n'est pas encore appliquée sur la base de
+  dev** (vérifié le 05/10/2026 : la table `packs` n'existe pas). Rien ne casse :
+  `lirePacksDuJoueur` retombe sur « tout thème connu est libre » et
+  `definir_theme_ville` est encore la version de `0034`. Les tests ci-dessus ont donc
+  tourné sans le droit d'usage de la boutique. À appliquer par Adrien (SQL Editor,
+  comme `0034`) ; je ne l'ai pas fait moi-même.
+
+---
+
 ### Nouveau nom du jeu : Villopia — 05/10/2026
 
 **Décision d'Adrien** (05/10/2026) : le jeu s'appelle **Villopia**. Le dépôt

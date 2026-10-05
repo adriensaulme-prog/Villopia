@@ -14,6 +14,8 @@ import { trierVilles, triValide } from "@/lib/game/triVilles";
 import { premierRangZone, type VocationsBlocs } from "@/lib/ville3d/generer";
 import type { VocationQuartier } from "@/lib/ville3d/quartiers";
 import type { MegaprojetConstruit, MonumentDebloque } from "@/lib/ville3d/terrain";
+import { cleDe } from "@/lib/ville3d/emplacements";
+import { placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
 import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
@@ -351,6 +353,11 @@ export default async function VillesPage({
       revenus: number;
       cout_revenus: number;
     }[];
+    // « Voir où il est » (A-INTEGRER §37) : la place des mégaprojets construits, calculée ici (côté serveur).
+    const placesMega = placesMegaprojets(
+      cleDe(villeAffichee3D.id),
+      chantiers.filter((c) => c.statut === "construit").map((c) => c.palier)
+    );
     etatMegaprojets = chantiers.map((c) => ({
       palier: c.palier,
       type: c.type as EtatMegaprojet["type"],
@@ -362,6 +369,7 @@ export default async function VillesPage({
       coutMateriaux: c.cout_materiaux,
       revenus: c.revenus,
       coutRevenus: c.cout_revenus,
+      place: placesMega.get(c.palier),
     }));
     megaprojetsConstruits = chantiers
       .filter((c) => c.statut === "construit")

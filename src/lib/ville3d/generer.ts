@@ -11,6 +11,7 @@
 import { cleDe } from "./emplacements";
 import { casesTriees } from "./cases";
 import { buildMonument } from "./monuments";
+import { placesMegaprojets } from "./megaprojetsVille";
 import { placesMonuments } from "./monumentsVille";
 import { rngFrom } from "./aleatoire";
 import {
@@ -39,6 +40,7 @@ import {
   buildMegaprojetsCampagne,
   buildRoadsAndTraffic,
   buildTramway,
+  zonesEnergie,
   type Bloc,
   type MegaprojetConstruit,
   type MonumentDebloque,
@@ -192,21 +194,30 @@ export function generate(
     key,
     monuments.map((m) => m.palier)
   );
-  const casesAvecMonument = new Set([...places.values()].map((p) => p.bi + "," + p.bj));
-  const emplacementsMonuments = [...places.values()];
+  // A-INTEGRER §37 : les mégaprojets occupent la cour d'une case à la bordure de la ville (ou la
+  // campagne si elle est encore hors de la ville) ; le bloc qui s'y ouvre plus tard les entoure.
+  const placesMega = placesMegaprojets(
+    key,
+    megaprojets.map((m) => m.palier)
+  );
+  const casesSansCour = new Set([...places.values(), ...placesMega.values()].map((p) => p.bi + "," + p.bj));
+  const emplacementsSurCour = [...places.values(), ...placesMega.values()];
 
   buildRoadsAndTraffic(g, act, key, Math.ceil(cityR / T));
   for (const b of blocks) {
     if (b.active)
-      buildBlock(g, b, C, key, ao, stats, glow, ev, tech, theme, { sansCour: casesAvecMonument.has(b.bi + "," + b.bj) });
-    else if (!horsVille(b)) buildIdleBlock(g, b, key, ao, emplacementsMonuments);
+      buildBlock(g, b, C, key, ao, stats, glow, ev, tech, theme, { sansCour: casesSansCour.has(b.bi + "," + b.bj) });
+    else if (!horsVille(b)) buildIdleBlock(g, b, key, ao, emplacementsSurCour);
   }
   if (tech.tramway) buildTramway(g, key, cityR);
   if (tech.drones) buildDrones(g, key, cityR);
-  buildCountryside(g, key, ao, cityR);
+  buildCountryside(g, key, ao, cityR, [
+    ...[...placesMega.values()].map((p) => ({ x: p.x, z: p.z, r: 12 })),
+    ...zonesEnergie(key, elanEnergie),
+  ]);
   buildCountryRoads(g, key, ao, cityR);
   buildEnergieCampagne(g, key, ao, elanEnergie);
-  buildMegaprojetsCampagne(g, key, ao, megaprojets);
+  buildMegaprojetsCampagne(g, key, ao, megaprojets, placesMega);
   for (const m of monuments) {
     const place = places.get(m.palier);
     if (!place) continue;

@@ -323,6 +323,8 @@ export function creerSceneVille(canvas: HTMLCanvasElement): ControleurSceneVille
     );
     stats = res.stats;
     cityR = res.stats.cityR;
+    // Lisible par les tests e2e : seule trace DOM du thème réellement rendu (A-INTEGRER §38).
+    canvas.dataset.theme = params.theme ?? "classique";
     // Nouvelle ville (et pas juste la même qui grandit) : on recadre, sinon
     // un zoom manuel réglé pour un hameau resterait sur une métropole.
     if (params.seed !== seedActuelle) etatCamera.autoFrame = true;

@@ -20,6 +20,7 @@ const PAGES = [
   "/classement",
   "/classement?section=palmares",
   "/pays",
+  "/boutique",
 ];
 
 export default async function globalSetup() {

@@ -39,6 +39,16 @@ export async function Nav() {
           </Link>
           {user ? (
             <Link
+              href="/boutique"
+              className="regles-lien boutique-lien"
+              aria-label={traduire(locale, "nav.boutique")}
+              title={traduire(locale, "nav.boutique")}
+            >
+              <span aria-hidden="true">🛍️</span>
+            </Link>
+          ) : null}
+          {user ? (
+            <Link
               href="/notifications"
               className="cloche"
               aria-label={`${traduire(locale, "notifications.titre")}${nbNonLues > 0 ? ` (${nbNonLues})` : ""}`}

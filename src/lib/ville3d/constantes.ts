@@ -11,6 +11,12 @@ export const PERIOD = 5; // 4 cases de bloc + 1 case de rue
 // hameau, pour que la campagne et le brouillard ne collent pas au centre.
 export const CITY_R_MIN = 168;
 export const BS = 4 * T; // côté d'un bloc : 64 m
+// Routes de campagne (terrain.ts, buildCountryRoads) : demi-largeur de la chaussée, et
+// demi-largeur de la bande qu'occupent aussi les arbres d'alignement (tronc jusqu'à 9,5 m
+// de l'axe + 3,4 m de feuillage au plus, voir tree()) — emplacements.ts s'en sert pour
+// garder Énergie hors de la bande de route (A-INTEGRER §37 B).
+export const DEMI_ROUTE_CAMPAGNE = 5;
+export const DEMI_BANDE_ROUTE_CAMPAGNE = 13;
 export const SW = 3; // largeur de trottoir
 export const LOT = (BS - 2 * SW) / 4; // 14,5 m
 export const PODIUM_H = 4.2;

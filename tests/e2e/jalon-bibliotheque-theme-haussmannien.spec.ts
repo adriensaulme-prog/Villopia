@@ -106,31 +106,56 @@ test.describe("Bibliothèque de bâtiments (4/4) — thème Haussmannien", () =>
     }
   });
 
-  test("la page /ville permet de choisir le thème Haussmannien, la ville reste affichée sans erreur", async ({ page }) => {
-    test.setTimeout(60_000);
+  test("Ma ville : le vrai clic sur « Thèmes de la ville » (PacksVille) applique Haussmannien, puis revient au classique (A-INTEGRER §38)", async ({ page }) => {
+    test.setTimeout(150_000);
     const maire = await creerCompteAvecVille("j-theme-ui");
+    // L'enregistrement passe par une action serveur : Next les met en file (derrière la visite
+    // automatique) et en dev /ville se re-rend à chaque fois, d'où des délais de plusieurs secondes
+    // (voir playwright.config.ts). L'écran, lui, change tout de suite (changement optimiste).
+    const DELAI_ENREGISTREMENT = 60_000;
+    const themeEnBase = async () => {
+      const { data } = await supabaseAdmin.from("cities").select("theme").eq("id", maire.villeId).single();
+      return data?.theme;
+    };
     try {
       await connecter(page, maire.email, maire.motDePasse);
       await expect(page).toHaveURL(/\/ville$/, { timeout: 40_000 });
 
-      await expect(page.getByText("Thème de la ville :")).toBeVisible({ timeout: 20_000 });
-      await page.getByLabel("Thème de la ville :").selectOption("haussmannien");
-      await page.getByRole("button", { name: "Appliquer" }).click();
+      // Le vieux formulaire en double (select + « Appliquer » en haut de page) n'existe plus :
+      // PacksVille est le seul moyen de changer de thème sur « Ma ville ».
+      await expect(page.locator("select[name=theme]")).toHaveCount(0);
 
-      await expect(page).toHaveURL(/\/ville$/, { timeout: 20_000 });
-      await expect(page.locator("select[name=theme]")).toHaveValue("haussmannien");
+      const canvas = page.locator("canvas");
+      const section = page.locator("details.packs-ville");
+      const ligne = (nom: string) => section.locator("li", { hasText: nom });
+      const alerte = section.getByRole("alert");
 
-      // L'URL ne change pas (même page) : l'action serveur peut encore
-      // tourner quand on arrive ici, on attend donc la valeur en base.
-      await expect
-        .poll(
-          async () => {
-            const { data } = await supabaseAdmin.from("cities").select("theme").eq("id", maire.villeId).single();
-            return data?.theme;
-          },
-          { timeout: 15_000 }
-        )
-        .toBe("haussmannien");
+      // La section est repliée par défaut : on l'ouvre comme le fait le joueur.
+      await expect(section).toBeVisible({ timeout: 20_000 });
+      await section.locator("summary").click();
+      await expect(ligne("Classique").getByText("Appliqué")).toBeVisible();
+      await expect(canvas).toHaveAttribute("data-theme", "classique", { timeout: 20_000 });
+
+      // Clic réel : retour visuel immédiat, scène 3D, puis base de données.
+      await page.getByRole("button", { name: "Appliquer : Haussmannien" }).click();
+      await expect(ligne("Haussmannien").getByText("Appliqué")).toBeVisible();
+      await expect(canvas).toHaveAttribute("data-theme", "haussmannien");
+      await expect.poll(themeEnBase, { timeout: DELAI_ENREGISTREMENT }).toBe("haussmannien");
+      await expect(alerte).toHaveCount(0);
+
+      // Rechargement : le thème tient (la page serveur fait foi), scène comprise.
+      await page.reload();
+      await expect(section).toBeVisible({ timeout: 20_000 });
+      await section.locator("summary").click();
+      await expect(ligne("Haussmannien").getByText("Appliqué")).toBeVisible();
+      await expect(canvas).toHaveAttribute("data-theme", "haussmannien", { timeout: 20_000 });
+
+      // Retour au classique par le même chemin.
+      await page.getByRole("button", { name: "Appliquer : Classique" }).click();
+      await expect(ligne("Classique").getByText("Appliqué")).toBeVisible();
+      await expect(canvas).toHaveAttribute("data-theme", "classique");
+      await expect.poll(themeEnBase, { timeout: DELAI_ENREGISTREMENT }).toBe("classique");
+      await expect(alerte).toHaveCount(0);
     } finally {
       await supprimerCompte(maire.userId);
     }

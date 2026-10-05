@@ -257,6 +257,7 @@ export const dictionaries = {
     "nav.classement": "Classement",
     "nav.palmares": "Palmarès",
     "nav.pays": "Pays",
+    "nav.boutique": "Boutique",
 
     "classement.titre": "Se classer",
     "classement.sectionActuel": "Classement actuel",
@@ -413,10 +414,42 @@ export const dictionaries = {
     "noms.bouton": "Valider",
     "noms.erreurGenerique": "Impossible d'enregistrer ce nom. Réessaie avec un autre.",
 
-    "theme.titre": "Thème de la ville :",
     "theme.appliquer": "Appliquer",
     "theme.classique": "Classique",
     "theme.haussmannien": "Haussmannien",
+    "theme.classique.description":
+      "Le style de base, gratuit pour tous : des maisons, des immeubles et des tours variés.",
+    "theme.haussmannien.description":
+      "Façades de pierre claire, garde-corps en fer forgé et toits mansardés en zinc, façon immeubles parisiens.",
+
+    "packs.titre": "Thèmes de la ville",
+    "packs.explication":
+      "Change l'habillage de ta ville quand tu veux : tes visiteurs la voient avec le thème que tu as choisi. Un thème est purement cosmétique, il ne change rien au jeu.",
+    "packs.possedes": "possédés",
+    "packs.applique": "Appliqué",
+    "packs.voirBoutique": "Voir tous les packs dans la Boutique",
+    "packs.erreur": "Ce thème n'a pas pu être appliqué. Réessaie dans un instant.",
+
+    "boutique.titre": "Boutique",
+    "boutique.intro":
+      "Des packs de thèmes pour habiller ta ville. Ils sont purement cosmétiques : un pack ne donne jamais d'avantage dans le jeu (habitants, influence, défense). Tes visiteurs voient ta ville avec le thème que tu as choisi.",
+    "boutique.apercu": "Aperçu",
+    "boutique.apercuEnCours":
+      "Aperçu sur ta ville : rien n'est appliqué tant que tu ne le choisis pas.",
+    "boutique.terminerApercu": "Terminer l'aperçu",
+    "boutique.applique": "Appliqué sur ta ville",
+    "boutique.possede": "Possédé",
+    "boutique.gratuit": "Gratuit",
+    "boutique.payant": "Pack payant",
+    "boutique.acheter": "Acheter",
+    "boutique.achatBientot": "L'achat n'est pas encore ouvert : le paiement sera branché plus tard.",
+    "boutique.modelesDedies": "Modèles dédiés :",
+    "boutique.resteClassique": "Le reste de la ville garde le style Classique.",
+    "boutique.famille.maison": "Maisons",
+    "boutique.famille.immeuble": "Immeubles",
+    "boutique.famille.tour": "Tours",
+    "boutique.aVenir":
+      "D'autres packs arriveront ici. Les packs payants ne s'ouvriront qu'avec le paiement, pas avant.",
 
     "bulletin.titre": "Bulletin municipal",
     "bulletin.manifestation": "Manifestation contre le manque de",
@@ -728,6 +761,7 @@ export const dictionaries = {
     "nav.classement": "Rankings",
     "nav.palmares": "Leaderboards",
     "nav.pays": "Country",
+    "nav.boutique": "Shop",
 
     "classement.titre": "Get ranked",
     "classement.sectionActuel": "Current ranking",
@@ -884,10 +918,42 @@ export const dictionaries = {
     "noms.bouton": "Confirm",
     "noms.erreurGenerique": "Couldn't save this name. Try another one.",
 
-    "theme.titre": "City theme:",
     "theme.appliquer": "Apply",
     "theme.classique": "Classic",
     "theme.haussmannien": "Haussmann",
+    "theme.classique.description":
+      "The base style, free for everyone: a varied mix of houses, apartment blocks and towers.",
+    "theme.haussmannien.description":
+      "Pale stone facades, wrought-iron balconies and mansard zinc roofs, in the style of Parisian apartment buildings.",
+
+    "packs.titre": "City themes",
+    "packs.explication":
+      "Change your city's look whenever you like: visitors see it with the theme you picked. A theme is purely cosmetic, it changes nothing in the game.",
+    "packs.possedes": "owned",
+    "packs.applique": "Applied",
+    "packs.voirBoutique": "See all packs in the Shop",
+    "packs.erreur": "That theme could not be applied. Try again in a moment.",
+
+    "boutique.titre": "Shop",
+    "boutique.intro":
+      "Theme packs to dress up your city. They are purely cosmetic: a pack never gives any advantage in the game (inhabitants, influence, defence). Visitors see your city with the theme you picked.",
+    "boutique.apercu": "Preview",
+    "boutique.apercuEnCours":
+      "Previewing on your city: nothing is applied until you choose it.",
+    "boutique.terminerApercu": "End preview",
+    "boutique.applique": "Applied to your city",
+    "boutique.possede": "Owned",
+    "boutique.gratuit": "Free",
+    "boutique.payant": "Paid pack",
+    "boutique.acheter": "Buy",
+    "boutique.achatBientot": "Buying is not open yet: payment will be connected later.",
+    "boutique.modelesDedies": "Dedicated models:",
+    "boutique.resteClassique": "The rest of the city keeps the Classic style.",
+    "boutique.famille.maison": "Houses",
+    "boutique.famille.immeuble": "Apartment blocks",
+    "boutique.famille.tour": "Towers",
+    "boutique.aVenir":
+      "More packs will arrive here. Paid packs only open once payment is available, not before.",
 
     "bulletin.titre": "Municipal bulletin",
     "bulletin.manifestation": "Protest over the lack of",

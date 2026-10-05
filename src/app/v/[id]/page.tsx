@@ -5,12 +5,8 @@ import { getLocale, traduire } from "@/lib/i18n";
 import { progressionNiveau, libelleNiveau } from "@/lib/game/niveauVille";
 import { ligneLocale } from "@/lib/game/ligneLocale";
 import { ordinal } from "@/lib/game/ordinal";
-import type { Activite } from "@/lib/game/activites";
-import { premierRangZone, type VocationsBlocs } from "@/lib/ville3d/generer";
-import type { VocationQuartier } from "@/lib/ville3d/quartiers";
-import { typeMonument } from "@/lib/game/monuments";
-import type { MegaprojetConstruit, MonumentDebloque } from "@/lib/ville3d/terrain";
 import { createSupabaseServerClient } from "@/lib/supabase/server-session";
+import { lireDonneesRendu3D } from "@/lib/supabase/rendu3d";
 import { SincroniserScene } from "@/components/SincroniserScene";
 import { PanneauFlottant } from "@/components/PanneauFlottant";
 import { BoutonPartager } from "@/components/BoutonPartager";
@@ -108,30 +104,8 @@ export default async function VillePubliquePage({ params, searchParams }: Props)
   const rang = (nbVillesDevant ?? 0) + 1;
 
   // Données du rendu 3D : tables publiques en lecture seule (aucun calcul opportuniste).
-  const { data: blocsBruts } = await supabase.from("city_blocks").select("rang, vocation, zonee").eq("ville_id", ville.id);
-  const vocations: VocationsBlocs = new Map(
-    (blocsBruts ?? []).map((b) => [b.rang as number, b.vocation as VocationQuartier])
-  );
-  const zonageDepuisRang = premierRangZone((blocsBruts ?? []) as { rang: number; zonee: boolean }[]);
-  const { data: jaugesBrutes } = await supabase.rpc("jauges_ville", { p_ville_id: ville.id });
-  const elanEnergie =
-    ((jaugesBrutes ?? []) as { activite: Activite; elan: number }[]).find((j) => j.activite === "energie")?.elan ?? 0;
-  const { data: megaprojetsBruts } = await supabase.rpc("etat_megaprojets", { p_ville_id: ville.id });
-  const megaprojets: MegaprojetConstruit[] = (
-    (megaprojetsBruts ?? []) as { palier: number; type: string; activite: string; statut: string }[]
-  )
-    .filter((c) => c.statut === "construit")
-    .map((c) => ({ palier: c.palier, type: c.type, activite: c.activite }));
-  const { count: nbTechnologies } = await supabase
-    .from("technologies")
-    .select("id", { count: "exact", head: true })
-    .eq("ville_id", ville.id);
-  const { data: monumentsBruts } = await supabase.from("monuments").select("palier").eq("ville_id", ville.id);
-  const monuments: MonumentDebloque[] = [];
-  for (const m of monumentsBruts ?? []) {
-    const type = typeMonument(m.palier as number);
-    if (type) monuments.push({ palier: m.palier as number, type });
-  }
+  const { vocations, zonageDepuisRang, elanEnergie, megaprojets, nbTechnologies, monuments } =
+    await lireDonneesRendu3D(supabase, ville.id);
 
   // Événements partageables (réussites) : les plus récents + celui demandé par le lien.
   const { data: evenementsBruts } = await supabase
@@ -166,7 +140,7 @@ export default async function VillePubliquePage({ params, searchParams }: Props)
         vocations={vocations}
         elanEnergie={elanEnergie}
         megaprojets={megaprojets}
-        nbTechnologies={nbTechnologies ?? 0}
+        nbTechnologies={nbTechnologies}
         monuments={monuments}
         theme={ville.theme}
         zonageDepuisRang={zonageDepuisRang}

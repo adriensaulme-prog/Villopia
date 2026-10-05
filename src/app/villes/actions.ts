@@ -126,13 +126,16 @@ export async function definirRecommandation(formData: FormData) {
 }
 
 /**
- * Le maire choisit le thème visuel de sa ville (bibliothèque de
- * bâtiments 4/4, docs/BATIMENTS-ET-PACKS.md §4) — purement cosmétique,
- * réservé au propriétaire (definir_theme_ville(), anti-triche côté
- * SQL). Pas de restriction de paiement pour l'instant : la boutique
- * n'existe pas encore (docs/DECISIONS.md §4, journal de ce jalon).
+ * Le maire applique un thème visuel à sa ville (bibliothèque de bâtiments
+ * 4/4, docs/BATIMENTS-ET-PACKS.md §4) — purement cosmétique, réservé au
+ * propriétaire ET au droit d'usage du pack (definir_theme_ville(),
+ * anti-triche côté SQL : un pack payant non possédé est refusé, code
+ * P0030, depuis la migration 0047). Appelée par « Ma ville » et par la
+ * Boutique (docs/A-INTEGRER.md §30) ; renvoie `succes: false` pour que
+ * l'interface revienne au thème d'avant et le dise, au lieu de rester
+ * silencieuse.
  */
-export async function definirTheme(formData: FormData) {
+export async function definirTheme(villeId: string, theme: string): Promise<{ succes: boolean }> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -142,10 +145,8 @@ export async function definirTheme(formData: FormData) {
     redirect("/connexion");
   }
 
-  const villeId = String(formData.get("villeId") ?? "");
-  const theme = String(formData.get("theme") ?? "");
   if (!villeId || !theme) {
-    return;
+    return { succes: false };
   }
 
   const { error } = await supabaseAdmin.rpc("definir_theme_ville", {
@@ -160,6 +161,8 @@ export async function definirTheme(formData: FormData) {
 
   revalidatePath("/ville");
   revalidatePath("/villes");
+  revalidatePath("/boutique");
+  return { succes: !error };
 }
 
 /**

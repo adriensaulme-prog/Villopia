@@ -13,6 +13,9 @@ try {
 }
 
 export default defineConfig({
+  // tsconfig a "jsx": "preserve" (c'est Next qui transforme le JSX) : sans ça, Vitest ne sait
+  // pas rendre un composant (« React is not defined »). Réglage des tests seulement.
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

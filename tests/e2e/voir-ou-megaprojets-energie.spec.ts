@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { cleDe, emplacementEnergie, emplacementMegaprojet } from "../../src/lib/ville3d/emplacements";
+import { cleDe, emplacementEnergie } from "../../src/lib/ville3d/emplacements";
+import { placesMegaprojets } from "../../src/lib/ville3d/megaprojetsVille";
 
 /**
  * « Voir où il est » étendu aux mégaprojets construits et aux installations
@@ -58,7 +59,7 @@ test("un mégaprojet construit et l'Énergie ont leur bouton « Voir où il est 
     const boutonMega = page.getByRole("button", { name: /Voir où il est : Grande école/ });
     await expect(boutonMega).toBeVisible({ timeout: 30_000 });
     await boutonMega.click();
-    const m = emplacementMegaprojet(cle, 0);
+    const m = placesMegaprojets(cle, [0]).get(0)!;
     await expect(canvas).toHaveAttribute("data-repere", `${Math.round(m.x)},${Math.round(m.z)}`);
 
     const boutonEnergie = page.getByRole("button", { name: /Voir où il est : Énergie/ });
