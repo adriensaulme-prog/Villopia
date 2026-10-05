@@ -193,7 +193,11 @@ avant de brancher le paiement, les points suivants.
 > `0047`, à appliquer), avec le droit d'usage vérifié côté serveur.
 > **Le paiement lui-même n'est pas branché** ; **Haussmannien est un pack
 > payant depuis le 05/10/2026** (décision d'Adrien), attribuable à la main en
-> attendant. Le détail et les décisions sont
+> attendant.
+> **Cinq packs de plus (§40, 05/10/2026)** : Bord de mer, Village de pierre
+> (maisons), Quartier industriel reconverti (immeubles), Futuriste / éco
+> (tours) et Nordique (les trois familles) — payants eux aussi, migration
+> `0048` à appliquer. Le détail et les décisions sont
 > dans `DECISIONS.md` §4 « La boutique de packs de thèmes » et §10
 > point 37.
 

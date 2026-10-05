@@ -71,6 +71,7 @@ function versGeometrieSimple(g: Geo): THREE.BufferGeometry {
 function construireGeometrie({ fiche, type, taille, niveau }: Entree): THREE.BufferGeometry {
   const geo = new Geo();
   const r = rngFrom("showroom|" + fiche.id);
+  // Façade sur +z pour toutes les familles : c'est le côté tourné vers la caméra par défaut (terrasses, porches, balcons visibles).
   // Tours montrées terminées (F = cap), pas en chantier : c'est la silhouette finale qu'on veut juger.
   const args =
     type === "tour"
@@ -78,8 +79,8 @@ function construireGeometrie({ fiche, type, taille, niveau }: Entree): THREE.Buf
       : type === "quartier"
         ? [taille as unknown as never, "+z", niveau ?? 0, r, [], 1]
         : type === "immeuble"
-        ? [taille as unknown as never, "-z", 5, r, [], 1]
-        : [taille as unknown as never, "-z", r, [], 1];
+        ? [taille as unknown as never, "+z", 5, r, [], 1]
+        : [taille as unknown as never, "+z", r, [], 1];
   (fiche.construire as (...a: unknown[]) => unknown)(geo, ...(args as unknown[]));
   return versGeometrieSimple(geo);
 }

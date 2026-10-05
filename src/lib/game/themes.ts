@@ -13,7 +13,15 @@
  * l'influence ou la défense. Les fiches ci-dessous n'ont donc, volontairement,
  * aucun champ de jeu.
  */
-export const THEMES = ["classique", "haussmannien"] as const;
+export const THEMES = [
+  "classique",
+  "haussmannien",
+  "bord_de_mer",
+  "village_de_pierre",
+  "quartier_industriel",
+  "futuriste_eco",
+  "nordique",
+] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const THEME_PAR_DEFAUT: Theme = "classique";
@@ -45,6 +53,39 @@ export const PACKS: readonly FichePack[] = [
     id: "haussmannien",
     familles: ["immeuble"],
     palette: ["#e9e0cd", "#ded3ba", "#6b7278", "#2d2f33"],
+  },
+  // Les cinq packs suivants viennent d'A-INTEGRER §40. Un thème est unique par ville : « bord_de_mer » et
+  // « village_de_pierre » (maisons) d'une part, « quartier_industriel » et « haussmannien » (immeubles) d'autre
+  // part sont donc concurrents d'office — le joueur applique l'un ou l'autre, jamais les deux.
+  {
+    // Bardage blanc et bleu pastel, volets colorés, bois clair des terrasses (batimentsPacks.ts, maison-balneaire…).
+    id: "bord_de_mer",
+    familles: ["maison"],
+    palette: ["#f4f1e8", "#a9cbe0", "#e0735a", "#c9a77c"],
+  },
+  {
+    // Pierre sèche, ardoise, bois brut des linteaux et des portes (batimentsPacks.ts, maison-pierre-…).
+    id: "village_de_pierre",
+    familles: ["maison"],
+    palette: ["#9a9b96", "#7d807c", "#454a52", "#7a5a3e"],
+  },
+  {
+    // Brique rouge, ossature d'acier noire, verrières teintées (batimentsPacks.ts, immeuble-loft-…).
+    id: "quartier_industriel",
+    familles: ["immeuble"],
+    palette: ["#a8493a", "#7d3b2f", "#25282c", "#7fa6ae"],
+  },
+  {
+    // Façades végétalisées, panneaux solaires, structure métallique claire (batimentsPacks.ts, tour-eco-…).
+    id: "futuriste_eco",
+    familles: ["tour"],
+    palette: ["#6fae6a", "#f2f4f3", "#a9b4bc", "#1f3a5f"],
+  },
+  {
+    // Bois clair, toits pentus, couleurs sourdes : les trois familles d'un coup (batimentsPacks.ts, *-nordique-…).
+    id: "nordique",
+    familles: ["maison", "immeuble", "tour"],
+    palette: ["#d9b98a", "#f2efe8", "#8da2b3", "#b5573a"],
   },
 ];
 

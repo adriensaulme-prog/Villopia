@@ -72,6 +72,12 @@ async function migration0047Appliquee() {
   return !error;
 }
 
+/** La migration 0048 (cinq packs) est appliquée si le catalogue serveur connaît « nordique ». */
+async function migration0048Appliquee() {
+  const { data, error } = await supabaseAdmin.from("packs").select("id").eq("id", "nordique");
+  return !error && (data ?? []).length > 0;
+}
+
 /**
  * Offre Haussmannien à un compte de test, comme un achat. Avant la migration 0047 la
  * table n'existe pas : l'erreur est ignorée, tout thème connu est libre.
@@ -201,6 +207,49 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
     }
   });
 
+  test("les cinq packs d'A-INTEGRER §40 sont dans la Boutique, payants ; l'aperçu de chacun s'affiche dans la 3D sans rien enregistrer", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    // Avant les migrations 0047/0048, la boutique retombe sur « tout thème connu est libre » : l'état
+    // « payant » ne se vérifie qu'une fois le catalogue serveur à jour (l'aperçu se teste dans tous les cas).
+    const catalogueAJour = await migration0048Appliquee();
+    const joueur = await creerCompteAvecVille("j-boutique-cinq");
+    const packs: [string, string][] = [
+      ["Bord de mer", "bord_de_mer"],
+      ["Village de pierre", "village_de_pierre"],
+      ["Quartier industriel reconverti", "quartier_industriel"],
+      ["Futuriste / éco", "futuriste_eco"],
+      ["Nordique", "nordique"],
+    ];
+    try {
+      await connecter(page, joueur.email, joueur.motDePasse);
+      await page.goto("/boutique");
+      await expect(page.getByRole("heading", { name: "Boutique" })).toBeVisible({ timeout: 30_000 });
+      for (const [nom] of packs) {
+        const carte = fiche(page, nom);
+        await expect(carte).toBeVisible();
+        // Payants, pas encore achetables : l'aperçu seul est possible, jamais « Appliquer ».
+        if (catalogueAJour) {
+          await expect(carte).toContainText("Pack payant");
+          await expect(carte.getByRole("button", { name: `Appliquer : ${nom}` })).toHaveCount(0);
+        }
+      }
+      // Le pack Nordique couvre les trois familles : pas de mention « le reste reste Classique ».
+      await expect(fiche(page, "Nordique")).not.toContainText("Classique");
+
+      for (const [nom, id] of packs) {
+        await fiche(page, nom).getByRole("button", { name: `Aperçu : ${nom}` }).click();
+        await expect(page.locator(".pack-apercu")).toContainText("Aperçu sur ta ville");
+        // La scène 3D porte le thème de l'aperçu (data-theme du canvas).
+        await expect(page.locator(`canvas[data-theme="${id}"]`)).toHaveCount(1, { timeout: 30_000 });
+      }
+      expect(await themeEnBase(joueur.villeId)).toBe("classique");
+    } finally {
+      await supprimerCompte(joueur.userId);
+    }
+  });
+
   test("migration 0047 : Haussmannien (payant) sans l'avoir — refusé par le serveur, aperçu possible, « Acheter » désactivé", async ({
     page,
   }) => {
@@ -299,7 +348,8 @@ test.describe("La boutique de packs de thèmes (§30)", () => {
 
       // Le catalogue se lit, mais ne s'écrit pas.
       const { data: catalogue } = await client.from("packs").select("id, gratuit");
-      expect((catalogue ?? []).map((l) => l.id).sort()).toEqual(["classique", "haussmannien"]);
+      // Au moins les deux packs d'origine (les cinq de la migration 0048 s'y ajoutent une fois celle-ci appliquée).
+      expect((catalogue ?? []).map((l) => l.id)).toEqual(expect.arrayContaining(["classique", "haussmannien"]));
       const modif = await client.from("packs").update({ gratuit: true }).eq("id", "haussmannien").select();
       expect(modif.data ?? []).toHaveLength(0);
 

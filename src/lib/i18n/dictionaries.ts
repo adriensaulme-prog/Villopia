@@ -421,6 +421,21 @@ export const dictionaries = {
       "Le style de base, gratuit pour tous : des maisons, des immeubles et des tours variés.",
     "theme.haussmannien.description":
       "Façades de pierre claire, garde-corps en fer forgé et toits mansardés en zinc, façon immeubles parisiens.",
+    "theme.bord_de_mer": "Bord de mer",
+    "theme.bord_de_mer.description":
+      "Villas pastel aux toits en pente douce, terrasses de bois avec parasols, cabanes sur pilotis et tour de vigie : l'ambiance balnéaire pour tes maisons.",
+    "theme.village_de_pierre": "Village de pierre",
+    "theme.village_de_pierre.description":
+      "Maisons de pierre sèche sous l'ardoise grise, cheminées massives, granges de bois brut et petites tourelles : des maisons rustiques, au choix à la place du Bord de mer.",
+    "theme.quartier_industriel": "Quartier industriel reconverti",
+    "theme.quartier_industriel.description":
+      "Anciennes usines de brique rouge, poteaux d'acier apparents, grandes verrières et cheminées : des immeubles de lofts, à l'opposé du style haussmannien.",
+    "theme.futuriste_eco": "Futuriste / éco",
+    "theme.futuriste_eco.description":
+      "Tours aux terrasses plantées, façades de panneaux solaires, passerelles et éoliennes sur le toit : un contrepoint écologique aux tours vitrées.",
+    "theme.nordique": "Nordique",
+    "theme.nordique.description":
+      "Bois clair, toits pentus et couleurs sourdes pour les maisons, les immeubles et les tours : change le style de toute ta ville d'un seul coup.",
 
     "packs.titre": "Thèmes de la ville",
     "packs.explication":
@@ -925,6 +940,21 @@ export const dictionaries = {
       "The base style, free for everyone: a varied mix of houses, apartment blocks and towers.",
     "theme.haussmannien.description":
       "Pale stone facades, wrought-iron balconies and mansard zinc roofs, in the style of Parisian apartment buildings.",
+    "theme.bord_de_mer": "Seaside",
+    "theme.bord_de_mer.description":
+      "Pastel villas with gently sloped roofs, wooden decks with parasols, stilt cabins and a lookout tower: a beach-town feel for your houses.",
+    "theme.village_de_pierre": "Stone village",
+    "theme.village_de_pierre.description":
+      "Dry-stone houses under grey slate, chunky chimneys, raw-timber barns and little turrets: rustic houses, a choice instead of Seaside.",
+    "theme.quartier_industriel": "Converted industrial quarter",
+    "theme.quartier_industriel.description":
+      "Former red-brick factories with exposed steel posts, big glass bays and chimneys: loft apartment blocks, the opposite of the Haussmann style.",
+    "theme.futuriste_eco": "Futuristic / eco",
+    "theme.futuriste_eco.description":
+      "Towers with planted terraces, solar-panel facades, sky bridges and rooftop wind turbines: a green counterpoint to the glass towers.",
+    "theme.nordique": "Nordic",
+    "theme.nordique.description":
+      "Light timber, steep roofs and muted colours for houses, apartment blocks and towers: restyle your whole city in one go.",
 
     "packs.titre": "City themes",
     "packs.explication":

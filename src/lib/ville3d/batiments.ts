@@ -31,7 +31,7 @@ import {
   type Couleur,
 } from "./constantes";
 import { box, cylinder, flat, gableRoof, shadeC, type Geo } from "./geometrie";
-import { car, crane, tree, type TamponAO } from "./mobilier";
+import { car, conifer, crane, tree, type TamponAO } from "./mobilier";
 import {
   choisirModele,
   type Facade,
@@ -40,6 +40,25 @@ import {
   type ModeleTour,
   type Rect,
 } from "./catalogue";
+import {
+  construireImmeubleLoftBriques,
+  construireImmeubleLoftVerriere,
+  construireImmeubleNordiqueBois,
+  construireImmeubleNordiquePastel,
+  construireMaisonBalneaire,
+  construireMaisonCabanePilotis,
+  construireMaisonNordiqueBois,
+  construireMaisonNordiqueCabane,
+  construireMaisonNordiquePastel,
+  construireMaisonPierreBloc,
+  construireMaisonPierreGrange,
+  construireMaisonPierreTourelle,
+  construireMaisonVigie,
+  construireTourEcoSolaire,
+  construireTourEcoVegetale,
+  construireTourNordiqueBois,
+  construireTourNordiqueClocher,
+} from "./batimentsPacks";
 
 export type { Facade, Rect };
 
@@ -134,7 +153,17 @@ export function placerArbreJardin(
  * porte, haies (pas toujours), arbre au fond, voiture garée (une fois
  * sur deux). Extrait tel quel de l'ancien buildHouse() unique.
  */
-function decorJardin(g: Geo, rect: Rect, fp: Rect, front: Facade, r: RNG, ao: TamponAO[], haie = true) {
+export function decorJardin(
+  g: Geo,
+  rect: Rect,
+  fp: Rect,
+  front: Facade,
+  r: RNG,
+  ao: TamponAO[],
+  haie = true,
+  /** Essence de l'arbre du fond : « conifere » pour les packs nordiques (petit sapin), feuillu sinon. */
+  essence: "feuillu" | "conifere" = "feuillu"
+) {
   const alongX = front === "-z" || front === "+z";
   const [x0, z0, x1, z1] = rect;
   const dc = alongX ? (fp[0] + fp[2]) / 2 : (fp[1] + fp[3]) / 2;
@@ -168,7 +197,10 @@ function decorJardin(g: Geo, rect: Rect, fp: Rect, front: Facade, r: RNG, ao: Ta
     u = r(),
     t = r();
   const arbre = placerArbreJardin(rect, fp, front, echelleArbre, u, t);
-  if (arbre) tree(g, arbre.x, arbre.z, 0.15, arbre.echelle, r, ao);
+  if (arbre) {
+    if (essence === "conifere") conifer(g, arbre.x, arbre.z, 0.5 * arbre.echelle, r, ao);
+    else tree(g, arbre.x, arbre.z, 0.15, arbre.echelle, r, ao);
+  }
   if (r() < 0.5) {
     const sideOff = alongX ? (fp[2] + 2.0 < x1 - 1.5 ? 1 : -1) : fp[3] + 2.0 < z1 - 1.5 ? 1 : -1;
     if (front === "-z") car(g, sideOff > 0 ? fp[2] + 1.6 : fp[0] - 1.6, z0 + 2.6, false, r, 0.16);
@@ -601,6 +633,17 @@ export const MODELES_MAISONS: readonly ModeleMaison[] = [
   { id: "maison-duplex", pack: "classique", poids: 1.5, stadeMin: 0, construire: construireMaisonDuplex },
   { id: "maison-split-level", pack: "classique", poids: 1.5, stadeMin: 0, construire: construireMaisonSplitLevel },
   { id: "maison-cottage", pack: "classique", poids: 1.5, stadeMin: 0, construire: construireMaisonCottage },
+  // Packs de thème d'A-INTEGRER §40 (modèles dans batimentsPacks.ts). Un pack est partiel : toute famille
+  // qu'il ne couvre pas retombe sur « classique » (choisirModele()).
+  { id: "maison-balneaire", pack: "bord_de_mer", poids: 3, stadeMin: 0, construire: construireMaisonBalneaire },
+  { id: "maison-cabane-pilotis", pack: "bord_de_mer", poids: 2, stadeMin: 0, construire: construireMaisonCabanePilotis },
+  { id: "maison-balneaire-vigie", pack: "bord_de_mer", poids: 1, stadeMin: 0, construire: construireMaisonVigie },
+  { id: "maison-pierre-bloc", pack: "village_de_pierre", poids: 3, stadeMin: 0, construire: construireMaisonPierreBloc },
+  { id: "maison-pierre-grange", pack: "village_de_pierre", poids: 2, stadeMin: 0, construire: construireMaisonPierreGrange },
+  { id: "maison-pierre-tourelle", pack: "village_de_pierre", poids: 1, stadeMin: 0, construire: construireMaisonPierreTourelle },
+  { id: "maison-nordique-bois", pack: "nordique", poids: 3, stadeMin: 0, construire: construireMaisonNordiqueBois },
+  { id: "maison-nordique-pastel", pack: "nordique", poids: 2, stadeMin: 0, construire: construireMaisonNordiquePastel },
+  { id: "maison-nordique-cabane", pack: "nordique", poids: 1, stadeMin: 0, construire: construireMaisonNordiqueCabane },
 ];
 
 export function buildHouse(
@@ -622,7 +665,7 @@ export function buildHouse(
 // Catalogue « Immeubles »
 // ---------------------------------------------------------------------
 
-function edicule(g: Geo, fp: Rect, yt: number, pc: [number, number, number], r: RNG, seed: number) {
+export function edicule(g: Geo, fp: Rect, yt: number, pc: [number, number, number], r: RNG, seed: number) {
   const ex = fp[0] + rr(r, 1.5, 6),
     ez = fp[1] + rr(r, 1.5, 5);
   box(g, ex, yt, ez, ex + 3.2, yt + 2.6, ez + 3.2, { c: pc, m: MAT.PLAIN, topM: MAT.FLATROOF, topC: COL.roofGray, seed });
@@ -1161,6 +1204,11 @@ export const MODELES_IMMEUBLES: readonly ModeleImmeuble[] = [
     stadeMin: 0,
     construire: construireImmeubleHaussmannienAngle,
   },
+  // Packs de thème d'A-INTEGRER §40 (modèles dans batimentsPacks.ts).
+  { id: "immeuble-loft-briques", pack: "quartier_industriel", poids: 3, stadeMin: 0, construire: construireImmeubleLoftBriques },
+  { id: "immeuble-loft-verriere", pack: "quartier_industriel", poids: 2, stadeMin: 0, construire: construireImmeubleLoftVerriere },
+  { id: "immeuble-nordique-bois", pack: "nordique", poids: 3, stadeMin: 0, construire: construireImmeubleNordiqueBois },
+  { id: "immeuble-nordique-pastel", pack: "nordique", poids: 2, stadeMin: 0, construire: construireImmeubleNordiquePastel },
 ];
 
 export function buildApart(
@@ -1194,7 +1242,7 @@ export function towerSegments(capShaft: number) {
   ];
 }
 
-function chantierGratteCiel(g: Geo, x0: number, z0: number, x1: number, z1: number, r: RNG, seed: number) {
+export function chantierGratteCiel(g: Geo, x0: number, z0: number, x1: number, z1: number, r: RNG, seed: number) {
   flat(g, x0 + 0.5, z0 + 0.5, x1 - 0.5, z1 - 0.5, 0.17, COL.dirt, MAT.DIRT);
   const fh = 2.1,
     ft = 0.12;
@@ -1214,7 +1262,7 @@ function chantierGratteCiel(g: Geo, x0: number, z0: number, x1: number, z1: numb
   }
 }
 
-function grueChantier(g: Geo, rect: Rect, innerSide: Facade, top: number, seed: number) {
+export function grueChantier(g: Geo, rect: Rect, innerSide: Facade, top: number, seed: number) {
   const [x0, z0, x1, z1] = rect;
   const cx = (x0 + x1) / 2,
     cz = (z0 + z1) / 2;
@@ -1745,6 +1793,11 @@ export const MODELES_TOURS: readonly ModeleTour[] = [
   { id: "tour-beton", pack: "classique", poids: 1.5, stadeMin: 0, construire: construireTourBeton },
   { id: "tour-fleche", pack: "classique", poids: 1.5, stadeMin: 0, construire: construireTourFleche },
   { id: "tour-obelisque", pack: "classique", poids: 1, stadeMin: 0, construire: construireTourObelisque },
+  // Packs de thème d'A-INTEGRER §40 (modèles dans batimentsPacks.ts).
+  { id: "tour-eco-vegetale", pack: "futuriste_eco", poids: 3, stadeMin: 0, construire: construireTourEcoVegetale },
+  { id: "tour-eco-solaire", pack: "futuriste_eco", poids: 2, stadeMin: 0, construire: construireTourEcoSolaire },
+  { id: "tour-nordique-bois", pack: "nordique", poids: 3, stadeMin: 0, construire: construireTourNordiqueBois },
+  { id: "tour-nordique-clocher", pack: "nordique", poids: 2, stadeMin: 0, construire: construireTourNordiqueClocher },
 ];
 
 export function buildTower(

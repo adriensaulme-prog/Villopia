@@ -332,7 +332,9 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§30 fait** (section « Thèmes de la ville » dans
+*Dernière mise à jour : 05/10/2026. **§40 fait** (cinq packs de thème : Bord de mer, Village de
+pierre, Quartier industriel reconverti, Futuriste/éco, Nordique ; payants ; migration `0048` à appliquer).
+**§30 fait** (section « Thèmes de la ville » dans
 Ma ville + onglet Boutique, migration `0047` à appliquer, paiement non branché).
 **§36 fait** (Services/Commerce/Recherche
 redessinés, arbres de jardin avec marge au mur). **§35 fait** (Palmarès fusionné dans

@@ -33,6 +33,10 @@ const lireMigration = (debut: string) => {
 };
 /** Le SQL sans ses commentaires : on vérifie ce qu'il FAIT, pas ce qu'il raconte. */
 const sansCommentaires = (sql: string) => sql.replace(/--.*$/gm, "");
+/** La boutique (0047) puis les cinq packs d'A-INTEGRER §40 (0048) : dans l'ordre où elles s'appliquent. */
+const MIGRATIONS_PACKS = ["0047_", "0048_"];
+const sqlPacks = () => MIGRATIONS_PACKS.map((m) => sansCommentaires(lireMigration(m)));
+const definitionsDefinirTheme = () => sqlPacks().map((sql) => sql.slice(sql.search(/function\s+public\.definir_theme_ville/i)));
 
 describe("droit d'usage des packs", () => {
   const catalogue = [
@@ -56,10 +60,7 @@ describe("droit d'usage des packs", () => {
 
   it("un pack gratuit pour tous est possédé sans aucune ligne obtenue", () => {
     const tousGratuits = packsDuJoueur(
-      [
-        { id: "classique", gratuit: true },
-        { id: "haussmannien", gratuit: true },
-      ],
+      PACKS.map((p) => ({ id: p.id, gratuit: true })),
       []
     );
     expect(tousGratuits.every((p) => p.possede)).toBe(true);
@@ -153,18 +154,20 @@ describe("un pack est purement cosmétique (BATIMENTS-ET-PACKS §4)", () => {
     }
   });
 
-  it("la migration de la boutique ne touche à aucune donnée de jeu", () => {
-    const sql = sansCommentaires(lireMigration("0047_"));
-    for (const interdit of [/\bpopulation/i, /\binfluence/i, /\bactivite/i, /\bdefense/i, /\bressources?\b/i]) {
-      expect(sql, String(interdit)).not.toMatch(interdit);
+  it("les migrations des packs (boutique, puis cinq packs) ne touchent à aucune donnée de jeu", () => {
+    for (const sql of sqlPacks()) {
+      for (const interdit of [/\bpopulation/i, /\binfluence/i, /\bactivite/i, /\bdefense/i, /\bressources?\b/i]) {
+        expect(sql, String(interdit)).not.toMatch(interdit);
+      }
     }
   });
 
-  it("definir_theme_ville ne modifie que le thème de la ville", () => {
-    const sql = sansCommentaires(lireMigration("0047_"));
-    const mises = sql.match(/update\s+public\.cities\s+set\s+[^;]+;/gi) ?? [];
-    expect(mises).toHaveLength(1);
-    expect(mises[0]).toMatch(/^update\s+public\.cities\s+set\s+theme\s*=\s*p_theme\s+where\s+id\s*=\s*p_ville_id\s+returning/i);
+  it("definir_theme_ville ne modifie que le thème de la ville (dans chaque migration qui la définit)", () => {
+    for (const sql of sqlPacks()) {
+      const mises = sql.match(/update\s+public\.cities\s+set\s+[^;]+;/gi) ?? [];
+      expect(mises).toHaveLength(1);
+      expect(mises[0]).toMatch(/^update\s+public\.cities\s+set\s+theme\s*=\s*p_theme\s+where\s+id\s*=\s*p_ville_id\s+returning/i);
+    }
   });
 });
 
@@ -172,19 +175,21 @@ describe("migration 0047 : le serveur fait respecter le droit d'usage", () => {
   const sql = sansCommentaires(lireMigration("0047_"));
 
   it("definir_theme_ville refuse un pack non possédé (P0030) avant d'écrire", () => {
-    const corps = sql.slice(sql.search(/function\s+public\.definir_theme_ville/i));
-    const iVerification = corps.search(/possede_pack\s*\(\s*p_owner_id\s*,\s*p_theme\s*\)/i);
-    const iMiseAJour = corps.search(/update\s+public\.cities/i);
-    expect(iVerification).toBeGreaterThan(-1);
-    expect(iMiseAJour).toBeGreaterThan(iVerification);
-    expect(corps).toMatch(/errcode\s*=\s*'P0030'/);
+    for (const corps of definitionsDefinirTheme()) {
+      const iVerification = corps.search(/possede_pack\s*\(\s*p_owner_id\s*,\s*p_theme\s*\)/i);
+      const iMiseAJour = corps.search(/update\s+public\.cities/i);
+      expect(iVerification).toBeGreaterThan(-1);
+      expect(iMiseAJour).toBeGreaterThan(iVerification);
+      expect(corps).toMatch(/errcode\s*=\s*'P0030'/);
+    }
   });
 
   it("garde les contrôles de la migration 0034 (maire seul, thème connu)", () => {
-    const corps = sql.slice(sql.search(/function\s+public\.definir_theme_ville/i));
-    expect(corps).toMatch(/errcode\s*=\s*'P0007'/);
-    expect(corps).toMatch(/errcode\s*=\s*'P0022'/);
-    expect(corps).toMatch(/errcode\s*=\s*'P0004'/);
+    for (const corps of definitionsDefinirTheme()) {
+      expect(corps).toMatch(/errcode\s*=\s*'P0007'/);
+      expect(corps).toMatch(/errcode\s*=\s*'P0022'/);
+      expect(corps).toMatch(/errcode\s*=\s*'P0004'/);
+    }
   });
 
   it("aucune policy d'écriture sur packs ni joueur_packs : seul le serveur y inscrit", () => {
@@ -196,31 +201,46 @@ describe("migration 0047 : le serveur fait respecter le droit d'usage", () => {
     expect(sql).toMatch(/on public\.joueur_packs for select\s+using \(joueur_id = auth\.uid\(\)\)/i);
   });
 
+  // Lignes (id, gratuit) de toutes les insertions dans `packs`, dans l'ordre des migrations.
+  const lignesCatalogue = () =>
+    sqlPacks()
+      .flatMap((s) => s.match(/insert into public\.packs[^;]+;/gi) ?? [])
+      .flatMap((ins) => [...ins.matchAll(/\('([a-z_]+)',\s*(true|false)\)/g)].map((m) => [m[1], m[2] === "true"] as const));
+
   it("le catalogue serveur contient exactement les thèmes du code", () => {
-    const insertion = sql.match(/insert into public\.packs[^;]+;/i)?.[0] ?? "";
-    const ids = [...insertion.matchAll(/\('([a-z_]+)',\s*(?:true|false)\)/g)].map((m) => m[1]);
-    expect(ids).toEqual([...THEMES]);
+    expect(lignesCatalogue().map(([id]) => id)).toEqual([...THEMES]);
   });
 
   it("Classique, le pack de base, est gratuit pour tous ; Haussmannien est payant (décision d'Adrien, 05/10/2026)", () => {
-    const insertion = sql.match(/insert into public\.packs[^;]+;/i)?.[0] ?? "";
-    const gratuits = Object.fromEntries(
-      [...insertion.matchAll(/\('([a-z_]+)',\s*(true|false)\)/g)].map((m) => [m[1], m[2] === "true"])
-    );
+    const gratuits = Object.fromEntries(lignesCatalogue());
     expect(gratuits.classique).toBe(true);
     expect(gratuits.haussmannien).toBe(false);
   });
 
-  it("la liste de thèmes acceptés par definir_theme_ville suit celle du code", () => {
-    const corps = sql.slice(sql.search(/function\s+public\.definir_theme_ville/i));
+  it("les cinq packs d'A-INTEGRER §40 sont payants comme Haussmannien (paiement pas encore branché : on les attribue à la main)", () => {
+    const gratuits = Object.fromEntries(lignesCatalogue());
+    for (const id of ["bord_de_mer", "village_de_pierre", "quartier_industriel", "futuriste_eco", "nordique"]) {
+      expect(gratuits[id], id).toBe(false);
+    }
+  });
+
+  it("la dernière définition de definir_theme_ville accepte exactement les thèmes du code", () => {
+    const corps = definitionsDefinirTheme().at(-1)!;
     const liste = corps.match(/p_theme not in \(([^)]+)\)/i)?.[1] ?? "";
     expect([...liste.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])).toEqual([...THEMES]);
   });
 
-  it("la contrainte de cities.theme (0034) suit elle aussi la liste du code", () => {
-    const sql0034 = sansCommentaires(lireMigration("0034_"));
-    const liste = sql0034.match(/theme in \(([^)]+)\)/i)?.[1] ?? "";
+  it("la dernière contrainte de cities.theme (0034, puis 0048) suit elle aussi la liste du code", () => {
+    const sqls = ["0034_", "0048_"].map((m) => sansCommentaires(lireMigration(m)));
+    const derniere = sqls.filter((x) => /theme in \(/i.test(x)).at(-1)!;
+    const liste = derniere.match(/theme in \(([^)]+)\)/i)?.[1] ?? "";
     expect([...liste.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])).toEqual([...THEMES]);
+  });
+
+  it("la migration 0048 remplace la contrainte de 0034 au lieu de laisser les deux (sinon les nouveaux thèmes seraient refusés)", () => {
+    const sql0048 = sansCommentaires(lireMigration("0048_"));
+    expect(sql0048).toMatch(/drop constraint if exists cities_theme_check/i);
+    expect(sql0048).toMatch(/add constraint cities_theme_check/i);
   });
 
   it("le rattrapage donne leur pack à ceux qui l'utilisaient déjà, sans en retirer à personne", () => {
