@@ -247,6 +247,8 @@ journal existant, puis ce fichier peut être supprimé.*
 > formulaire resté en double sur « Ma ville », jamais retiré quand la
 > boutique a été construite.
 
+> **§39 — fait le 05/10/2026** (la tour béton a de vraies fenêtres, éclairées
+> la nuit comme celles des tours vitrées).
 > **§39 (les tours grises en béton ne s'éclairent jamais la nuit,
 > 05/10/2026) : nouveau, cause confirmée dans le shader** — la tour
 > béton (`construireTourBeton`) n'a aucune géométrie de fenêtre, donc
@@ -2330,3 +2332,10 @@ pleines comme aujourd'hui) en réutilisant le matériau `m == 3` pour ces
 ouvertures — dans le même esprit que le podium commercial (`m == 15`)
 qui mélange déjà béton et vitrages. Détail d'implémentation laissé à
 Claude Code.
+
+**Traité le 05/10/2026 (Claude Code)** : le fût de `construireTourBeton` est
+maintenant un noyau vitré (`MAT.GLASS`, donc le même éclairage de nuit que les
+tours vitrées) dans une ossature de béton apparent (dalle en saillie à chaque
+étage, poteaux d'angle, trumeaux), et son socle est un vrai socle commercial
+(`MAT.PODIUM`). Aucun nouveau matériau ni shader, aucune migration. Détail
+dans `DECISIONS.md` §4 « La tour béton s'éclaire la nuit ».

@@ -28,6 +28,7 @@ import {
   MAT,
   PODIUM_H,
   hex,
+  type Couleur,
 } from "./constantes";
 import { box, cylinder, flat, gableRoof, shadeC, type Geo } from "./geometrie";
 import { car, crane, tree, type TamponAO } from "./mobilier";
@@ -1467,7 +1468,70 @@ function construireTourGradins(
   return top;
 }
 
-/** tour-beton : brutaliste, bandeaux de béton apparent plutôt qu'un fût tout en verre, couronnement plat sobre. */
+/**
+ * Fût de la tour béton (A-INTEGRER §39) : un noyau vitré, entouré d'une ossature de
+ * béton apparent (une dalle en saillie à chaque étage, quatre poteaux d'angle et deux
+ * trumeaux par façade). Le noyau est en MAT.GLASS, comme les tours vitrées : ses fenêtres
+ * reçoivent le même éclairage de nuit (la tour béton, toute en MAT.CONCRETE, n'avait
+ * aucune fenêtre donc rien à éclairer). Le noyau part de `base`, le pied du fût : les
+ * étages du shader (FLOOR_H) tombent pile sur les dalles, dont la hauteur (1,0 m) cache
+ * l'allège (0,72 m) et laisse des fenêtres en bandeau de 2,6 m entre deux dalles.
+ */
+function fenetresTourBeton(
+  g: Geo,
+  cx: number,
+  cz: number,
+  hs: number,
+  base: number,
+  etages: number,
+  betonC: Couleur,
+  vitrage: Couleur,
+  seed: number
+) {
+  const hg = hs - 0.7,
+    haut = base + etages * FLOOR_H;
+  box(g, cx - hg, base, cz - hg, cx + hg, haut, cz + hg, {
+    c: vitrage,
+    m: MAT.GLASS,
+    topM: MAT.FLATROOF,
+    topC: COL.roofGray,
+    seed,
+    base,
+  });
+  for (let f = 0; f < etages; f++) {
+    const yb = base + f * FLOOR_H;
+    box(g, cx - hs, yb, cz - hs, cx + hs, yb + 1.0, cz + hs, {
+      c: f % 2 === 0 ? betonC : shadeC(betonC, 0.92),
+      m: MAT.CONCRETE,
+      topM: MAT.FLATROOF,
+      topC: COL.roofGray,
+      seed,
+      base,
+    });
+  }
+  const pierC = shadeC(betonC, 0.88);
+  const pilier = (x0: number, z0: number, x1: number, z1: number) =>
+    box(g, x0, base, z0, x1, haut, z1, { c: pierC, m: MAT.CONCRETE, topM: MAT.FLATROOF, topC: COL.roofGray, seed, base });
+  const coin = 2.2,
+    trumeau = 0.65,
+    ecart = hs * 0.34;
+  for (const sx of [-1, 1])
+    for (const sz of [-1, 1]) {
+      pilier(
+        sx < 0 ? cx - hs : cx + hs - coin,
+        sz < 0 ? cz - hs : cz + hs - coin,
+        sx < 0 ? cx - hs + coin : cx + hs,
+        sz < 0 ? cz - hs + coin : cz + hs
+      );
+      for (const o of [-1, 1]) {
+        // trumeau sur la façade ±z (en x = cx ± écart), puis sur la façade ±x (en z = cz ± écart)
+        pilier(cx + o * ecart - trumeau, sz < 0 ? cz - hs : cz + hg - 0.3, cx + o * ecart + trumeau, sz < 0 ? cz - hg + 0.3 : cz + hs);
+        pilier(sx < 0 ? cx - hs : cx + hg - 0.3, cz + o * ecart - trumeau, sx < 0 ? cx - hg + 0.3 : cx + hs, cz + o * ecart + trumeau);
+      }
+    }
+}
+
+/** tour-beton : brutaliste, ossature de béton apparent autour d'un noyau vitré en bandeaux (fenêtres éclairées la nuit), couronnement plat sobre. */
 function construireTourBeton(
   g: Geo,
   rect: Rect,
@@ -1490,12 +1554,15 @@ function construireTourBeton(
     chantierGratteCiel(g, x0, z0, x1, z1, r, seed);
     return 6;
   }
+  // Tiré après le chantier : le tirage du chantier (F = 0) ne change pas.
+  const vitrage = pick(r, [hex("#58707f"), hex("#4f6672"), hex("#627683")]);
 
+  // Socle en MAT.PODIUM (vitrines, enseignes éclairées la nuit), comme celui des tours vitrées.
   const podFloors = Math.min(F, 3);
   const podH = podFloors * PODIUM_H;
   box(g, x0 + 1, y0, z0 + 1, x1 - 1, y0 + podH, z1 - 1, {
     c: betonC,
-    m: MAT.CONCRETE,
+    m: MAT.PODIUM,
     topM: MAT.FLATROOF,
     topC: COL.roofGray,
     seed,
@@ -1510,19 +1577,7 @@ function construireTourBeton(
   if (shaftFloors > 0) {
     const skeleton = underConstruction ? Math.min(2, shaftFloors) : 0;
     const glassTo = shaftFloors - skeleton;
-    // Bandeaux : dalle de béton apparente tous les 2 étages, panneau plus sombre entre les deux.
-    for (let f = 0; f < glassTo; f++) {
-      const yb = shaftBase + f * FLOOR_H;
-      const dalle = f % 2 === 0;
-      box(g, cx - hs, yb, cz - hs, cx + hs, yb + FLOOR_H, cz + hs, {
-        c: dalle ? betonC : shadeC(betonC, 0.72),
-        m: MAT.CONCRETE,
-        topM: MAT.FLATROOF,
-        topC: COL.roofGray,
-        seed,
-        base: shaftBase,
-      });
-    }
+    if (glassTo > 0) fenetresTourBeton(g, cx, cz, hs, shaftBase, glassTo, betonC, vitrage, seed);
     ao.push({ x0: cx - hs, z0: cz - hs, x1: cx + hs, z1: cz + hs, w: 1, h: shaftBase + glassTo * FLOOR_H });
     top = shaftBase + glassTo * FLOOR_H;
     for (let k = 0; k < skeleton; k++) {

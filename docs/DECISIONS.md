@@ -4867,6 +4867,45 @@ de confirmation depuis une adresse à soi) en dépend. La **disponibilité du
 nom** (Play Store, marque déposée, domaine) n'est pas vérifiée : je ne peux
 pas le faire sérieusement d'ici.
 
+### La tour béton s'éclaire la nuit (A-INTEGRER §39) — 05/10/2026
+
+**Retour d'Adrien** : les tours grises ne s'éclairent pas la nuit, à la différence des
+tours vitrées colorées. **Aucune migration, aucun changement de règle de jeu.**
+
+**Cause (confirmée).** Les fenêtres allumées viennent du matériau « mur-rideau vitré »
+(`shaders.ts`, `m == 3`) ; la tour béton (`construireTourBeton`, `batiments.ts`) n'utilisait
+que `MAT.CONCRETE` (`m == 8`), un matériau sans fenêtre ni émission : il n'y avait rien à
+éclairer. Les quatre autres modèles de tour (verre, gradins, flèche, obélisque) sont déjà
+vitrés ; seule la tour béton était aveugle.
+
+**Fait.**
+- *Fût* : un **noyau vitré** (`MAT.GLASS`, reculé de 0,7 m) dans une **ossature de béton
+  apparent** : une dalle en saillie (1,0 m de haut) à chaque étage, quatre poteaux d'angle
+  (2,2 m) et deux trumeaux par façade. Le noyau part du pied du fût, donc les étages du
+  shader (`FLOOR_H` = 3,6 m) tombent pile sur les dalles ; la dalle cache l'allège (0,72 m)
+  et laisse des **fenêtres en bandeau de 2,6 m**. Mêmes fenêtres éclairées que les tours
+  vitrées (même shader : environ une sur trois allumée, lueur chaude). Vitrage gris-bleu
+  sombre, pour rester une tour « grise ».
+- *Socle* : `MAT.PODIUM` (vitrines et enseignes éclairées) au lieu du béton plein, comme
+  les tours vitrées. La note ne parlait que du fût, mais un socle aveugle sous un fût allumé
+  aurait laissé le rez-de-chaussée noir.
+- *Chantier* : inchangé (grue, verre jusqu'aux deux derniers étages, squelette). Le vitrage
+  est tiré dans le générateur de la tour **après** le cas « chantier nu » (F = 0), dont le
+  tirage ne change donc pas.
+- *Coût* : une dalle par étage comme avant, plus 13 boîtes fixes (noyau et poteaux). Pas de
+  nouvelle dépendance ni de nouveau matériau (budget léger, §1 point 6).
+
+**Effet de bord assumé.** Toutes les tours béton changent d'aspect (nouvelle géométrie),
+sans rien déplacer ; rien n'est encore en production.
+
+**Testé.** `tests/unit/tourBeton.test.ts` (nouveau, 7) : la tour finie contient du verre et du
+béton ; le verre couvre exactement les étages du fût, calés sur ceux du shader ; le socle est
+un socle commercial ; rien ne sort du lot (tour finie) ; en chantier le verre s'arrête avant
+le squelette et le chantier nu n'a pas de verre ; déterminisme ; empreinte d'ombre. **Sabotage
+vérifié rouge** : sans le noyau vitré, 3 tests échouent. Vérifié à l'œil dans la vraie scène
+(page temporaire, supprimée) : de jour, les tours grises montrent leurs bandeaux de fenêtres
+entre les dalles ; à 22 h 30 (Paris), elles s'éclairent comme les tours vitrées.
+
 ---
 
 ## §5. i18n
