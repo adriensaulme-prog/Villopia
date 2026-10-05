@@ -378,6 +378,15 @@ journal existant, puis ce fichier peut être supprimé.*
 > habitations des deux stades, un monument par bloc, fond de `/pays`, texte du §49). Détail : `DECISIONS.md` §4
 > « Énergie à l'écart, paysage pour /pays, monuments et stades agrandis ».
 
+> **§49 (jauges expliquées dans Règles) et §50 (espagnol) — faits le 05/10/2026.** §49 : huit paragraphes de plus dans la
+> section « Activités et jauges » (FR, EN, ES), texte de la note repris tel quel ; tableau recoupé avec les migrations 0024 et
+> 0049. §50 : espagnol ajouté comme 3ᵉ langue (540 clés, Règles, rangs « 1.º », sélecteur FR · EN · ES, test de parité
+> généralisé à toutes les langues et aux `{variables}`), `npm run build` et 540 tests verts, aucune migration. **Numérotation** :
+> le « §49 — fait » plus haut (cinq corrections A à E) répondait à une consigne sans texte dans ce fichier, et n'a donc pas de §
+> propre (`DECISIONS.md` §10 point 46, résolu). **À trancher par Adrien** (`DECISIONS.md` §10 point 50) : relecture de
+> l'espagnol par un locuteur natif, noms de pays en anglais en espagnol (option : migration `nom_es`). Détail : `DECISIONS.md`
+> §4 « Règles : les jauges expliquées et l'espagnol ».
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).

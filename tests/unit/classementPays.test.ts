@@ -12,7 +12,7 @@ import {
   type LigneClassementPays,
 } from "@/lib/game/classementPays";
 import { CATALOGUE_BATIMENTS } from "@/lib/game/monuments";
-import { dictionaries } from "@/lib/i18n/dictionaries";
+import { dictionaries, locales } from "@/lib/i18n/dictionaries";
 
 /**
  * A-INTEGRER §47 (migration 0052) : classement hebdomadaire des pays et effets du n°1. Les chiffres
@@ -60,8 +60,8 @@ describe("chiffres du n°1 de chaque catégorie (§47)", () => {
     expect(corps(sql, "poids_voix_diplomatique_pays")).toMatch(/pays_est_premier\(p_country_id, 'culture'.*\) then 2 else 0/);
   });
 
-  it("les quatre effets ont leur texte en français et en anglais", () => {
-    for (const locale of ["fr", "en"] as const) {
+  it("les quatre effets ont leur texte dans toutes les langues (fr, en, es)", () => {
+    for (const locale of locales) {
       const dico = dictionaries[locale] as Record<string, string>;
       for (const c of ["industrie", "techno", "culture", "commerce"]) {
         expect(dico[`pays.classement.effet.${c}`], `${locale} ${c}`).toBeTruthy();

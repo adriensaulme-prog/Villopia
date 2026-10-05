@@ -12,7 +12,7 @@ import {
   peutFinancer,
   type StockRessources,
 } from "@/lib/game/developpements";
-import { dictionaries } from "@/lib/i18n/dictionaries";
+import { dictionaries, locales } from "@/lib/i18n/dictionaries";
 
 /**
  * A-INTEGRER §48 (migration 0054) : le catalogue des développements nationaux et ses chiffres sont
@@ -85,8 +85,8 @@ describe("catalogue des développements nationaux (A-INTEGRER §48)", () => {
     expect(developpementDe("inconnu")).toBeUndefined();
   });
 
-  it("chaque développement a son nom et son effet en français et en anglais", () => {
-    for (const locale of ["fr", "en"] as const) {
+  it("chaque développement a son nom et son effet dans toutes les langues (fr, en, es)", () => {
+    for (const locale of locales) {
       const dico = dictionaries[locale] as Record<string, string>;
       for (const d of CATALOGUE_DEVELOPPEMENTS) {
         expect(dico[`pays.dev.${d.id}.nom`], `${locale} ${d.id} nom`).toBeTruthy();

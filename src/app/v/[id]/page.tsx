@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getLocale, traduire } from "@/lib/i18n";
+import { getLocale, traduire, type Locale } from "@/lib/i18n";
 import { progressionNiveau, libelleNiveau } from "@/lib/game/niveauVille";
 import { ligneLocale } from "@/lib/game/ligneLocale";
 import { ordinal } from "@/lib/game/ordinal";
@@ -36,7 +36,7 @@ type Props = {
   searchParams: Promise<{ evenement?: string }>;
 };
 
-async function chargerVille(id: string, locale: "fr" | "en") {
+async function chargerVille(id: string, locale: Locale) {
   if (!UUID.test(id)) return null;
   const supabase = await createSupabaseServerClient();
   const colonneNomPays = locale === "fr" ? "nom_fr" : "nom_en";

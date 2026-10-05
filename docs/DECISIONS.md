@@ -35,8 +35,8 @@ un jalon" :
 4. **Pas de destruction permanente.** Une défaite ou une attaque ne doit
    jamais détruire durablement une ville ni effacer des mois de
    progression (cahier des charges §19).
-5. **i18n dès le premier texte**, fr et en remplis immédiatement, jamais de
-   trou "provisoire".
+5. **i18n dès le premier texte**, fr, en et es (espagnol, A-INTEGRER §50)
+   remplis immédiatement, jamais de trou "provisoire".
 6. **Application légère** (règle ferme d'Adrien, ajoutée le 23/09/2026 via
    `docs/A-INTEGRER.md` §4) : c'est une appli de 2 à 5 minutes par jour, elle
    doit rester légère. Budget mesuré sur `next build` (tailles déjà
@@ -5716,13 +5716,45 @@ pas ; chaque monument tient toujours dans son cercle de socle et sous sa hauteur
   du colosse, torsion de l'obélisque, lumières des tours), `megaprojetsStades.test.ts` adapté aux rectangles ; suite
   unitaire complète : **516 tests verts**, `tsc` et lint propres. Revue visuelle dans la vraie scène, avant / après.
 
+
+### Règles : les jauges expliquées (A-INTEGRER §49) et l'espagnol, troisième langue (§50) — 05/10/2026
+
+**Numérotation.** Le « §49 » traité plus haut (cinq corrections A à E) l'avait été d'après une consigne sans texte
+dans ce fichier ; le §49 qui s'y trouve maintenant est autre chose : expliquer les jauges dans la page Règles. Le
+point ouvert 46 est résolu (voir §10).
+
+**§49 : fait.** `src/lib/game/regles.ts`, section `activites` : huit paragraphes de plus en FR, EN et ES — une
+introduction (les mêmes jauges servent aux attaques AntiVille et aux manifestations) puis un paragraphe par activité,
+texte repris tel que dans la note. Le tableau du §49 (qui remplace celui du §42) a été recoupé avec les migrations
+`0024` (±50 % de l'Industrie, des Services et des Loisirs ; bonus des jumelages du Commerce ; manifestations de
+l'Énergie ; double influence de la Recherche) et `0049` (Résidentiel : +25 %) ; la `0051` est prise sur la note.
+Le mot « manifestation » est employé de façon cohérente (Loisirs, Énergie et introduction).
+
+**§50 : fait.** `locales` passe à `["fr", "en", "es"]` ; les 540 clés sont traduites (bloc `es` de `dictionaries.ts`,
+parité stricte, tutoiement comme le français) ; `regles.ts` a sa version espagnole de chaque section (TypeScript a
+signalé les sept sections et `chargerVille()` de `/v/[id]`, typé `"fr" | "en"`, comme le prévoyait la note) ;
+`ordinal()` écrit « 1.º, 2.º… » ; `LangSwitcher` lit `locales` (FR · EN · ES).
+- *Tests.* `dictionaries.test.ts` couvre toutes les langues : mêmes clés (aucune manquante ni orpheline, avec la liste),
+  mêmes `{variables}`, aucune valeur vide, **aucune valeur espagnole copiée du français** (cinq mots identiques assumés :
+  « de », « disponible », « hab. »), ponctuation espagnole (`¿` et `¡` ouvrants). Cinq tests qui bouclaient sur
+  `["fr", "en"]` à la main bouclent sur `locales` (boutique, catalogue de bâtiments, classement et développements des
+  pays, crise de la Recherche). **Sabotages vérifiés rouges** : clé espagnole supprimée, variable perdue, valeur laissée
+  en français, `¿` oublié. `ordinal.test.ts` : cas espagnols.
+- *Vérifié à l'œil* sur le vrai site : sélecteur FR · EN · ES, navigation, Règles, Ma ville (« 12.º de France »).
+- *Hors scope, signalé.* Noms de pays et de régions, poids, relecture native, phrase obsolète des Règles : voir §10 point 50.
+- *Poids.* +33 Ko bruts, +10 Ko gzip. `npm run build` passe (pages de 103 à 302 Ko, budget de 500 Ko).
+- *Règle étendue.* Toute nouvelle clé doit avoir ses trois langues : le test échoue sinon, y compris pour les chantiers des
+  autres sessions.
+
 ---
 
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,
-...) avec traduction fr et en remplies au même moment que la clé est
-créée. Défaut : français. Pas de clé orpheline en prod.
+...) avec traduction fr, en et es (A-INTEGRER §50) remplies au même moment que la
+clé est créée. Défaut : français. Pas de clé orpheline en prod.
+`tests/unit/dictionaries.test.ts` le vérifie pour TOUTES les langues de `locales` : mêmes clés,
+mêmes `{variables}`, aucune valeur vide, aucune copie du français en espagnol.
 
 ---
 
@@ -6252,3 +6284,16 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
 46. **Texte du §49 absent de la copie locale de `A-INTEGRER.md`** (elle s'arrête au §48 ; la version à jour est dans
     le projet Claude « Jeu »). Le §49 a été traité d'après la consigne reçue (cinq corrections A à E). → **À
     resynchroniser** : si le texte du §49 dit autre chose sur un point (chiffres, ordre, règle), le signaler.
+    **→ Résolu le 05/10/2026** : le texte du §49 est arrivé dans le fichier, et c'est **autre chose** (« Expliquer les
+    jauges dans la page Règles », fait). Les cinq corrections A à E n'ont donc **aucun § propre** dans `A-INTEGRER.md` : à
+    rattacher à la note du projet Claude « Jeu » dont elles viennent, ou à renuméroter.
+
+50. **Espagnol (A-INTEGRER §50, 05/10/2026) : relecture et noms de pays.** (a) Les 540 clés et les règles ont été
+    traduites par Claude Code (tutoiement, vocabulaire du jeu : AntiCiudad, hermanamiento, indicadores, Tienda…) : une
+    **relecture par un locuteur natif** est recommandée avant d'annoncer la langue. (b) Les **noms de pays** restent en
+    **anglais** en espagnol (la base n'a que `nom_fr` et `nom_en`, onze pages choisissent `nom_en` pour toute langue autre
+    que le français) et les noms de régions restent ceux de la base. Option : migration `nom_es` (les noms espagnols
+    existent dans `world-countries`) + remplacement des onze `locale === "fr" ? "nom_fr" : "nom_en"` par un seul
+    helper — à valider (une migration de plus à appliquer). (c) Poids : +10 Ko gzip, tout le dictionnaire part au client.
+    (d) Les Règles FR/EN/ES disent encore que les mégaprojets sont « à la bordure » : faux depuis le §46 (ils sont dans la
+    ville), non touché ici.

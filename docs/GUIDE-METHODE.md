@@ -228,8 +228,8 @@ Règles :
 ## 9. Conventions à connaître
 
 - **i18n dès le premier texte** : toute chaîne affichée passe par une clé
-  lisible et **les deux traductions, fr et en, sont remplies
-  immédiatement**. Défaut : français.
+  lisible et **les trois traductions, fr, en et es, sont remplies
+  immédiatement** (le test de parité échoue sinon). Défaut : français.
 - **Jamais de valeur écrite en dur qui devrait venir du serveur** :
   population, influence, classement affichés côté client sont toujours une
   lecture de l'état serveur, jamais un calcul recalculé côté client (risque

@@ -18,7 +18,7 @@ import {
   entreeCatalogue,
   repartirBatiments,
 } from "@/lib/game/monuments";
-import { traduire } from "@/lib/i18n/dictionaries";
+import { locales, traduire } from "@/lib/i18n/dictionaries";
 
 /**
  * A-INTEGRER §41 (05/10/2026) : les mégaprojets rejoignent le catalogue à
@@ -165,15 +165,15 @@ describe("catalogue unifié — fonctions", () => {
     expect(rangDansLeStade(3)).toBe(0);
   });
 
-  it("chaque type du catalogue a un nom français ET anglais, et le libellé d'événement existe", () => {
+  it("chaque type du catalogue a un nom dans toutes les langues (fr, en, es), et le libellé d'événement existe", () => {
     for (const e of CATALOGUE_BATIMENTS) {
-      for (const locale of ["fr", "en"] as const) {
+      for (const locale of locales) {
         const cle = `${e.famille === "monument" ? "monument" : "megaprojet"}.type.${e.type}`;
         const texte = traduire(locale, cle as never);
         expect(typeof texte === "string" && texte.length > 0, `${locale} ${cle}`).toBe(true);
       }
     }
-    for (const locale of ["fr", "en"] as const) {
+    for (const locale of locales) {
       expect(traduire(locale, "bulletin.megaprojetDebloque").length).toBeGreaterThan(0);
       expect(traduire(locale, "monument.titre").length).toBeGreaterThan(0);
     }

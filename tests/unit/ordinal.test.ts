@@ -24,6 +24,10 @@ describe("ordinal", () => {
     expect(ordinal(13, "en")).toBe("13th");
   });
 
+  it("écrit 1.º, 2.º, 3.º… en espagnol, sans exception ni suffixe anglais (A-INTEGRER §50)", () => {
+    for (const n of [1, 2, 3, 4, 11, 12, 13, 21, 22, 100]) expect(ordinal(n, "es")).toBe(`${n}.º`);
+  });
+
   it("reprend le cycle normal après 13 (21 => st, 22 => nd)", () => {
     expect(ordinal(21, "en")).toBe("21st");
     expect(ordinal(22, "en")).toBe("22nd");

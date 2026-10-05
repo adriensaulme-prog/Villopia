@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CartePack } from "@/components/CartePack";
-import { dictionaries } from "@/lib/i18n/dictionaries";
+import { dictionaries, locales } from "@/lib/i18n/dictionaries";
 import {
   FAMILLES_BATIMENT,
   PACKS,
@@ -126,8 +126,8 @@ describe("catalogue des packs (TypeScript)", () => {
     }
   });
 
-  it("chaque pack a un nom, une description et ses familles en français et en anglais", () => {
-    for (const langue of ["fr", "en"] as const) {
+  it("chaque pack a un nom, une description et ses familles dans toutes les langues (fr, en, es)", () => {
+    for (const langue of locales) {
       const d = dictionaries[langue] as Record<string, string>;
       for (const fiche of PACKS) {
         expect(d[`theme.${fiche.id}`], `${langue} nom ${fiche.id}`).toBeTruthy();

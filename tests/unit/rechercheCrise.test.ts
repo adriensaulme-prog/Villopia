@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Technologies } from "@/components/Technologies";
-import { dictionaries } from "@/lib/i18n/dictionaries";
+import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 import { rechercheEnCrise } from "@/lib/game/technologies";
 
 /**
@@ -65,7 +65,7 @@ describe("migration 0051", () => {
 });
 
 describe("affichage des technologies", () => {
-  const rendre = (enCrise: boolean, langue: "fr" | "en" = "fr") =>
+  const rendre = (enCrise: boolean, langue: Locale = "fr") =>
     renderToStaticMarkup(createElement(Technologies, { locale: langue, paliersDebloques: 1, pointsRecherche: 120, enCrise }))
       .replace(/&#x27;/g, "'");
 
@@ -73,6 +73,7 @@ describe("affichage des technologies", () => {
     expect(rendre(true)).toContain(dictionaries.fr["technologie.enCrise"]);
     expect(rendre(false)).not.toContain(dictionaries.fr["technologie.enCrise"]);
     expect(rendre(true, "en")).toContain(dictionaries.en["technologie.enCrise"]);
+    expect(rendre(true, "es")).toContain(dictionaries.es["technologie.enCrise"]);
   });
 
   it("le message rassure : rien n'est perdu", () => {
