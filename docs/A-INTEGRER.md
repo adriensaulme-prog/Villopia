@@ -255,6 +255,38 @@ journal existant, puis ce fichier peut être supprimé.*
 > béton (`construireTourBeton`) n'a aucune géométrie de fenêtre, donc
 > rien à éclairer ; les tours vitrées, elles, s'éclairent déjà bien.
 
+> **§40 — fait le 05/10/2026** (cinq packs construits ; migration `0048` à appliquer par Adrien).
+> **§40 (cinq nouveaux packs de thème, 05/10/2026) : nouveau, validé
+> par Adrien** — à construire sur le modèle du pack haussmannien
+> (`src/lib/game/themes.ts`, `src/lib/ville3d/batiments.ts`), une fois
+> la boutique (§30, déjà faite) en place pour les accueillir.
+
+> **§41 (suppression des ressources de ville, fusion mégaprojets dans
+> les monuments, 05/10/2026) : nouveau, décision structurante
+> d'Adrien** — plus de matériaux/revenus/choix du maire : les
+> mégaprojets rejoignent le catalogue à seuils d'influence des
+> monuments, débloqués automatiquement comme eux.
+> **§42 — fait le 05/10/2026** (point fort du Résidentiel : jusqu'à 25 %
+> de chance d'un habitant de plus par visite, tirage indépendant du
+> Commerce ; migration `0049`, **à appliquer par Adrien** — le SQL n'a pas
+> pu être exécuté ici, les tests de comportement s'ignorent tant qu'elle
+> n'est pas appliquée). **Correction de l'état des lieux** : le Résidentiel
+> avait déjà sa crise (« crise du logement », visites à probabilité
+> jauge ÷ 60 %, depuis le Jalon 18) — seul le point fort manquait ; je
+> l'ai donc ajouté sans second malus (pas de double peine). Commerce
+> (plus de bonus des jumelages) et Énergie (risque de manifestation
+> doublé) ont aussi un malus de crise codé ; seule la Recherche n'en a
+> pas. À contester : le chiffre de 25 % et l'absence de second malus
+> « perte d'habitants ». Détail : `DECISIONS.md` §4 « Point fort du
+> Résidentiel ».
+> **§42 (bonus/malus des 7 activités de ville, 05/10/2026) : nouveau,
+> état des lieux + proposition** — 6 des 7 activités ont déjà un effet
+> (point fort/crise) écrit dans le code ; Résidentiel n'en a aucun,
+> proposition à valider.
+> **§43 (amélioration visuelle des monuments, 05/10/2026) : nouveau** —
+> suite du §39/§33 : la taille a été corrigée le 02/10, pas le détail ;
+> toujours 3 silhouettes primitives (cylindre/boîte).
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).
@@ -2340,3 +2372,189 @@ tours vitrées) dans une ossature de béton apparent (dalle en saillie à chaque
 étage, poteaux d'angle, trumeaux), et son socle est un vrai socle commercial
 (`MAT.PODIUM`). Aucun nouveau matériau ni shader, aucune migration. Détail
 dans `DECISIONS.md` §4 « La tour béton s'éclaire la nuit ».
+## 40. Cinq nouveaux packs de thème (idées validées par Adrien, 05/10/2026)
+
+**Contexte** : en discutant avec Claude chat de nouvelles idées de
+packs pour la boutique (§30, déjà construite), Adrien valide cinq
+nouvelles pistes, toutes purement cosmétiques (`BATIMENTS-ET-PACKS.md`
+§4 : jamais d'avantage de jeu), à construire sur le même modèle que le
+pack `haussmannien` existant (`src/lib/game/themes.ts` : ajout à
+`THEMES`/`PACKS` avec `id`, `familles`, `palette` ; nouvelles fonctions
+`construire...` dans `src/lib/ville3d/batiments.ts`, enregistrées dans
+le catalogue avec `stadeMin`/`poids`). Rappel du principe : une famille
+(maison/immeuble/tour) sans modèle dédié dans un pack retombe sur
+`classique` — chaque pack ci-dessous précise les familles qu'il
+couvre, le reste de la ville ne change pas pour ce pack-là.
+
+1. **« Bord de mer » — famille maison.** Bardage blanc/bleu clair,
+   volets colorés, toits en pente douce, ambiance balnéaire. Palette
+   suggérée : blancs cassés, bleus pastel, bois clair.
+2. **« Village de pierre » — famille maison.** Pierre sèche/ardoise,
+   plus rustique que le `classique` actuel, toits à faible pente en
+   ardoise grise. Concurrent direct de « bord de mer » sur la même
+   famille : le joueur choisit l'un ou l'autre pour ses maisons, pas
+   les deux à la fois. Palette suggérée : gris pierre, ardoise foncée,
+   touches de bois brut.
+3. **« Quartier industriel reconverti » — famille immeuble.** Briques
+   rouges, structures métalliques apparentes, grandes verrières —
+   concurrent du `haussmannien` sur la même famille (immeuble), dans un
+   esprit opposé (industriel brut plutôt que pierre claire
+   bourgeoise). Palette suggérée : brique rouge/brune, métal noir,
+   verre teinté.
+4. **« Futuriste / éco » — famille tour.** Façades végétalisées,
+   panneaux solaires intégrés, structure métallique visible — contrepoint
+   des tours vitrées/béton actuelles (voir aussi §39 sur le manque de
+   fenêtres de la tour béton, à ne pas confondre avec ce nouveau pack :
+   deux sujets distincts). Palette suggérée : verts végétaux, blanc
+   technique, accents métalliques clairs.
+5. **« Nordique » — maison + immeuble + tour, les trois familles.**
+   Bois clair, toits pentus, couleurs sourdes — pensé pour changer le
+   style de toute une ville d'un coup avec un seul pack plutôt que de
+   combiner plusieurs packs à une seule famille chacun. Palette
+   suggérée : bois clair, blanc, bleu-gris doux, touches de rouge
+   terracotta.
+
+**Portée** : cinq nouveaux packs, aucun changement de mécanique de jeu.
+Noms de pack définitifs, détail exact des silhouettes et poids dans le
+catalogue laissés à Claude Code — ces cinq descriptions sont un point
+de départ créatif, pas une spécification figée au pixel près (même
+esprit que pour le pack haussmannien à l'origine).
+
+**Traité le 05/10/2026 (Claude Code)** : les cinq packs sont construits (17 modèles, `batimentsPacks.ts`),
+déclarés dans `THEMES`/`PACKS` et inscrits au catalogue ; migration `0048` (catalogue, contrainte, fonction —
+à appliquer par Adrien) ; **payants** comme Haussmannien, attribuables à la main en attendant le paiement.
+Détail : `DECISIONS.md` §4 « Cinq nouveaux packs de thème ».
+## 41. Suppression des ressources de ville + fusion des mégaprojets dans le catalogue des monuments (décision d'Adrien, 05/10/2026)
+
+**Décision d'Adrien, structurante** : plus de ressources de ville du
+tout (ni matériaux, ni revenus — les stocks alimentés aujourd'hui par
+Industrie/Commerce). Les mégaprojets (Stade, Hôpital, Centrale
+solaire, etc.) doivent rejoindre le catalogue des monuments plutôt que
+de garder leur propre système de financement. **Confirmé avec Adrien
+(AskUserQuestion du 05/10/2026)** : le mécanisme retenu est
+« automatique, comme les monuments » — plus de choix du maire entre 3
+options, plus de financement par les visiteurs, plus de barre de
+chantier : un mégaprojet apparaît tout seul dès qu'un seuil est
+atteint, exactement comme un monument aujourd'hui.
+
+**Mécanisme actuel des monuments, à réutiliser tel quel** (`monument_catalogue()`,
+migration `0030`) : une table fixe de 16 paliers, seuil en
+`influence_max` (jamais décroissant) croissant de 10 à 1 000 000,
+chaque palier associé à un type de monument. `avancer_monuments()`
+tourne à chaque action qui touche l'influence, débloque
+opportunistement tous les paliers déjà atteints, jamais retiré ensuite
+même si l'influence courante rebaisse.
+
+**Ce qui change concrètement** :
+- Les types de mégaprojets actuels (Grande école, Marché couvert,
+  Hôpital, Stade, Centrale solaire, Zone logistique, Technopole, Gare
+  TGV, Parc éolien, Opéra, Tour emblématique, Aéroport, Centre de
+  recherche, Centrale...) deviennent des entrées du catalogue à seuils
+  d'influence, mélangées avec les monuments existants plutôt que sur
+  leur propre table de paliers de population. Répartition exacte des
+  seuils laissée à Claude Code (probablement en augmentant le nombre
+  de paliers au-delà des 16 actuels, pour loger les deux familles sans
+  se marcher dessus).
+- **Les bonus permanents de chaque mégaprojet sont conservés** (Stade :
+  départs −25 % ; Centrale solaire : Énergie comptée +20 % ; Hôpital :
+  contamination divisée par 2 ; etc., voir `docs/SYSTEME-DEVELOPPEMENT.md`
+  §6) — seul le mécanisme de déblocage change, pas ce que le bâtiment
+  apporte une fois là.
+- Les tables `city_blocks`/`megaprojets`/stocks liées au financement
+  (migrations `0028`/`0029`) sont à retirer ou vider de leur rôle de
+  financement ; voir si une table unique façon `monuments` suffit pour
+  les deux familles ou s'il vaut mieux garder deux tables avec un
+  déblocage partagé — au choix de Claude Code.
+- **Portée volontairement limitée à ce point précis** : l'emplacement
+  3D des mégaprojets (§37, « à la bordure » plutôt que la ceinture à
+  450 m) n'est **pas remis en cause** par cette fusion — ce sont deux
+  sujets différents (ici : comment un mégaprojet se débloque ; §37 : où
+  il apparaît dans la scène 3D). Sauf avis contraire d'Adrien, les
+  mégaprojets restent hors de la ville à leur bordure, les monuments
+  restent dans les cours des blocs (§33) — seul le système de
+  déblocage est maintenant partagé.
+
+**Pas encore tranché, à la discrétion de Claude Code ou à redemander à
+Adrien si ça change la faisabilité** : l'ordre dans lequel les
+mégaprojets et les monuments s'entremêlent dans les 16+ paliers (par
+ex. alterner, ou garder les mégaprojets sur des paliers plus espacés
+puisqu'ils sont visuellement plus gros) ; que devient l'ancien panneau
+« Mégaprojets du maire » (`Megaprojets.tsx`, choix/progression) une
+fois qu'il n'y a plus de choix ni de chantier — probablement fusionné
+dans le panneau des monuments existant plutôt que maintenu séparément.
+## 42. Bonus/malus des 7 activités de ville : état des lieux et proposition pour Résidentiel (05/10/2026)
+
+**Demande d'Adrien** : définir clairement le bonus/malus de chaque
+activité (celles des jauges avec barres de pourcentage sur « Ma
+ville » : 🏠 Résidentiel, 🏭 Industrie, 🛒 Commerce, 🌳 Loisirs, 🏥
+Services, ⚡ Énergie, 🔬 Recherche).
+
+**Confirmé en lisant le code : 6 des 7 ont déjà un effet défini.**
+
+| Activité | Effet en « point fort » | Effet en « crise » |
+|---|---|---|
+| 🏭 Industrie | protège contre la Grève (jusqu'à −50 % de sa durée) | aggrave la Grève (jusqu'à +50 %) |
+| 🏥 Services | protège contre la Contamination (jusqu'à −50 % de perte) | aggrave la Contamination (jusqu'à +50 %) |
+| 🌳 Loisirs | protège contre la Propagande (jusqu'à −50 %) | aggrave la Propagande (jusqu'à +50 %) |
+| 🛒 Commerce | jusqu'à 25 % de chances d'un habitant supplémentaire par visite | aucun malus propre écrit |
+| ⚡ Énergie | réduit le risque de Contamination lui-même, jusqu'à −50 % (indépendamment de la défense Services) | aucun malus propre écrit |
+| 🔬 Recherche | jusqu'à 50 % de chances de +2 influence au lieu de +1 sur une action d'influence | aucun malus propre écrit |
+| 🏠 **Résidentiel** | **aucun effet, ni bonus ni malus** | **aucun effet** |
+
+Industrie/Services/Loisirs ont un bonus ET un malus symétriques (rôle
+défensif). Commerce/Énergie/Recherche n'ont qu'un bonus en point fort,
+pas de malus écrit en crise — à signaler si Adrien veut une vraie
+symétrie partout.
+
+**Proposition pour Résidentiel** *(à valider par Adrien)* : comme les
+6 autres activités ont toutes un lien avec une mécanique qui existe déjà
+(défense, visites, influence), Résidentiel pourrait jouer sur la
+**croissance de la population elle-même** — par exemple point fort :
+chance supplémentaire de gagner un habitant par visite indépendamment
+de Commerce (ou un bonus sur le seuil "4 habitants par logement" des
+maisons) ; crise : la ville perd des habitants plus facilement (effet
+symétrique avec Industrie/Services/Loisirs). Choix du chiffre exact
+laissé à Claude Code une fois le principe validé par Adrien.
+
+**Point ouvert signalé en passant** : si Adrien veut une vraie symétrie
+bonus/malus partout, il faudra aussi écrire un malus de crise pour
+Commerce, Énergie et Recherche (aujourd'hui absents), pas seulement
+pour Résidentiel.
+## 43. Amélioration visuelle des monuments (suite du §33/§39, 05/10/2026)
+
+**Contexte** : les monuments ont déjà été agrandis (×2,5, le
+02/10/2026, voir `ECHELLE_MONUMENT` dans `src/lib/ville3d/monuments.ts`)
+mais jamais rendus plus détaillés — ils utilisent toujours exactement
+les 3 silhouettes d'origine (colonne/obélisque, statue/buste, arche),
+chacune construite avec 1 à 3 primitives géométriques de base
+(cylindre, boîte) et une seule teinte or/bronze commune
+(`ACCENT = "#c9a227"`), sans variation de matériau ni de détail selon
+le type réel (`borne_commemorative`, `temple_national`,
+`monument_ultime`... 16 types au total, tous rendus avec la même
+poignée de formes).
+
+**Demande d'Adrien** : améliorer la qualité visuelle des monuments,
+au-delà de la taille déjà corrigée.
+
+**À faire**, dans `src/lib/ville3d/monuments.ts`
+(`buildMonument()`) — au choix de Claude Code pour le détail
+d'implémentation, dans le même esprit que ce qui a déjà été fait pour
+l'Énergie et les maisons :
+- Plus de variété de silhouettes que les 3 actuelles, ou au minimum
+  des variantes visuelles DANS chaque silhouette selon le type exact
+  (un `temple_national` ou un `monument_ultime` — paliers 13 et 15,
+  les plus prestigieux — devraient visuellement se distinguer d'une
+  `borne_commemorative` du palier 0, pas juste être plus grands).
+- Plus de détail de surface (socle à marches, inscriptions/plaque,
+  éléments décoratifs selon le type), plutôt que des primitives nues.
+- Garder la teinte or/bronze comme signature commune des monuments
+  (pour qu'on les reconnaisse au premier coup d'œil, comme le
+  commentaire du fichier l'explique déjà), mais une palette qui varie
+  légèrement selon le palier est envisageable si ça aide à distinguer
+  les monuments prestigieux des modestes.
+
+**À garder en tête en même temps** : le §41 fusionne les mégaprojets
+dans ce même catalogue — si ce chantier de détail visuel démarre après
+le §41, prévoir que `buildMonument()` (ou son équivalent fusionné)
+doit aussi couvrir les anciens types de mégaprojets avec un niveau de
+détail cohérent, pas seulement les 16 types de monuments d'origine.

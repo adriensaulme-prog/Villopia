@@ -101,7 +101,7 @@ entre 60 % et 150 % de jauge), plafonnés, et calculés côté serveur.
 
 | | Point fort (jusqu'à 150 %) | Crise (< 60 %) |
 |---|---|---|
-| 🏠 Résidentiel | — (condition de base) | **crise du logement** : chaque visite n'apporte l'habitant qu'avec une probabilité jauge ÷ 60 % |
+| 🏠 Résidentiel | **croissance de la ville** : chaque visite a une chance de rapporter un habitant de plus, jusqu'à 25 % (tirage indépendant du Commerce) — *ajouté le 05/10/2026, A-INTEGRER §42* | **crise du logement** : chaque visite n'apporte l'habitant qu'avec une probabilité jauge ÷ 60 % |
 | 🏭 Industrie | **grèves plus courtes** : jusqu'à −60 % de durée | grèves +50 % de durée |
 | 🛒 Commerce | **croissance** : jusqu'à +25 % d'habitants par visite (habitant bonus) | pas de bonus des jumelages |
 | 🌳 Loisirs | **ville soudée** : pertes dues aux manifestations et à la propagande jusqu'à −50 % | pertes +50 % |

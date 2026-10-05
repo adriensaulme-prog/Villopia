@@ -4655,8 +4655,9 @@ le **milieu** du secteur d'Énergie (±30° autour de +x) : un tirage proche de 
   demandé au §37 A : il l'a explicitement désigné (« énergie ») quand je lui ai demandé
   quel bouton retirer avant le commit. Les boutons des **mégaprojets** et des
   **monuments** restent. `emplacementEnergie()` et `emplacementCentrale()` ne servent
-  plus qu'au rendu 3D. La règle `.jauge .jauge-voir` de `globals.css`, devenue
-  inutile, est retirée.
+  plus qu'au rendu 3D. La règle `.jauge .jauge-voir` de `globals.css` n'est plus
+  utilisée (non retirée : le fichier portait des changements d'une autre session non
+  commités).
 - Les forêts n'empiètent plus sur l'Énergie (`zonesEnergie()`).
 
 **Testé.** `tests/unit/megaprojetsVille.test.ts` (nouveau, 10) : case libre à
@@ -4885,6 +4886,8 @@ de confirmation depuis une adresse à soi) en dépend. La **disponibilité du
 nom** (Play Store, marque déposée, domaine) n'est pas vérifiée : je ne peux
 pas le faire sérieusement d'ici.
 
+---
+
 ### La tour béton s'éclaire la nuit (A-INTEGRER §39) — 05/10/2026
 
 **Retour d'Adrien** : les tours grises ne s'éclairent pas la nuit, à la différence des
@@ -4923,6 +4926,132 @@ le squelette et le chantier nu n'a pas de verre ; déterminisme ; empreinte d'om
 vérifié rouge** : sans le noyau vitré, 3 tests échouent. Vérifié à l'œil dans la vraie scène
 (page temporaire, supprimée) : de jour, les tours grises montrent leurs bandeaux de fenêtres
 entre les dalles ; à 22 h 30 (Paris), elles s'éclairent comme les tours vitrées.
+
+### Point fort du Résidentiel (A-INTEGRER §42) — 05/10/2026
+
+**Demande d'Adrien.** Donner au Résidentiel un effet point fort/crise « symétrique aux rôles
+défensifs d'Industrie/Services/Loisirs », en jouant sur la croissance de la population.
+Le chiffre exact était laissé à mon choix.
+
+**Correction de l'état des lieux du §42 (à connaître avant de relire la note).** Le tableau du
+§42 dit « Résidentiel : aucun effet, ni bonus ni malus ». **C'est faux pour la crise** : la
+*crise du logement* existe depuis le Jalon 18 (`visiter_ville()`, migration `0024`,
+`SYSTEME-DEVELOPPEMENT.md` §4) — sous 60 % de jauge, la visite n'apporte l'habitant qu'avec
+une probabilité jauge ÷ 60 %, avec son message dédié (`villes.visiteComptSansGain`) et son
+test (`jalon18-effets-equilibre.spec.ts`). Seul le **point fort** était vide. Le tableau est
+aussi inexact pour deux autres lignes : Commerce a bien un malus de crise (plus de bonus des
+jumelages, `reclamer_bonus_jumelages()`) et Énergie aussi (sa jauge en crise compte double
+dans le risque de manifestation, `verifier_manifestation()`) ; seule la Recherche n'a pas
+de malus (« pas de nouvelle technologie » du §4 n'est pas codé).
+
+**Décision.** Je **garde la crise du logement telle quelle** et j'ajoute le point fort qui
+manquait, du même côté — le gain d'habitants par visite — plutôt que d'empiler un second malus
+(« la ville perd des habitants plus facilement », proposé par le §42 qui ignorait la crise
+existante) : ce serait une double peine sur la même jauge, et il toucherait l'équilibre des
+manifestations et d'AntiVille réglé aux Jalons 14 et 18. Si Adrien veut quand même ce
+second malus, c'est un ajout séparé.
+
+| | Crise (< 60 %) | Point fort (> 120 %) |
+|---|---|---|
+| 🏠 Résidentiel | la visite ne rapporte l'habitant qu'avec une probabilité jauge ÷ 60 % (inchangé) | la visite a une chance de rapporter **un habitant de plus**, jusqu'à **25 %** à 150 % de jauge et au-delà (nouveau) |
+
+- *Mécanique.* Migration `0049_residentiel_point_fort.sql` : une fonction pure
+  `bonus_croissance_residentiel(jauge)` = `intensite_point_fort(jauge) × 0,25` (nulle jusqu'à
+  120 %, progressive jusqu'à 150 %, plafonnée — comme tous les effets du §4), et
+  `visiter_ville()` recréée à l'identique de la `0045` + 5 lignes : un tirage indépendant de celui
+  du Commerce, dans le bloc où la visite rapporte l'habitant. Les deux se cumulent : au plus
+  1 + 1 + 1 habitants par visite (+ la solidarité du §6bis, inchangée). Les zones de crise et de
+  point fort ne se recouvrent jamais. `visites.gain` enregistre le gain réel, bonus compris : une
+  visite annulée (§34) reprend aussi l'habitant de plus. Aucune colonne, aucun code d'erreur.
+- *Pourquoi 25 % et pas 50 %.* 50 % est le plafond des rôles défensifs, mais ici l'effet joue
+  sur la **vitesse de croissance**, déjà réglée au §17. Or un Hameau n'a que deux activités
+  (Résidentiel et Loisirs) : son Résidentiel passe naturellement au-dessus de 120 % après une
+  dizaine de visites, vers 150 % après une soixantaine (jauge = (élan + 6) ÷ (élan total + 20)
+  ÷ 0,3). À 50 %, le début de partie aurait pris jusqu'à moitié de vitesse en plus ; à 25 %,
+  comme le « croissance » du Commerce (seul autre effet sur le gain d'une visite), le changement
+  reste modéré. **Un seul chiffre à relever** (`0.25` dans `bonus_croissance_residentiel()`)
+  si Adrien veut plus.
+- *Effet de bord à connaître.* À cause du point précédent, les **petites villes** profitent
+  de ce point fort presque d'office (Résidentiel et Loisirs seuls dans les jauges), alors que
+  les grandes villes, qui répartissent leurs visites sur sept activités, devront le chercher
+  (se spécialiser en Résidentiel, au prix de crises ailleurs — manifestations, §5). C'est le
+  même arbitrage « se spécialiser ou rester équilibré » que le reste du §4.
+- *Pas de texte d'interface.* Aucun écran ne décrit aujourd'hui les effets des activités (seuls
+  les états Crise/Fragile/Équilibré/Point fort sont affichés) ; rien à ajouter. Le message de
+  visite affiche déjà le gain réel (`+2 habitants` quand le bonus tombe).
+
+**Testé.** `tests/unit/residentielPointFort.test.ts` (nouveau, 11) : garde de schéma sans base
+sur la **dernière** définition de `visiter_ville()` — crise du logement présente, tirage
+du point fort présent dans le bloc de gain avec la jauge du Résidentiel, tirage du Commerce
+conservé, `bonus_croissance_residentiel()` dérivée de `intensite_point_fort()` avec un plafond
+dans ]0 ; 1]. **Sabotages vérifiés rouges** (sur le texte du schéma, comme
+`nomsUniquesSchema.test.ts`) : tirage retiré, branché sur la jauge du Commerce, sorti du bloc ;
+une migration ultérieure qui recopie `visiter_ville()` sans le point fort (la régression réelle :
+onze recopies avant celle-ci) ; crise retirée ; tirage du Commerce retiré ; plafond à 1,5 ou à 0 ;
+fonction ne dépendant plus de `intensite_point_fort()` ou supprimée.
+`tests/e2e/residentiel-point-fort.spec.ts` (nouveau, 2) : la fonction pure aux jauges 0, 0,5, 1,
+1,2, 1,35, 1,5 et 3 ; et, sur une ville poussée à ~240 % de Résidentiel, 50 visites dont le
+total dépasse 50 (probabilité d'échec par malchance 0,75⁵⁰ ≈ 6×10⁻⁷), chaque visite à 1 ou 2
+habitants, population et `visites.gain` égaux au total. **Ces deux tests n'ont pas pu être
+joués** : ils s'ignorent tant que la migration `0049` n'est pas appliquée à la base (même principe
+que `0047`) — et le SQL lui-même n'a donc été exécuté nulle part (il n'y a pas de base locale ;
+`visiter_ville()` a été comparée ligne à ligne à la `0045`, seules les 5 lignes du §42 diffèrent).
+**À appliquer par Adrien** (éditeur SQL de Supabase, comme les précédentes), puis relancer
+`npx playwright test tests/e2e/residentiel-point-fort.spec.ts`.
+
+---
+
+### Cinq nouveaux packs de thème : Bord de mer, Village de pierre, Quartier industriel, Futuriste/éco, Nordique (A-INTEGRER §40) — 05/10/2026
+
+**Demande d'Adrien** : construire cinq packs sur le modèle du pack Haussmannien, décider
+gratuit ou payant, mettre à jour le statut du §40.
+
+**Les cinq packs** (identifiants = valeurs de `cities.theme` : `bord_de_mer`, `village_de_pierre`,
+`quartier_industriel`, `futuriste_eco`, `nordique`) — 17 nouveaux modèles, dans
+`src/lib/ville3d/batimentsPacks.ts`, inscrits au catalogue de `batiments.ts` :
+
+| Pack | Familles | Modèles | Silhouettes |
+|---|---|---|---|
+| Bord de mer | maisons | `maison-balneaire`, `maison-cabane-pilotis`, `maison-balneaire-vigie` | villa pastel à toit en pente douce, terrasse de bois et parasol ; cabane sur pilotis avec escalier ; villa à petite tour de vigie rayée |
+| Village de pierre | maisons | `maison-pierre-bloc`, `maison-pierre-grange`, `maison-pierre-tourelle` | pierre sèche sous ardoise à faible pente, cheminée massive, auvent de bois, muret de pierre ; maison + grange en bois brut ; tourelle ronde coiffée d'ardoise |
+| Quartier industriel reconverti | immeubles | `immeuble-loft-briques`, `immeuble-loft-verriere` | brique rouge, poteaux d'acier noirs, grande verrière centrale, sheds vitrés et cheminée ; socle de brique + étage-atelier vitré et château d'eau |
+| Futuriste / éco | tours | `tour-eco-vegetale`, `tour-eco-solaire` | noyau vitré vert d'eau, terrasses plantées en quinconce, toit solaire + éolienne ; deux tours jumelles à panneaux solaires reliées par des passerelles |
+| Nordique | maisons, immeubles, tours | `maison-nordique-bois`, `-pastel`, `-cabane` ; `immeuble-nordique-bois`, `-pastel` ; `tour-nordique-bois`, `-clocher` | bois clair, toits pentus sombres ou terracotta, sapins au lieu de feuillus ; cabane en A ; balcons de bois, lucarnes ; tour de bois lamellé à cap pentu |
+
+- **Concurrents.** Une ville ne porte qu'un seul thème (`cities.theme`) : « Bord de mer » et « Village de
+  pierre » (maisons), « Quartier industriel » et « Haussmannien » (immeubles) sont donc concurrents
+  d'office, sans code en plus. Une famille sans modèle dans le pack choisi retombe sur « classique ».
+- **Palettes** des fiches (`themes.ts`) = approximation des matériaux, comme pour Haussmannien. Les
+  palettes suggérées du §40 ont servi de point de départ.
+- **Un seul fichier de plus, deux fonctions partagées** : `decorJardin()` (batiments.ts) prend une
+  essence d'arbre (« conifere » pour le Nordique, petit sapin) ; le repère local de parcelle de
+  `quartiers.ts` (§36) a été extrait dans `repere.ts` pour être réutilisé, sans changement de comportement.
+- **Tours** : même trame que les tours du pack de base (chantier à F = 0, ossature en construction, grue,
+  couronnement à la fin), via une trame commune `tourModulaire()`. Les fenêtres des tours Nordique et
+  Éco sont en matériau vitré : elles s'éclairent la nuit (à ne pas confondre avec le §39, tour béton).
+
+**Gratuit ou payant : payants** (décision de Claude Code, à contester par Adrien). Haussmannien est
+payant depuis le 05/10/2026 ; les packs sont le produit de la boutique, donc les cinq le sont aussi.
+Le paiement n'étant pas branché, personne ne les possède tant qu'on ne les lui attribue pas :
+`insert into public.joueur_packs (joueur_id, pack) values ('<id>', 'nordique');`. L'**aperçu** dans la
+Boutique reste ouvert à tous. Pour en ouvrir un à tout le monde :
+`update public.packs set gratuit = true where id = 'nordique';`.
+
+**Migration `0048_cinq_packs_de_theme.sql`** (nouvelle, ne modifie pas la `0047`) : ajoute les cinq lignes
+à `packs`, remplace la contrainte `cities_theme_check` (0034) par la liste de sept thèmes et redéfinit
+`definir_theme_ville()` avec la même liste (mêmes contrôles et codes d'erreur P0004/P0007/P0022/P0030).
+**À appliquer par Adrien** après la `0047`. Tant qu'elle ne l'est pas, les cinq packs apparaissent dans la
+Boutique et s'aperçoivent, mais « Appliquer » est refusé par la base.
+
+**Testé.** `packsTheme.test.ts` (66 tests) : chaque pack a de vrais modèles pour exactement les familles
+annoncées et seulement elles ; chaque parcelle d'une de ses familles reçoit un modèle du pack ; chaque
+modèle reste dans la parcelle (4 façades × 12 tirages), est déterministe, plus riche qu'une boîte et sous
+le budget de triangles (600, 1 800 pour une tour) ; les tours gèrent le chantier. `boutique.test.ts`
+suit désormais la dernière migration (liste des thèmes, contrainte, fonction), vérifie que les cinq sont
+payants et que la `0048` ne touche à aucune donnée de jeu. E2E : les cinq packs sont dans la Boutique
+(payants une fois la `0048` appliquée) et l'aperçu de chacun change le thème de la scène 3D sans rien
+enregistrer. Revue visuelle : showroom (maintenant façade vers la caméra pour les trois familles) et ville
+de démonstration rendue avec chaque thème.
 
 ---
 
