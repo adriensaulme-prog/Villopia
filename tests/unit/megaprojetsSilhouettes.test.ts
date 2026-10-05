@@ -19,7 +19,7 @@ interface Construit {
   g: Geo;
   ao: { x0: number; z0: number; x1: number; z1: number; w: number; h: number }[];
   R: number;
-  /** Demi-côté le long de z : égal à R sauf pour le Grand stade (site rectangulaire, §49 D). */
+  /** Demi-côté le long de z (28 m pour le Stade, 2 × 1 blocs, 3ᵉ consigne ; égal à R pour tous les autres). */
   Rz: number;
   H: number;
 }
@@ -29,7 +29,7 @@ function construire(type: string, stade: number, cle = "silhouettes|" + type): C
   const ao: Construit["ao"] = [];
   const r = rngFrom(cle);
   buildMegaprojet(g, 0, 0, type, stade, r, ao as never, Math.floor(r() * 900) + 50);
-  // La taille d'un mégaprojet : celle de son stade, sauf le Stade et le Grand stade (plusieurs blocs, §49 D).
+  // La taille d'un mégaprojet : celle de son stade, sauf le Stade (2 × 1 blocs) et le Parc d'attractions (2 × 2 blocs, §49 D, 3ᵉ consigne).
   const { R, Rz, H } = tailleMegaprojet(type, stade);
   return { g, ao, R, Rz, H };
 }
@@ -83,7 +83,8 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
       for (const v of sommets(g)) {
         expect(Math.abs(v.x), `${d.type} x`).toBeLessThanOrEqual(R + 0.05);
         expect(Math.abs(v.z), `${d.type} z`).toBeLessThanOrEqual(Rz + 0.05);
-        expect(v.y, `${d.type} y bas`).toBeGreaterThanOrEqual(0);
+        // Les pieds de la grande roue (Parc d'attractions) s'enfoncent de quelques centimètres dans la plateforme : on ne les voit pas.
+        expect(v.y, `${d.type} y bas`).toBeGreaterThanOrEqual(-0.1);
         expect(v.y, `${d.type} y haut`).toBeLessThanOrEqual(BASE + 1.7 * H);
       }
     }
@@ -151,14 +152,55 @@ describe("silhouettes des mégaprojets (A-INTEGRER §44)", () => {
     }
   });
 
-  it("le budget de poids reste modeste : moins de 8 000 sommets par mégaprojet d'un bloc, 14 000 pour le Stade et 20 000 pour le Grand stade (plusieurs blocs, §49 D), 90 000 pour les 18 au stade le plus grand", () => {
+  it("le budget de poids reste modeste : moins de 8 000 sommets par mégaprojet d'un bloc, 16 000 pour le Stade et 50 000 pour le Parc d'attractions au niveau Loisirs maximal (3ᵉ consigne : « beaucoup plus de détail »), 115 000 pour les 18 au stade le plus grand", () => {
     let total = 0;
     for (const d of DEFS) {
       const n = construire(d.type, 4).g.n;
-      expect(n, d.type).toBeLessThan(d.type === "stade" ? 14_000 : d.type === "grand_stade" ? 20_000 : 8000);
+      expect(n, d.type).toBeLessThan(d.type === "stade" ? 16_000 : d.type === "grand_stade" ? 50_000 : 8000);
       total += n;
     }
-    expect(total).toBeLessThan(90_000);
+    expect(total).toBeLessThan(115_000);
+  });
+
+  describe("éclairage de nuit (retour d'Adrien du 05/10/2026 : « je veux un éclairage de nuit »)", () => {
+    /** Construit avec le tableau des halos de lumière au sol que generate() passe à la carte de lueur. */
+    function avecLueurs(type: string, stade: number) {
+      const g = new Geo();
+      const ao: Construit["ao"] = [];
+      const glow: { x: number; z: number }[] = [];
+      const r = rngFrom("silhouettes|" + type);
+      buildMegaprojet(g, 0, 0, type, stade, r, ao as never, Math.floor(r() * 900) + 50, Infinity, glow);
+      return { g, glow, ...tailleMegaprojet(type, stade) };
+    }
+
+    it("chacun des 18 est entouré de lampadaires allumés la nuit (MAT.LAMP), avec une lueur au sol par lampadaire, tous dans sa plateforme", () => {
+      for (const d of DEFS) {
+        const { g, glow, R, Rz } = avecLueurs(d.type, d.stade);
+        const lampes = sommets(g).filter((v) => v.m === MAT.LAMP);
+        expect(lampes.length, `${d.type} : lampadaires`).toBeGreaterThanOrEqual(8 * 20); // une tête de 20 sommets par lampadaire
+        expect(glow.length, `${d.type} : lueurs`).toBeGreaterThanOrEqual(8);
+        for (const l of glow) {
+          expect(Math.abs(l.x), `${d.type} lueur x`).toBeLessThanOrEqual(R + 1);
+          expect(Math.abs(l.z), `${d.type} lueur z`).toBeLessThanOrEqual(Rz + 1);
+        }
+      }
+    });
+
+    it("le Stade et le Parc d'attractions brillent de leurs propres lumières (MAT.BEACON) et éclairent leur pelouse ou leurs allées", () => {
+      for (const type of ["stade", "grand_stade"]) {
+        const { g, glow } = avecLueurs(type, 4);
+        expect(sommets(g).filter((v) => v.m === MAT.BEACON).length, `${type} : sommets lumineux`).toBeGreaterThanOrEqual(1000);
+        // Bien plus de lueurs que le pourtour seul (~20 lampadaires) : la pelouse, l'esplanade ou les allées sont éclairées.
+        expect(glow.length, `${type} : lueurs`).toBeGreaterThan(100);
+      }
+    });
+
+    it("sans tableau de lueurs (tests isolés), le dessin est le même : les halos ne changent aucun sommet", () => {
+      for (const d of DEFS.slice(0, 6)) {
+        const avec = avecLueurs(d.type, d.stade).g;
+        expect(signature(avec), d.type).toBe(signature(construire(d.type, d.stade, "silhouettes|" + d.type).g));
+      }
+    });
   });
 
   describe("réemploi des modèles déjà dessinés", () => {

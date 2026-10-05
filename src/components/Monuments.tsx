@@ -37,7 +37,7 @@ export function Monuments({
   const cle = cleDe(cleVille);
   const debloques = new Set(paliersDebloques);
   // La place n'est calculée que pour ce qui est débloqué : les monuments sont sur une parcelle de
-  // façade des premiers blocs (§33, §49 B), les mégaprojets à la bordure de la ville (§37).
+  // façade des premiers blocs (§33, §49 B), les mégaprojets dans les blocs qui suivent (retour d'Adrien du 05/10/2026 : « dans les villes »).
   const placesMon = placesMonuments(
     cle,
     CATALOGUE_BATIMENTS.filter((e) => e.famille === "monument" && debloques.has(e.palier)).map((e) => e.palier)

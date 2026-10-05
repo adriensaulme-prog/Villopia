@@ -5368,6 +5368,62 @@ croix retirée. Les vérifications d'emprise ont d'ailleurs trouvé de vrais dé
 arbres, corniche), corrigés. Un seul cas de test ne distingue pas : une croix posée à l'arrière du bâtiment passerait
 (tout parallélépipède a une face +z) ; le showroom la montre à l'avant.
 
+---
+
+### Mégaprojets à taille réelle : un bloc entier réservé (A-INTEGRER §45) — 05/10/2026
+
+**Demande d'Adrien.** « Agrandis nettement `rayonMegaprojet()` / `hauteurMegaprojet()` pour que les
+mégaprojets aient une taille réaliste à côté des maisons et des immeubles » ; résoudre le conflit avec
+l'espace disponible à ma discrétion, sans jamais déplacer un mégaprojet déjà construit.
+
+**Avant.** Demi-côté de 2,4 à 4,0 m (4,8 à 8 m de large), hauteur de 4 à 10,8 m : plus petit qu'un arbre
+au zoom maximal, posé dans une cour de bloc (≥ 14,5 m).
+
+| Stade | Mégaprojets | Largeur (avant → maintenant) | Hauteur (avant → maintenant) |
+|---|---|---|---|
+| 0 | Grande école, Parc des sports, Marché couvert | 4,8 → **22 m** | 4 → **11 m** |
+| 1 | Hôpital, Stade, Centrale solaire, Zone logistique | 5,6 → **30 m** | 5,7 → **17 m** |
+| 2 | Technopole, Gare TGV, Parc éolien, Opéra | 6,4 → **38 m** | 7,4 → **25 m** |
+| 3 | Tour emblématique, Aéroport, Centre de recherche, Centrale | 7,2 → **46 m** | 9,1 → **40 m** |
+| 4 | Grand stade, Centrale nouvelle génération, Siège international | 8 → **~50 m** (54 réduit à la place) | 10,8 → **55 m** |
+
+Repères : une maison fait ~9 m de large, un immeuble 12 m, une tour 21 m ; un bloc 64 m.
+
+**Le conflit d'espace, tranché : le bloc entier est réservé au mégaprojet** (première piste du §45).
+- *Position inchangée* : le mégaprojet reste EXACTEMENT au centre de la cour de sa case (celle d'avant le
+  §45 ; testé). Seule sa taille change.
+- *Aucun lot ne s'y construit* (`siteMegaprojet`, `terrain.ts`) : ni maison, ni immeuble, ni gratte-ciel, ni
+  cour. Le bloc garde sa pelouse, ses trottoirs et ses lampadaires (la rue reste éclairée) ; les arbres
+  d'alignement disparaissent (ils seraient sous la plateforme). Quand la ville atteint la case, le bloc
+  *devient* le mégaprojet : une grande place dans la ville, pas un bâtiment coincé entre des maisons. Les
+  autres blocs sont identiques à ce qu'ils étaient (testé : mêmes empreintes à plus de 20 m).
+- *Jamais de débord sur une rue ni sur le bloc voisin* : la cour est décalée de 7,25 m du centre de son bloc,
+  donc le plus grand carré qui tient a un demi-côté de **24,75 m** (≈ 49,5 m de large). Le rayon du stade 4
+  (27 m) est volontairement au-dessus : `placesMegaprojets()` le ramène à la place disponible (`rayon`,
+  fonction de la graine et du palier seulement, comme la position), et `buildMegaprojet()` réduit alors le
+  bâtiment *en toutes dimensions, hauteur comprise* (mêmes proportions). La deuxième piste du §45 (empiéter
+  sur les rues) n'a pas été retenue : des plateformes sur la chaussée, avec leurs voitures, auraient été laides.
+- *Forêts et friches* : la zone sans arbre autour d'un mégaprojet suit maintenant son emprise (un carré, plus un
+  disque de 12 m).
+
+**Ce que ça coûte (à connaître).** Une ville qui atteint la case d'un mégaprojet a *un bloc de moins* de maisons
+et d'immeubles : le bloc compte comme ouvert (étendue, rues, événements de croissance), mais sans habitations.
+C'est l'effet voulu (un aéroport prend la place d'un quartier), mais il est visible dans une grande ville. Les
+mégaprojets étant à la bordure (§37), ce n'est pas le cœur de la ville. Si Adrien préfère garder les maisons
+autour d'un mégaprojet plus petit, il suffit de ne réserver que le centre : le rayon est une constante.
+
+**Hors périmètre, à signaler.** Le §46 (mégaprojets qui apparaissent loin du bâti quand l'influence dépasse
+la population) propose de changer le choix de case ; il se recoupe avec ce chantier et déplacerait des
+mégaprojets : à décider avec Adrien avant de coder, vu la règle « jamais bouger une fois posé ».
+
+**Testé.** `megaprojetsVille.test.ts` (21 tests) : rayon et hauteur croissants, nettement plus grands qu'une
+maison ou un immeuble ; position égale au centre de la cour ; emprise dans le bloc pour 6 villes et les 18
+paliers ; rayon de stade conservé jusqu'au stade 2 et réduit seulement à 24,75 m au-delà ; réduction
+proportionnelle (hauteur comprise) ; bloc réservé = une seule empreinte contre plus de 5 sans mégaprojet ;
+lampadaires conservés ; reste de la ville intact. Silhouettes : bornes au bloc. E2E « Voir où il est » et
+catalogue : passent. Revue visuelle dans la vraie scène (ville de démonstration à 60 000 habitants avec 9
+mégaprojets) : stades, centrales et gares ont désormais la taille d'un bloc à côté des maisons.
+
 
 ### Mégaprojets étoffés : cotes réelles, abords, Grand stade refait (retour d'Adrien du 05/10/2026, suite du §44)
 
@@ -5716,6 +5772,112 @@ pas ; chaque monument tient toujours dans son cercle de socle et sous sa hauteur
   du colosse, torsion de l'obélisque, lumières des tours), `megaprojetsStades.test.ts` adapté aux rectangles ; suite
   unitaire complète : **516 tests verts**, `tsc` et lint propres. Revue visuelle dans la vraie scène, avant / après.
 
+---
+
+### Mégaprojets dans la ville, Parc d'attractions, stade futuriste, éclairage de nuit, /pays plein écran (retour d'Adrien du 05/10/2026, suite du §49 ; résout le §46)
+
+*(Depuis, le Stade a été réduit à 2 × 1 blocs et le Parc d'attractions entièrement refait : voir l'entrée suivante, A-INTEGRER §50.)*
+
+**Retour d'Adrien après essai du jeu.** « Le Grand stade ne sert à rien, il y a déjà le petit : on peut remplacer par
+un parc d'attractions. Je veux que l'autre stade soit plus joli, plus futuriste (comme les stades actuels). Les
+mégaprojets doivent être dans les villes : là ils sont loin des villes et pas toujours à côté d'une route. Je veux un
+éclairage de nuit. Pour le fond de l'onglet Pays, un paysage de campagne sans ville ne me plaît pas : l'onglet avec
+le texte devrait prendre toute la page, et pas d'autre fond. » Cette entrée complète celle du §49 et la suivante
+(le Grand stade 3 × 2 n'existe plus ; le fond de `/pays` en paysage non plus) et **règle le §46** de
+`A-INTEGRER.md` (mégaprojets loin du bâti).
+
+#### Les mégaprojets sont dans la ville, avec leurs rues (A-INTEGRER §46)
+
+- **Règle** (`megaprojetsVille.ts`, réécrit). Les 16 blocs les plus centraux restent aux monuments. Chaque mégaprojet
+  prend, **dans l'ordre du catalogue** (donc des seuils d'influence : les plus modestes au plus près du centre), la
+  **première case libre de l'ordre de distance de `cases.ts` à partir de la 17e** : un bloc entier contre le noyau de
+  la ville. Le Stade et le Parc d'attractions (2 × 2 blocs) prennent le premier carré de blocs entièrement libre,
+  ancré sur une case et poussé vers l'extérieur (ne chevauche jamais un axe central). Le secteur d'Énergie reste
+  exclu (§49 C : 150 m, par le centre pour un bloc, par le bord pour plusieurs). Les stades de population (§37, §41)
+  ne décident plus de rien : `indiceCaseMegaprojet` et `indiceCaseStade` n'existent plus. Fonction pure de la
+  graine, mémorisée par graine ; la place de l'un dépend de celle des précédents, donc le calcul porte toujours sur les
+  18 puis on filtre.
+- **Mesuré** sur 200 graines : un mégaprojet est à 4,5 blocs du croisement central au plus, et tout rectangle de site
+  tient dans les 392 m du centre (avant : jusqu'à 450 m, en pleine campagne ; la ceinture d'Énergie est à 450 m) ; les
+  blocs pris sont en moyenne à la 28e case en partant du centre, au plus à la 85e (100 graines).
+- **Les rues les accompagnent toujours.** Un site de mégaprojet (ou le bloc d'un monument) a ses rues, trottoirs,
+  lampadaires et pelouse **même si la ville ne l'a pas encore atteint** (blocs « aménagés », dessinés par
+  `buildBlock` sans rien construire : le bloc ouvert plus tard reprend là où il en est), et les blocs qui le relient au
+  croisement central, en escalier, ont leurs rues aussi (`blocsDeLiaison`) : fini les mégaprojets « pas toujours à
+  côté d'une route ».
+- **L'étendue de la ville les compte** : son rayon (`cityR`) inclut les sites et les monuments, donc sa carte
+  d'occlusion et de lueur de nuit, ses ombres et son brouillard les couvrent (sans cela, leurs lampadaires
+  n'éclairaient rien).
+- **Ils ont tous changé de place, une seule fois** (ils étaient à la bordure, ils sont dans le noyau). Ensuite plus
+  jamais : la place ne dépend que de la graine et du palier (testé : ni des autres paliers demandés, ni de la
+  population).
+- **Contrepartie** (§10 point 47) : ce sont des blocs du cœur de la ville qui ne sont plus des quartiers.
+
+#### Le Grand stade devient le Parc d'attractions
+
+- **Identifiant inchangé** : `grand_stade` (ligne du catalogue en base, palier 31, seuil 150 000, activité loisirs, bonus
+  « pertes de manifestation ×0,75 » inchangés). Seuls le **dessin** et le **nom affiché** changent (« Parc
+  d'attractions » / « Amusement park », `dictionaries.ts`). **Aucune migration.** Renommer l'identifiant, ou changer
+  son bonus (un parc d'attractions qui réduit les pertes de manifestation, c'est étrange), demanderait une migration :
+  §10 point 48.
+- **Taille** : 2 × 2 blocs (136 m de plateforme, 48 m de haut), comme le Stade (le 3 × 2 devient obsolète : §49 D et
+  l'entrée suivante).
+- **Contenu** (`megaprojetsLoisirs.ts`, `parcAttractions`) : une pelouse, des allées dallées de couleur (promenade de
+  l'entrée, traversée, un chemin vers chaque attraction), un portique d'entrée à pylônes à coupole et guichets rayés, une
+  fontaine, une **grande roue** (deux jantes, seize rayons, seize nacelles, pieds en A), des **montagnes russes** (circuit
+  fermé à bosses, deux rails, traverses, piles, une rame), un **carrousel** (douze chevaux, toit en cône rayé), des
+  **chaises volantes**, une **tour de chute** blanche et rouge, un **chapiteau** de cirque, des stands à auvents rayés et
+  des bouquets de ballons. Tout est dessiné avec des briques existantes (`membre`, `tore`, `ellipsoide`) : aucune
+  image, aucun modèle 3D, aucune marque.
+
+#### Le Stade, plus joli et plus futuriste (comme les stades actuels)
+
+Redessiné (`megaprojetsLoisirs.ts`, `stade`) sur le même site de 2 × 2 blocs (136 m, 36 m de haut) : une **façade en
+résille** (deux familles de lames blanches qui se croisent) autour d'un **mur de verre bleu profond**, un **toit ondulé**
+(plus haut au milieu des grands côtés qu'aux bouts : `anneauPenteVar`) qui porte ses **panneaux solaires**, des
+**colonnes en V** qui le soutiennent, une **douve d'eau** autour de l'arène franchie par six ponts, des **pylônes à LED**
+aux quatre angles, des pavillons d'entrée en verre à enseigne lumineuse, deux étages de gradins argent et bleus
+séparés par un déambulatoire vitré. Pelouse tracée de 57 × 34 m (`terrainFoot`), panneaux publicitaires et abris de
+touche réutilisés du stade d'avant.
+
+#### Éclairage de nuit
+
+- **Tous les mégaprojets** (`buildMegaprojet`) : une rangée de lampadaires (`MAT.LAMP`, mât de 5,4 m, un tous les 11 ou
+  14 m) tout autour de la plateforme, une lueur au sol par lampadaire ; pour les sites d'un bloc, un halo de lumière au
+  sol tous les ~9 m sous le bâtiment (`eclairerZone`), pour que ni la façade ni ses abords ne restent noirs. Les halos
+  sont des points dans la carte de lueur de `generate()` : aucun sommet de plus.
+- **Le Stade** : mur de verre qui brille d'un bleu profond (`MAT.BEACON`, matière qui s'éclaire de sa propre couleur),
+  liserés de LED cyan sur les gradins et sous le toit, pylônes à LED, bornes lumineuses de la douve, pelouse et esplanade
+  éclairées (halos tous les 5 m sur le terrain).
+- **Le Parc d'attractions** : ampoules de couleur sur la grande roue, les montagnes russes, le carrousel, les chaises et la
+  tour de chute ; pelouse et allées éclairées (halos tous les 8 m).
+- *Limite* : les façades des autres mégaprojets ne s'éclairent que par leurs vitrages (fenêtres allumées au hasard,
+  comme les immeubles de la ville) ; les accents propres à chaque type (enseignes, projecteurs de façade) ne sont pas
+  dessinés : §10 point 49.
+
+#### `/pays` : toute la page pour le texte, plus de fond
+
+Le paysage de campagne du §49 E est **supprimé** (`buildPaysage`, `generatePaysage`, `RAYON_PAYSAGE`, le paramètre
+`paysage` de la scène et son test `ville3dPaysage.test.ts`). La page `/pays` n'a plus de scène 3D : `SansScene.tsx`
+ajoute la classe `sans-scene` à `<body>` le temps de la page (le canevas est masqué, `globals.css`), et le contenu
+(en-tête, onglets, panneaux) occupe **toute la page** sur le fond uni de l'interface, centré sur 1 120 px au plus,
+avec son propre défilement. Rien d'autre de la page ne change.
+
+#### Poids et vérifications
+
+- Code : **67,3 Ko gzip** pour toute la scène 3D (mesuré à l'esbuild, minifié), soit −0,5 Ko : l'ancien Stade, l'ancien
+  Grand stade et le paysage retirés pèsent plus que le nouveau Stade et le Parc d'attractions. Aucune dépendance,
+  image ni modèle 3D. Sommets : le Stade 14 060, le Parc d'attractions 16 719 (les autres de 2 300 à 4 300) ; les 18
+  mégaprojets au stade 4 : ~81 000 (garde-fou de 90 000), dont ~800 de lampadaires chacun.
+- Tests réécrits (`megaprojetsVille.test.ts`, `megaprojetsEnergie.test.ts`, `megaprojetsStades.test.ts`,
+  `megaprojetsSilhouettes.test.ts`) : première case libre à partir de la 17e (vérifiée case par case sur 6 graines),
+  dans les 5,5 blocs du centre (60 graines), rues de liaison (`blocsDeLiaison` ; scène à 3 000 habitants), rayon de la
+  ville qui contient les sites, Énergie (200 graines × 18 paliers), 2 × 2 blocs pour les deux sites, éclairage de nuit
+  de chacun des 18 (lampadaires, lueurs dans la plateforme), sommets lumineux du Stade et du Parc. Suite unitaire :
+  **515 tests verts**, `tsc` et lint propres.
+- Revue visuelle dans la vraie scène (harnais esbuild, vrais shaders) : ville de 60 000 habitants, tout débloqué, de jour
+  et de nuit ; page `/pays` vérifiée dans le navigateur de l'application.
+
 
 ### Règles : les jauges expliquées (A-INTEGRER §49) et l'espagnol, troisième langue (§50) — 05/10/2026
 
@@ -5745,6 +5907,163 @@ signalé les sept sections et `chargerVille()` de `/v/[id]`, typé `"fr" | "en"`
 - *Poids.* +33 Ko bruts, +10 Ko gzip. `npm run build` passe (pages de 103 à 302 Ko, budget de 500 Ko).
 - *Règle étendue.* Toute nouvelle clé doit avoir ses trois langues : le test échoue sinon, y compris pour les chantiers des
   autres sessions.
+
+---
+
+### Stade plus petit, Parc d'attractions refait, monuments revus par lots (3ᵉ consigne d'Adrien du 05/10/2026, dite « §50 » dans le chat)
+
+**Consigne reçue** (collée en séance, sa capture d'écran absente de la session ; elle cite « A-INTEGRER §50 », or le §50 de
+`A-INTEGRER.md` est l'espagnol, fait par une autre session : comme les « cinq corrections A à E », cette consigne n'a donc pas de §
+propre dans le fichier — **numérotation à réconcilier par Adrien**, `DECISIONS.md` §10 point 51). Trois corrections, dans cet ordre : 1. le Stade est trop
+grand — fixer une règle de proportion écrite dans le code, vérifier sur une capture avec une tour et des maisons, montrer
+l'avant / après ; 2. Parc d'attractions : beaucoup plus de détail, plusieurs dispositions selon la graine, il s'étoffe avec le
+niveau du quartier Loisirs ; 3. monuments « de grande qualité », livrés par lots de quatre avec une capture à la distance de
+jeu et une vue rapprochée de chacun. Règles : aucune migration, aucune vraie marque, un objet posé ne bouge plus ; signaler ce
+qui change de taille ou de place une fois. Cette entrée remplace celles qui précèdent sur le Stade et sur le Parc.
+
+#### 1. Règle de proportion des stades (écrite dans `megaprojetsFormes.ts`)
+
+- **La règle.** Un stade a une arène de **1 à 1,5 bloc de long, toit compris** (`STADE_LONGUEUR_MAX` = 1,5 × 64 = 96 m), sur un
+  site de **2 × 1 blocs au plus** ; sa **hauteur reste sous celle des tours voisines** : au plus la moitié de la plus petite tour
+  qu'une ville puisse bâtir (`HAUTEUR_TOUR_MIN` = 14 étages de 3,6 m = 50,4 m, car `cap` ≥ 14 dans `terrain.ts`), soit
+  `STADE_HAUTEUR_MAX` = **25,2 m** (un grand immeuble de 7 étages et son toit). Le **Parc d'attractions**, le plus grand des deux
+  sites, tient dans **2 × 2 blocs au plus** et reste lui aussi sous la plus petite tour (44 m). Testé (`megaprojetsProportions.test.ts` :
+  l'eau de la douve ne dépasse pas 96 m, aucun sommet ne dépasse la hauteur permise, le Stade est plus petit que le Parc).
+- **Stade.** Passé de 2 × 2 à **2 × 1 blocs** (plateforme 136 × 56 m, 36 → **25 m** de haut) : arène de 86 × 44 m (96 × 49 m avec le
+  toit et ses colonnes), pelouse de 36 × 22 m. Même langage (résille de lames, mur de verre qui brille, toit ondulé à panneaux
+  solaires, douve, pylônes à LED), mais l'arène est décalée vers l'ouest : à l'est un **parking** devant le pavillon d'entrée,
+  à l'ouest une **esplanade** plantée. `dimensionsStade()` donne ses dimensions au dessin et aux tests.
+- **Grand stade.** Il n'existe plus sous ce nom (il est devenu le Parc d'attractions, entrée précédente) : il reste à **2 × 2 blocs**,
+  la limite haute de la consigne (« 2 × 1 ou 2 × 2 au plus »), et sa hauteur passe de 48 à 44 m.
+- **Vérifié** sur capture dans la vraie scène (ville de 60 000 habitants, avec une tour, des maisons, le parc) : avant 2 × 2 blocs, 36 m,
+  arène de 114 × 92 m ; après 2 × 1 blocs, 25 m, arène de 86 × 44 m, très en dessous de la tour voisine.
+
+#### Ce qui change de taille ou de place, une fois (à connaître)
+
+- **Le Stade** : taille (2 × 2 → 2 × 1 blocs ; 36 → 25 m) et **place** (il libère deux blocs).
+- **Les mégaprojets qui le suivent dans le catalogue** (le placement est séquentiel) : mesuré sur 100 graines, **17 %** des couples
+  graine × palier changent de place par rapport à un Stade de 2 × 2 — le Stade à chaque fois, puis de 1 % (palier 21) à 34 % (palier 33) :
+  surtout les paliers 28 à 33 (aéroport, centre de recherche, centrale, Parc d'attractions, centrale nouvelle génération, Siège
+  international).
+  Ces places n'ont jamais été publiées (tout le travail de la séance est non commité) : **depuis le dernier commit poussé
+  (`ff282c3`), les 18 mégaprojets changent de place une seule fois, en tout** (A-INTEGRER §46 : du bord de la ville au noyau, puis ce
+  réajustement du Stade).
+- **Le Parc d'attractions** : sa hauteur (48 → 44 m) et tout son contenu ; son emprise de 2 × 2 blocs ne change pas.
+- **Les 16 monuments** : ni leur place, ni leur gabarit (rayon, hauteur) ; seul le dessin change (testé : tous restent dans leur
+  cercle de socle et sous leur hauteur).
+
+#### 2. Parc d'attractions : beaucoup plus de détail, seize dispositions, des niveaux
+
+Nouveau fichier `megaprojetsParc.ts` (+ `montagnesRusses.ts`) : l'ancien dessin (`megaprojetsLoisirs.ts`) est supprimé. Tout se dessine
+dans un repère local que le `Pinceau` retourne et fait tourner.
+
+- **Contenu.** *Entrée monumentale* : deux tours rayées de 18 m à coupole, une poutre-enseigne éclairée (ampoules, anneau doré à
+  étoile : ni mot ni marque), guichets rayés, tourniquets, files d'attente, mâts à fanions, parvis dallé. *Montagnes russes* : un
+  circuit de **248 m de voie, 33 m de haut**, calculé (courbe de Catmull-Rom fermée) : gare à toit léger, côte, chute, **looping vertical**
+  de 13 m, bosses et virages ; **deux rails, une poutre lumineuse, des traverses, des piles** et un **train de cinq wagons** (avec ses
+  passagers) ; le tracé ne se recoupe jamais (écart minimal de 3 m, testé). *Grande roue* de 30 m (jantes doubles, seize rayons, douze
+  nacelles, pieds en A), *chute libre* en treillis rayé de 43 m, *chaises volantes* à quatorze chaînes, *manège* à deux rangs de
+  chevaux et toit à festons, *autos tamponneuses* (hall, piste, onze voitures aux perches), *chapiteau*, *bateau pirate* en plein élan,
+  *lac et pédalos*, *fontaine* à jets, *stands*, ballons, parterres de fleurs ; **allées sinueuses** (rubans lissés bordés de pierre) et
+  un lampadaire tous les 14 m environ.
+- **Seize dispositions.** Deux gabarits (positions des attractions et tracé des allées) × huit symétries (quatre quarts de tour, avec ou
+  sans miroir), tirés de la graine du site : `varianteParc(seed)`. Testé : seize géométries différentes, toutes dans la plateforme et sous 44 m.
+- **Niveau du quartier Loisirs** (`Site.niveau`, 0 à 3, `niveauLoisirs()`). Le niveau est calculé par `generate()` d'après les **stades
+  de loisirs construits** dans les blocs de vocation Loisirs de la ville (`stats.stadesLoisirs`, le second lot de chaque bloc Loisirs) :
+  0 aucun, 1 de un à deux, 2 de trois à cinq, 3 six ou plus. Niveau 0 : entrée, fontaine, allées, carrousel, grande roue, chapiteau,
+  stands ; 1 : + montagnes russes et chaises volantes ; 2 : + chute libre et autos tamponneuses ; 3 : + bateau pirate, lac, parterres de
+  fleurs, deuxième rame. **Un parc qui s'étoffe n'ajoute que des choses** : chaque attraction a son emplacement fixe, hors des arbres même
+  quand elle n'est pas encore construite, et ses hasards (arbres, voitures, fleurs) ont leur propre générateur ; testé — tout ce qui existe
+  à un niveau existe, au sommet près, au niveau suivant. *Définition du « niveau du quartier Loisirs » choisie par Claude Code : §10 point 51.*
+- **Éclairage de nuit.** Des ampoules de couleur (`MAT.BEACON`, grossies pour se voir d'en haut) sur chaque attraction, la poutre-
+  enseigne, l'anneau doré, la poutre des montagnes russes et l'anneau de la grande roue qui brillent, des lampadaires le long de chaque
+  allée, des halos au sol (plus de 300).
+- **Poids.** Le Parc fait **26 600 sommets au niveau 0, 44 600 au niveau 3** (l'ancien : 16 700) ; garde-fou de 50 000, et de 115 000 pour
+  les 18 mégaprojets (106 000 mesurés). La ville de 60 000 habitants fait 245 000 sommets sans mégaprojet.
+
+#### 3. Monuments « de grande qualité » : revue par lots, à la distance de jeu et de près
+
+Les 16 monuments ont été regardés dans la vraie scène (ville de 12 000 habitants, voisins autour) à deux distances ; ceux qui le méritaient
+ont été refaits, les autres jugés bons et laissés tels quels. Captures montrées à Adrien lot par lot.
+
+| Lot | Monument | Décision |
+|---|---|---|
+| 1 | Borne commémorative | chaîne de bronze entre les bornes d'angle, lanternes en tête de borne (qui brillent la nuit) |
+| 1 | Banc public | lierre sur les arceaux, boule dorée au faîte de chacun, deux jardinières fleuries |
+| 1 | Fontaine simple | seize projecteurs bleus sous l'eau, couronne cyan sur le deuxième bassin |
+| 1 | Buste | piédestal plus bas donc buste plus grand ; tête plus grande, cou plus épais, masse de cheveux sur la nuque, deux lanternes au pied |
+| 2 | Obélisque, Horloge municipale | jugés bons, inchangés |
+| 2 | Arc de triomphe | **quadrige refait** : char à deux roues, quatre chevaux de front (encolures arquées, pattes levées), Victoire dressée sous une couronne, ailes |
+| 2 | Fontaine monumentale | **hippocampes refaits** (échine en S, crête, nageoires, queue enroulée) ; Neptune gagne un manteau et une conque |
+| 3 | Statue équestre | **cheval refait** : corps d'un seul galbe (fuseaux) au lieu d'un chapelet de boules, croupe, queue en mèche, crins |
+| 3 | Mur des remerciements, Arche, Tour d'observatoire | jugés bons, inchangés |
+| 4 | Statue emblématique | vingt-quatre plis du manteau et de la robe, ourlet, plis croisés, huit mèches, maillons de la chaîne brisée, **diadème de neuf rayons** (sept avant), liseré de LED au pied |
+| 4 | Temple national | jugé bon, inchangé |
+| 4 | Statue géante | disque solaire plein (anneau et cœur) au lieu d'un disque creux vu de dos, omoplates et manteau dans le dos |
+| 4 | Monument ultime | soleil et rayons qui brillent, anneaux en orbite avec trois perles lumineuses chacun |
+
+La règle « un rang plus haut est plus riche » du §43 tient (testé) : le plus pauvre des prestigieux dépasse le plus riche des modestes
+(le banc, avec 3 900 sommets). Aucun modeste n'a de lampadaire (`MAT.LAMP`) : leurs lanternes sont en `MAT.BEACON`.
+
+#### Poids et vérifications
+
+- Code : **74,5 Ko gzip** pour toute la scène 3D (mesuré à l'esbuild, minifié), soit +7,2 Ko (le parc, le circuit, les monuments).
+  Aucune dépendance, image, modèle 3D ni migration, aucune marque. Budget de l'application inchangé (premier chargement ≤ 500 Ko).
+- Tests : `megaprojetsProportions.test.ts` (5 : la règle), `parcAttractions.test.ts` (15 : circuit sans croisement et plus de 30 m de haut,
+  seize dispositions, niveaux et « rien ne bouge », éclairage de nuit, niveau dans la ville), `megaprojetsStades.test.ts` et
+  `megaprojetsSilhouettes.test.ts` adaptés ; suite unitaire : **540 tests verts**, `tsc` et lint propres.
+- Revue visuelle dans la vraie scène (harnais esbuild et vrais shaders) : Stade avant / après, Parc (jour, nuit, niveau 0, deux
+  dispositions), seize monuments à deux distances.
+
+---
+
+### Monuments plus beaux : vraies matières, jardin, mise en lumière, six sculptures refaites (retour d'Adrien du 05/10/2026)
+
+**Retour d'Adrien.** « Améliore les monuments, ils sont trop simplistes et pas assez beaux. » Constat sur captures (vraie scène, à la
+distance de jeu et de près) : tout le métal était une peinture jaune unie (`MAT.PLAIN` ou `MAT.PAINT`), la pierre une teinte crème sans
+relief, les plaques des « fenêtres » noires, la place un carré dallé nu, et plusieurs sculptures se lisaient comme des empilements de
+boules. Cette entrée complète la revue par lots de l'entrée précédente.
+
+#### Quatre vraies matières (shaders.ts, constantes.ts)
+
+- **`MAT.OR` (28)** : un or poli, presque un miroir teinté de sa couleur, qui reflète le ciel au-dessus de l'horizon et la ville en dessous
+  (`envMetal`), avec un reflet du soleil teinté d'or. **`MAT.BRONZE` (27)** : un bronze satiné à patine plus sombre par endroits.
+  La signature « or et bronze » du §43 reste exactement la même (bronze pour les modestes, or ensuite) : seule la matière change.
+- **`MAT.MARBRE` (29)** : marbre veiné (deux réseaux de veines), légèrement poli. **`MAT.PIERRE` (30)** : pierre de taille, assises de
+  0,6 m, blocs décalés, joints creux. Les modestes sont en pierre de taille, les notables et prestigieux en marbre (socles, fûts,
+  piédestaux, marches).
+- **Mise en lumière la nuit** : ces quatre matières reçoivent la lumière chaude de projecteurs au pied, qui faiblit en montant ; un
+  monument se voit de loin la nuit, l'or brille au lieu de refléter un ciel noir.
+- Les plaques des piédestaux deviennent des **plaques de bronze** à lettres et cadre dorés (elles ressemblaient à des fenêtres noires).
+- Ces matières ne servent qu'aux monuments ; aucune autre partie de la ville ne change.
+
+#### La place : un jardin à la française (`buildPlaceMonument`)
+
+Au lieu d'un carré dallé et de quatre arbustes : un dallage à **rosace de deux tons** autour du socle, une **haie de buis taillée** sur
+les trois côtés qui ne donnent pas sur la rue, une **entrée côté rue entre deux lanternes** (allumées la nuit), et aux quatre coins un
+**parterre fleuri** (cinq couleurs) avec un **if taillé en cône** ou une **double boule de buis**. Rien ne touche le cercle du socle :
+la place se règle sur le gabarit du monument (`generate()` lui passe le côté rue et le rayon du socle).
+
+#### Six sculptures et architectures refaites
+
+| Monument | Avant | Maintenant |
+|---|---|---|
+| Buste | un vase doré coiffé d'une boule | **buste à l'antique sur piédouche** : poitrine coupée en arrondi, épaules, pan de toge à plis et agrafe, cou, visage dessiné (front, arcades, yeux, nez, bouche, menton, oreilles), boucles, couronne de lauriers à feuilles par paires |
+| Statue équestre | un fuseau unique | **anatomie de cheval** : croupe, cage, épaules, encolure arquée, tête en coin (ganache, chanfrein, naseaux, oreilles), crinière en mèches, jambes articulées (cuisse, jarret, canon, sabot) ; cavalier à bicorne, manteau, sabre et rênes |
+| Arc de triomphe | grandes faces nues, colonnettes | **grands reliefs** sculptés sur les piles (une figure qui lève une couronne), **huit colonnes** du socle à l'entablement, **Victoires ailées** dans les écoinçons, architrave et **denticules** |
+| Fontaine monumentale | deux disques d'eau | quatre **coquilles** sous la vasque, une **margelle dorée**, **trente-six filets d'eau** qui retombent en arc d'une vasque à l'autre |
+| Mur des remerciements | crème, plaquettes en grille | **granit noir poli** couvert de **noms gravés en lettres d'or** (deux colonnes de lignes par tronçon et par face), comme un mémorial |
+| Statue géante | un pagne en forme de boîte | **pagne rond à vingt-quatre plis** et ceinture qui suit la taille |
+
+#### Vérifications
+
+- Tests : `monumentsDetail.test.ts` (le métal est en bronze chez les modestes, en or ensuite, jamais en « peinture » ; la pierre est en
+  pierre de taille ou en marbre), et toujours : chaque monument tient dans son cercle de socle et sous sa hauteur, un rang plus haut est
+  plus riche, seuls les prestigieux ont des lampadaires. Suite unitaire : **541 tests verts**, `tsc` et lint propres.
+- Poids : code de la scène **77,2 Ko gzip** (+2,7 Ko : les quatre matières, la place, les sculptures). Les seize monuments font
+  66 000 sommets en tout (49 000 avant ; le plus riche, l'arc de triomphe, 7 400), chaque place 2 000. Aucune dépendance, image, modèle 3D
+  ni migration, aucune marque.
+- Revue visuelle dans la vraie scène : les seize monuments à deux distances, de jour, et de nuit pour la mise en lumière.
 
 ---
 
@@ -6267,27 +6586,43 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     sont proportionnés à leur nature (un banc ne monte pas à 50 m). Limite physique : le carré d'une parcelle de
     14,5 m, donc un rayon de 6,6 m au plus. → **À ajuster par Adrien après avoir regardé en jeu** : une ligne par type
     dans `GABARITS` (`monuments.ts`), la hauteur seulement si le monument est déjà à la limite de largeur.
-43. **Stade et Grand stade sur plusieurs blocs (§49 D) : le coût en habitations.** Quand une ville atteint un de ces
-    sites, elle perd 4 (Stade) ou 6 (Grand stade, 3 × 2 depuis le retour d'Adrien : « trop grand, disproportionné »)
-    blocs d'habitations (le §45 en retirait un) et les rues qui les traversent disparaissent.
-    Les sites sont à la bordure de la ville (§37) : ce n'est pas le cœur, mais c'est un quartier entier. → **À
-    confirmer par Adrien** : acceptable tel quel, ou un site plus petit (par exemple 1 × 2 blocs pour le Stade) ; la
-    taille est une constante (`SITES_MULTI_BLOCS`, `megaprojets.ts`), le reste suit.
+43. **Stade (2 × 1 blocs) et Parc d'attractions (2 × 2) : le coût en habitations.** Quand une ville atteint un de ces sites,
+    elle perd 2 blocs d'habitations (Stade) ou 4 (Parc), et les rues qui les traversent disparaissent. Le Stade a été 2 × 2 (§49 D),
+    puis jugé trop grand (3ᵉ consigne du 05/10/2026) : 2 × 1 blocs, 1,5 bloc de long au plus, règle de proportion écrite dans
+    `megaprojetsFormes.ts`. Le Grand stade a été 3 × 3, puis 3 × 2, avant de devenir le Parc d'attractions. Les sites sont dans le
+    noyau de la ville (point 47). → **À confirmer par Adrien** : acceptable tel quel, ou un Stade encore plus petit (1 × 1 bloc,
+    plateforme de 56 m) ; la taille est une constante (`SITES_MULTI_BLOCS`, `megaprojets.ts`), le reste suit.
 44. **Un monument par bloc, dans les 16 blocs les plus centraux (§49 B).** Choix de Claude Code : deux monuments de
     40 à 60 m dans le même bloc se cachent l'un l'autre ; un par bloc les espace d'au moins 80 m. Contrepartie : ils
     s'étalent jusqu'à 222 m du centre (avant : dans les 8 blocs centraux, deux par cour). → **À confirmer par Adrien**,
     ou à resserrer sur 8 blocs (une constante, `NB_BLOCS_MONUMENTS`, `monumentsVille.ts`, et un tirage de parcelle
     qui évite deux parcelles voisines).
-45. **Fond de `/pays` (§49 E) : première proposition.** Carrefour de campagne, bosquets, forêts lointaines, un paysage
-    par pays, soleil du pays : sobre, pour laisser lire le panneau. Relief, champs, fermes ou plans d'eau
-    demanderaient du dessin neuf (`buildPaysage`, `terrain.ts`). → **À juger par Adrien** sur la page réelle.
+45. **Fond de `/pays` (§49 E) : résolu.** Le paysage de campagne a été supprimé sur retour d'Adrien (« ne me plaît pas ») :
+    la page `/pays` prend toute la page, sans scène 3D ni autre fond (`SansScene.tsx`, `globals.css`). Plus de point
+    ouvert.
 46. **Texte du §49 absent de la copie locale de `A-INTEGRER.md`** (elle s'arrête au §48 ; la version à jour est dans
     le projet Claude « Jeu »). Le §49 a été traité d'après la consigne reçue (cinq corrections A à E). → **À
     resynchroniser** : si le texte du §49 dit autre chose sur un point (chiffres, ordre, règle), le signaler.
     **→ Résolu le 05/10/2026** : le texte du §49 est arrivé dans le fichier, et c'est **autre chose** (« Expliquer les
     jauges dans la page Règles », fait). Les cinq corrections A à E n'ont donc **aucun § propre** dans `A-INTEGRER.md` : à
     rattacher à la note du projet Claude « Jeu » dont elles viennent, ou à renuméroter.
-
+47. **Mégaprojets dans le noyau de la ville : le coût en habitations (retour d'Adrien du 05/10/2026, règle le §46).** Les 18
+    mégaprojets occupent 22 blocs (16 d'un bloc, plus 2 pour le Stade et 4 pour le Parc d'attractions) pris dans l'ordre de
+    distance au centre, juste après les 16 blocs des monuments : en moyenne à la 28e case en partant du centre, au plus à
+    la 85e (100 graines, mesuré avant le Stade en 2 × 1). Une ville qui grandit atteint donc ces blocs tôt, et ce ne sont plus des quartiers (les 16
+    monuments et ces 22 blocs : 38 blocs du cœur). → **À juger par Adrien en jouant** : acceptable (la ville est dense
+    autour d'eux), ou à décaler (commencer après la 25e case plutôt que la 17e : `NB_BLOCS_MONUMENTS` et la boucle de
+    `placesDeTous`, `megaprojetsVille.ts`), ou à rendre moins gourmand (le Stade en 1 × 1 bloc, point 43).
+48. **Le Grand stade est devenu le Parc d'attractions, mais son identifiant et son bonus n'ont pas changé.** `grand_stade`
+    (catalogue unifié, migrations `0028` et `0050`, palier 31, seuil 150 000, activité loisirs) donne toujours « pertes de
+    manifestation ×0,75 », un bonus de stade : étrange pour un parc d'attractions. Seuls le dessin et le nom affiché (FR,
+    EN) ont changé, sans migration. → **À trancher par Adrien** : garder tel quel, ou une migration qui renomme
+    l'identifiant (`parc_attractions`) et donne un bonus qui lui ressemble (le choix du bonus est un choix de design).
+49. **Éclairage de nuit des 16 autres mégaprojets : première proposition.** Lampadaires, halos au sol sous le bâtiment et
+    fenêtres allumées au hasard (pour les vitrages) ; le Stade et le Parc d'attractions ont leurs lumières propres (LED,
+    ampoules). Les accents propres à chaque type (enseigne de l'Opéra, projecteurs de façade, balisage de piste de
+    l'Aéroport, croix lumineuse de l'Hôpital) ne sont pas dessinés. → **À juger par Adrien** de nuit dans le jeu ; une
+    ligne par type dans `megaprojetsCivils.ts`, `megaprojetsEquipements.ts` ou `megaprojetsEnergie.ts` si besoin.
 50. **Espagnol (A-INTEGRER §50, 05/10/2026) : relecture et noms de pays.** (a) Les 540 clés et les règles ont été
     traduites par Claude Code (tutoiement, vocabulaire du jeu : AntiCiudad, hermanamiento, indicadores, Tienda…) : une
     **relecture par un locuteur natif** est recommandée avant d'annoncer la langue. (b) Les **noms de pays** restent en
@@ -6297,3 +6632,21 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     helper — à valider (une migration de plus à appliquer). (c) Poids : +10 Ko gzip, tout le dictionnaire part au client.
     (d) Les Règles FR/EN/ES disent encore que les mégaprojets sont « à la bordure » : faux depuis le §46 (ils sont dans la
     ville), non touché ici.
+51. **« Niveau du quartier Loisirs » (3ᵉ consigne du 05/10/2026) : définition à confirmer.** La consigne dit que le Parc d'attractions « s'étoffe avec
+    le niveau du quartier Loisirs » sans dire de quel niveau il s'agit. Choix de Claude Code : le nombre de **stades de loisirs
+    construits** dans les blocs de vocation Loisirs de la ville (`stats.stadesLoisirs`, le second lot de chaque bloc Loisirs ; `niveauLoisirs()`,
+    `megaprojetsFormes.ts`) : 0 aucun, 1 de un à deux, 2 de trois à cinq, 3 six ou plus. Il croît avec la ville et avec le zonage Loisirs
+    du joueur ; **sans quartier Loisirs le parc reste au niveau 0** (entrée, fontaine, carrousel, grande roue, chapiteau). → **À trancher par
+    Adrien** : c'est bien cela, ou le niveau de la jauge d'activité Loisirs (crise / fragile / équilibre / point fort, demanderait de
+    faire passer ce niveau de la page à la scène), ou la population ; les seuils (1, 3, 6) sont une fonction de cinq lignes.
+    **Numérotation** : cette 3ᵉ consigne cite « §50 », déjà pris dans `A-INTEGRER.md` par l'espagnol (point 50) ; elle n'a donc pas
+    de § propre (comme les « cinq corrections A à E », point 46) → **À réconcilier par Adrien** (le numéro à lui donner).
+52. **Poids en sommets du Parc d'attractions (3ᵉ consigne du 05/10/2026).** 26 600 sommets au niveau 0, **44 600 au niveau 3** (l'ancien : 16 700),
+    soit 18 % d'une ville de 60 000 habitants (245 000 sommets) ; les 18 mégaprojets au maximum : 106 000. Le gros du poids : les 110
+    arbres (79 sommets chacun), les lampadaires d'allée, la grande roue et les montagnes russes. Code : +7,2 Ko gzip pour ce retour
+    (74,5 Ko). → **À juger par Adrien sur un téléphone** : si la scène ralentit au niveau 3, on peut réduire les arbres et les ampoules.
+53. **Le Stade est toujours allongé le long de x (3ᵉ consigne du 05/10/2026).** Un site de 2 × 1 blocs part de la case d'ancrage vers l'extérieur, le
+    long de x ; seul l'intérieur change selon la graine du site (aucune variante pour le Stade). Une rotation d'un quart de tour selon la
+    graine demanderait de rendre `blocsMegaprojet` dépendant de la graine (le placement le lit avant de choisir la case).
+
+

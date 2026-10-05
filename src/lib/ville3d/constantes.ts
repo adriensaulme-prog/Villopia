@@ -110,6 +110,14 @@ export const MAT = {
   DIRT: 24,
   FENCE: 25,
   LAMP: 26,
+  /** Bronze patiné : métal satiné, reflets chauds, patine plus sombre par endroits (monuments modestes). */
+  BRONZE: 27,
+  /** Or poli : presque un miroir teinté, qui reflète le ciel en haut et la ville en bas (monuments notables et prestigieux). */
+  OR: 28,
+  /** Marbre veiné, légèrement poli (piédestaux, fûts, colonnes). */
+  MARBRE: 29,
+  /** Pierre de taille : assises de 0,6 m, blocs décalés, joints creux (soubassements, marches, murs). */
+  PIERRE: 30,
 } as const;
 
 export type Couleur = [number, number, number];

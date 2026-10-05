@@ -60,6 +60,13 @@ export const FS = /* glsl */ `
     return mix(city, s, .15 + .85 * smoothstep(0., 130., h));
   }
 
+  // Reflets des métaux (bronze, or) : le ciel au-dessus de l'horizon, la ville et le sol en dessous, selon la direction réfléchie.
+  vec3 envMetal(vec3 R){
+    vec3 s = sky(normalize(vec3(R.x, max(R.y, 0.) + .04, R.z)));
+    vec3 sol = mix(uGround, uSkyHorizon, .3) * .55;
+    return mix(sol, s, smoothstep(-.35, .25, R.y));
+  }
+
   float shadowAt(vec3 n){
     vec3 p = vLightPos.xyz / vLightPos.w * .5 + .5;
     if (p.x <= 0. || p.x >= 1. || p.y <= 0. || p.y >= 1. || p.z >= 1.) return 1.;
@@ -300,11 +307,42 @@ export const FS = /* glsl */ `
       albedo *= 1. - .12 * step(.8, fract(P.x / 2.3 + fbm(P.xz * .3)));
     }
     else if (m == 26) { albedo = base; emis = lin(vec3(1., .86, .6)) * (.15 + 9. * uNight); }
+    else if (m == 27) { // bronze patiné : métal satiné, reflets chauds, patine plus sombre par endroits
+      float pat = fbm(vec2(P.x + P.z, P.y) * 1.4 + sid);
+      albedo = base * (.3 + .22 * pat);
+      refl = .5; rough = .32; spec = .9; tint = base * (1.25 + .35 * pat) + .03;
+    }
+    else if (m == 28) { // or poli : presque un miroir teinté de sa couleur
+      albedo = base * .16;
+      refl = .96; rough = .08; spec = 1.; tint = base * 1.85 + .05;
+    }
+    else if (m == 29) { // marbre veiné, légèrement poli
+      vec3 q = P * .42;
+      float t = fbm(q.xz * .7 + vec2(q.y * 1.3, -q.y) + sid * .37);
+      float vein = 1. - smoothstep(0., .07, abs(sin((q.x - q.z) * 2.2 + q.y * 1.6 + t * 7.)));
+      float vein2 = 1. - smoothstep(0., .04, abs(sin((q.x + q.z) * 4.1 - q.y * 2.7 + t * 9.)));
+      albedo = base * (.94 + .1 * vn(P.xz * 3. + P.y * 2.)) * (1. - .2 * vein - .1 * vein2);
+      rough = .28; spec = .4; refl = .1; tint = vec3(1.);
+    }
+    else if (m == 30) { // pierre de taille : assises de 0,6 m, blocs décalés, joints creux
+      float row = floor(v / .62), fr = fract(v / .62);
+      float bu = (u + row * .71) / 1.45;
+      float bx = floor(bu), fx = fract(bu);
+      float joint = max(step(fr, .055), step(fx, .035));
+      albedo = base * (.85 + .22 * h12(vec2(bx, row) + sid)) * (.9 + .14 * fbm(vec2(u, v) * 1.6 + sid)) * (1. - .32 * joint);
+      rough = .85;
+    }
     else if (m == 25) { // palissade
       albedo = base * (.9 + .1 * step(.5, fract(u / 2.4)));
       if (v > 1.7) albedo = lin(vec3(.9, .88, .82));
     }
 
+    // Mise en lumière des monuments la nuit : des projecteurs au pied, d'une lumière chaude qui faiblit en montant.
+    if (m >= 27 && m <= 30) {
+      float up = .55 + .45 * exp(-max(P.y, 0.) / 35.);
+      vec3 projo = lin(vec3(1., .86, .62)) * uNight * up;
+      emis += (m <= 28 ? tint * .5 : albedo * 1.4) * projo;
+    }
     if (ground) {
       vec2 auv = P.xz / (2. * uAOExt) + .5;
       if (all(greaterThan(auv, vec2(0.))) && all(lessThan(auv, vec2(1.)))) { vec2 t2 = texture(uAO, auv).rg; ao *= t2.r; lampGlow = t2.g; }
@@ -318,11 +356,14 @@ export const FS = /* glsl */ `
     vec3 H = normalize(uSunDir + V);
     float gloss = mix(6., 900., pow(1. - rough, 2.));
     float sp = pow(max(dot(N, H), 0.), gloss) * (gloss + 8.) / 25.;
-    vec3 col = diff * (1. - refl * .8) + uSunColor * sp * spec * sh * .12;
+    bool metal = m == 27 || m == 28;
+    vec3 col = diff * (1. - refl * .8) + uSunColor * sp * spec * sh * (metal ? tint * .55 : vec3(.12));
     if (refl > 0.) {
       vec3 R = reflect(-V, N);
       float fres = .04 + .96 * pow(1. - max(dot(N, V), 0.), 5.);
-      col += env(R, P.y) * tint * paneVar * refl * mix(.42, 1., fres) * mix(.6, 1., sh) * mix(.7, 1., ao);
+      // Un métal reflète fort sous tous les angles ; un vitrage surtout en incidence rasante.
+      if (metal) col += envMetal(R) * tint * refl * mix(.85, 1., fres) * mix(.55, 1., sh) * mix(.7, 1., ao);
+      else col += env(R, P.y) * tint * paneVar * refl * mix(.42, 1., fres) * mix(.6, 1., sh) * mix(.7, 1., ao);
     }
     col += emis;
     col += albedo * lampGlow * lin(vec3(1., .78, .5)) * 4.5 * uNight;

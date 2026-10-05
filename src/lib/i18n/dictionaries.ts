@@ -608,7 +608,7 @@ export const dictionaries = {
     "megaprojet.type.aeroport": "Aéroport",
     "megaprojet.type.centre_recherche": "Centre de recherche",
     "megaprojet.type.centrale": "Centrale",
-    "megaprojet.type.grand_stade": "Grand stade",
+    "megaprojet.type.grand_stade": "Parc d'attractions",
     "megaprojet.type.centrale_nouvelle_generation": "Centrale nouvelle génération",
     "megaprojet.type.siege_international": "Siège international",
 
@@ -1205,7 +1205,7 @@ export const dictionaries = {
     "megaprojet.type.aeroport": "Airport",
     "megaprojet.type.centre_recherche": "Research center",
     "megaprojet.type.centrale": "Power plant",
-    "megaprojet.type.grand_stade": "Grand stadium",
+    "megaprojet.type.grand_stade": "Amusement park",
     "megaprojet.type.centrale_nouvelle_generation": "Next-gen power plant",
     "megaprojet.type.siege_international": "International headquarters",
 
@@ -1803,7 +1803,7 @@ export const dictionaries = {
     "megaprojet.type.aeroport": "Aeropuerto",
     "megaprojet.type.centre_recherche": "Centro de investigación",
     "megaprojet.type.centrale": "Central eléctrica",
-    "megaprojet.type.grand_stade": "Gran estadio",
+    "megaprojet.type.grand_stade": "Parque de atracciones",
     "megaprojet.type.centrale_nouvelle_generation": "Central eléctrica de nueva generación",
     "megaprojet.type.siege_international": "Sede internacional",
 

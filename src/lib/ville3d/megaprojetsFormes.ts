@@ -9,7 +9,7 @@
  */
 import type { RNG } from "./aleatoire";
 import type { Rect } from "./catalogue";
-import { COL, MAT, PANNEAU_CADRE, PANNEAU_CELLULE, hex, type Couleur } from "./constantes";
+import { BS, COL, FLOOR_H, MAT, PANNEAU_CADRE, PANNEAU_CELLULE, hex, type Couleur } from "./constantes";
 import { box, cylinder, flat, norm, type Geo } from "./geometrie";
 import { car, tree } from "./mobilier";
 
@@ -26,12 +26,46 @@ export interface Site {
   cx: number;
   cz: number;
   R: number;
-  /** Demi-côté le long de z : égal à R, sauf pour un site rectangulaire (le Grand stade, A-INTEGRER §49 D). */
+  /** Demi-côté le long de z : égal à R, sauf pour un site rectangulaire (A-INTEGRER §49 D). */
   Rz: number;
   H: number;
   r: RNG;
   seed: number;
+  /** Halos de lumière au sol (la nuit) : generate() les lit pour sa carte d'occlusion et de lueur ; absent dans les tests isolés. */
+  glow?: { x: number; z: number }[];
+  /**
+   * Niveau du quartier Loisirs de la ville (0 à `NIVEAU_LOISIRS_MAX`, `niveauLoisirs()`) : le Parc d'attractions s'étoffe avec
+   * lui (3ᵉ consigne du 05/10/2026). Absent (tests isolés, showroom) = le plus riche.
+   */
+  niveau?: number;
 }
+
+/** Niveau maximal du quartier Loisirs : celui du Parc d'attractions au complet. */
+export const NIVEAU_LOISIRS_MAX = 3;
+
+/**
+ * Niveau du quartier Loisirs d'une ville, d'après le nombre de stades de loisirs construits dans ses blocs (le second
+ * stade de chaque bloc Loisirs, terrain.ts : `buildStade`). Croît avec la ville et ne redescend jamais tant que les
+ * vocations ne changent pas : 0 aucun, 1 de un à deux, 2 de trois à cinq, 3 six ou plus.
+ */
+export function niveauLoisirs(stades: number): number {
+  if (stades >= 6) return 3;
+  if (stades >= 3) return 2;
+  return stades >= 1 ? 1 : 0;
+}
+
+/**
+ * RÈGLE DE PROPORTION des stades et des parcs (retour d'Adrien du 05/10/2026, 3ᵉ consigne du 05/10/2026 : « le Stade est trop grand »).
+ * Un site de loisirs ne doit pas écraser les maisons et les tours autour de lui :
+ *  - un stade a une arène de 1 à 1,5 bloc de long, toit compris (`STADE_LONGUEUR_MAX`, 96 m), sur un site de 2 × 1 blocs au
+ *    plus ; le Parc d'attractions, le plus grand des deux, tient dans 2 × 2 blocs au plus (`SITES_MULTI_BLOCS`, megaprojets.ts) ;
+ *  - sa hauteur reste sous celle des tours voisines : au plus la moitié de la plus petite tour qu'une ville puisse bâtir
+ *    (`HAUTEUR_TOUR_MIN`, 14 étages de 3,6 m, terrain.ts : `cap`) pour le Stade, et moins que cette tour pour les attractions
+ *    les plus hautes du parc.
+ */
+export const HAUTEUR_TOUR_MIN = 14 * FLOOR_H;
+export const STADE_LONGUEUR_MAX = 1.5 * BS;
+export const STADE_HAUTEUR_MAX = HAUTEUR_TOUR_MIN / 2;
 
 /** Niveau du sol (comme le reste de la ville) et dessus de la plateforme pavée sur laquelle tout est posé. */
 export const SOL = 0.15;
@@ -393,5 +427,78 @@ export function reutiliser(g: Geo, x: number, z: number, echelle: number, constr
     g.V[i] = x + g.V[i] * echelle;
     g.V[i + 1] = BASE + g.V[i + 1] * echelle;
     g.V[i + 2] = z + g.V[i + 2] * echelle;
+  }
+}
+
+/**
+ * Surface inclinée entre deux ellipses dont la hauteur varie avec l'angle : toits ondulés des stades modernes,
+ * plus hauts au milieu des grands côtés qu'aux extrémités (`yI(a)` au bord intérieur, `yO(a)` au bord extérieur).
+ */
+export function anneauPenteVar(
+  g: Geo,
+  cx: number,
+  cz: number,
+  rxI: number,
+  rzI: number,
+  yI: (a: number) => number,
+  rxO: number,
+  rzO: number,
+  yO: (a: number) => number,
+  seg: number,
+  col: CouleurOuFn,
+  m: number,
+  seed = 0
+) {
+  for (let i = 0; i < seg; i++) {
+    const a0 = (i / seg) * Math.PI * 2,
+      a1 = ((i + 1) / seg) * Math.PI * 2;
+    quad(
+      g,
+      [cx + Math.cos(a0) * rxI, yI(a0), cz + Math.sin(a0) * rzI],
+      [cx + Math.cos(a1) * rxI, yI(a1), cz + Math.sin(a1) * rzI],
+      [cx + Math.cos(a1) * rxO, yO(a1), cz + Math.sin(a1) * rzO],
+      [cx + Math.cos(a0) * rxO, yO(a0), cz + Math.sin(a0) * rzO],
+      teinte(col, i),
+      m,
+      [0, 1, 0],
+      seed
+    );
+  }
+}
+
+/**
+ * Lampadaire d'un site (retour d'Adrien du 05/10/2026 : « je veux un éclairage de nuit ») : un mât de 5,4 m et une
+ * tête en `MAT.LAMP` qui s'allume la nuit, plus un halo de lumière au sol si le site sait où les enregistrer.
+ */
+export function lampadaireSite(s: Site, x: number, z: number, h = 5.4) {
+  const { g } = s;
+  box(g, x - 0.07, BASE, z - 0.07, x + 0.07, BASE + h, z + 0.07, { c: hex("#3b4148"), m: MAT.PLAIN, seed: s.seed });
+  box(g, x - 0.35, BASE + h - 0.1, z - 0.35, x + 0.35, BASE + h + 0.12, z + 0.35, { c: [1, 0.95, 0.8], m: MAT.LAMP, seed: s.seed });
+  s.glow?.push({ x, z });
+}
+
+/** Lueur de nuit sur un rectangle (pelouse, parvis, allées) : un halo au sol tous les `pas` mètres, sans géométrie. */
+export function eclairerZone(s: Site, r: Rect, pas = 7) {
+  if (!s.glow) return;
+  for (let x = r[0] + pas / 2; x < r[2]; x += pas) for (let z = r[1] + pas / 2; z < r[3]; z += pas) s.glow.push({ x, z });
+}
+
+/**
+ * Éclairage commun à tous les mégaprojets : une rangée de lampadaires tout autour de la plateforme (un tous les
+ * ~12 m, à 1,3 m du bord), qui éclaire la rue et les abords la nuit.
+ */
+export function eclairerPourtour(s: Site, pas = 12) {
+  const marge = 1.3;
+  const nx = Math.max(1, Math.round((2 * (s.R - marge)) / pas)),
+    nz = Math.max(1, Math.round((2 * (s.Rz - marge)) / pas));
+  for (let i = 0; i <= nx; i++) {
+    const x = s.cx - (s.R - marge) + (2 * (s.R - marge) * i) / nx;
+    lampadaireSite(s, x, s.cz - (s.Rz - marge));
+    lampadaireSite(s, x, s.cz + (s.Rz - marge));
+  }
+  for (let j = 1; j < nz; j++) {
+    const z = s.cz - (s.Rz - marge) + (2 * (s.Rz - marge) * j) / nz;
+    lampadaireSite(s, s.cx - (s.R - marge), z);
+    lampadaireSite(s, s.cx + (s.R - marge), z);
   }
 }

@@ -1157,13 +1157,35 @@ body {
   }
 }
 
-/* ---------- Pays : onglets, classement, développements (A-INTEGRER §47 et §48) ---------- */
-.dock-left.dock-pays {
-  width: min(520px, calc(100% - 32px));
+/* ---------- Pays : page pleine, sans fond 3D (retour d'Adrien du 05/10/2026), onglets, classement, développements (A-INTEGRER §47 et §48) ---------- */
+/* Une page qui n'a pas de scène derrière elle (/pays) : le canvas est masqué (SansScene.tsx) et la page remplit tout l'écran. */
+.sans-scene .scene {
+  display: none;
+}
+.pays-page {
+  position: fixed;
+  inset: var(--topbar) 0 0 0;
+  z-index: 3;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  background: var(--bg);
+}
+.pays-page-contenu {
+  box-sizing: border-box;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 22px 20px 48px;
 }
 @media (max-width: 640px) {
-  .dock-left.dock-pays {
-    width: auto;
+  .pays-page {
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  }
+  .pays-page-contenu {
+    padding: 14px 12px 28px;
   }
 }
 .tiles-pays {

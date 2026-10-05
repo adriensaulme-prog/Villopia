@@ -330,6 +330,26 @@ journal existant, puis ce fichier peut être supprimé.*
 > ni l'or/bronze des monuments : chaque mégaprojet doit avoir la
 > couleur/matière NATURELLE du bâtiment qu'il représente.
 
+> **§45 (mégaprojets à taille réelle, 05/10/2026) : nouveau, décision
+> d'Adrien** — ils doivent être nettement plus grands que leur taille
+> actuelle (contrainte aujourd'hui à la cour d'un bloc, ≥ 14,5 m), au
+> point d'avoir un vrai impact visuel dans la ville, pas seulement
+> dans le showroom de dev.
+> **§45 — fait le 05/10/2026** (rayon de 11 à 27 m et hauteur de 11 à 55 m selon le stade,
+> contre 2,4–4 m et 4–10,8 m ; le bloc entier est réservé au mégaprojet, sans lots, et
+> son emprise est ramenée à 24,75 m de demi-côté au plus pour ne jamais déborder sur
+> une rue ; position strictement inchangée ; aucune migration). Un bloc de maisons de
+> moins dans une ville qui atteint la case — voir `DECISIONS.md` §4 « Mégaprojets à
+> taille réelle ». **Le §46 est fait** (voir plus bas, « Suite du §49 et du §46 »).
+
+> **§46 (mégaprojets qui apparaissent hors de la ville bâtie, 05/10/2026) :
+> nouveau, cause confirmée** — leur case est choisie selon le STADE DE
+> POPULATION historique (Bourg/Ville/.../Mégapole), mais ils se débloquent
+> maintenant par l'influence (§41) : une ville à forte influence et faible
+> population peut débloquer un mégaprojet de stade avancé avant d'avoir
+> construit les blocs qui l'entourent — il atterrit alors dans une case
+> encore en friche, loin du bâti actuel.
+
 > **§47 et §48 — faits le 05/10/2026** (traités ensemble : un seul système, les ressources
 > nationales se classent entre pays ET se dépensent en développements). Quatre étapes, **trois
 > migrations à appliquer par Adrien, dans l'ordre** : **`0052`** (classement hebdomadaire des pays figé
@@ -359,7 +379,6 @@ journal existant, puis ce fichier peut être supprimé.*
 > choisit) ; nécessite une refonte du visuel de `/pays` pour accueillir
 > les deux nouvelles sections des §47/§48.
 
-
 > **§49 — fait le 05/10/2026** (retour d'Adrien du 05/10/2026 : cinq corrections A à E, traitées dans l'ordre C, E,
 > A+B, D). **Le texte du §49 n'est pas dans cette copie locale** (elle s'arrête au §48) et la version à jour du
 > projet Claude « Jeu » n'est pas lisible depuis la session de code : le travail suit la consigne reçue — à
@@ -377,6 +396,32 @@ journal existant, puis ce fichier peut être supprimé.*
 > gzip de code). **Points à trancher par Adrien** : `DECISIONS.md` §10 points 42 à 46 (gabarits des monuments, coût en
 > habitations des deux stades, un monument par bloc, fond de `/pays`, texte du §49). Détail : `DECISIONS.md` §4
 > « Énergie à l'écart, paysage pour /pays, monuments et stades agrandis ».
+
+> **§46 et suite du §49 — faits le 05/10/2026** (retour d'Adrien du 05/10/2026 : « le Grand stade ne sert à rien, il y a
+> déjà le petit, on peut remplacer par un parc d'attraction ; l'autre stade plus joli, plus futuriste ; les mégaprojets
+> dans les villes, pas toujours à côté d'une route ; un éclairage de nuit ; pour /pays, l'onglet avec le texte devrait
+> prendre toute la page, pas d'autre fond »). **§46 résolu** : chaque mégaprojet prend la première case libre après les
+> 16 blocs des monuments (plus de stade de population), avec ses rues, même quand la ville ne l'a pas atteint — **ils
+> ont tous changé de place, une seule fois**. **Grand stade → Parc d'attractions** (identifiant `grand_stade` et bonus
+> inchangés, aucune migration ; 2 × 2 blocs), **Stade futuriste** (façade en résille, toit ondulé, douve, LED),
+> **éclairage de nuit** pour les 18 (lampadaires, halos au sol ; lumières propres au Stade et au Parc). **`/pays`** : plus
+> de scène, la page prend tout l'écran (le paysage du §49 E est supprimé). Aucune migration, aucune dépendance, aucune
+> image, aucune marque ; code : −0,5 Ko gzip. **Points à trancher par Adrien** : `DECISIONS.md` §10 points 47 à 49 (coût en
+> habitations au cœur de la ville, identifiant et bonus du Parc d'attractions, éclairage de nuit des autres mégaprojets).
+> Détail : `DECISIONS.md` §4 « Mégaprojets dans la ville, Parc d'attractions, stade futuriste, éclairage de nuit, /pays
+> plein écran ».
+
+> **3ᵉ consigne du 05/10/2026 (citée « §50 » dans le chat) — faite.** Le §50 de ce fichier est l'espagnol, fait par une autre session :
+> cette consigne n'a donc pas de § propre ici, comme les « cinq corrections A à E » plus haut — **numérotation à réconcilier par
+> Adrien** (`DECISIONS.md` §10 point 51). **1. Stade** : règle de proportion écrite dans le code (`megaprojetsFormes.ts`) — arène de 1 à
+> 1,5 bloc de long, hauteur au plus la moitié de la plus petite tour (25 m), Parc d'attractions à 2 × 2 blocs au plus ; le Stade passe de
+> 2 × 2 à **2 × 1 blocs** (**il change de taille et de place, une fois**, et 17 % des places des mégaprojets qui le suivent dans le
+> catalogue). **2. Parc d'attractions** refait : entrée monumentale, montagnes russes avec rails, wagons et looping, chute libre,
+> chaises volantes, manège, autos tamponneuses, bateau pirate, lac, allées sinueuses, éclairage de nuit, **seize dispositions** selon la
+> graine, et il s'étoffe avec le **niveau du quartier Loisirs** (définition à confirmer). **3. Monuments** : revue des 16 à deux
+> distances, livrés en quatre lots avec captures ; dix retouchés ou refaits (quadrige, hippocampes, cheval, statue emblématique...), six
+> jugés bons. Aucune migration, aucune marque, +7,2 Ko gzip. **Points à trancher par Adrien** : `DECISIONS.md` §10 points 43, 47 et 51 à
+> 53. Détail : `DECISIONS.md` §4 « Stade plus petit, Parc d'attractions refait, monuments revus par lots ».
 
 > **§49 (jauges expliquées dans Règles) et §50 (espagnol) — faits le 05/10/2026.** §49 : huit paragraphes de plus dans la
 > section « Activités et jauges » (FR, EN, ES), texte de la note repris tel quel ; tableau recoupé avec les migrations 0024 et
@@ -2772,6 +2817,75 @@ d'influence (§41) ne changent pas. Détail exact des formes et palettes
 laissé à Claude Code, dans le même esprit créatif que pour les packs
 (§40) et les monuments (§43) : point de départ, pas spécification
 figée.
+## 45. Mégaprojets à taille réelle (suite du §44, 05/10/2026)
+
+**Point laissé ouvert par Claude Code au §44** : la taille des
+mégaprojets n'a pas changé depuis avant la fusion (`rayonMegaprojet()`/
+`hauteurMegaprojet()`, de 4,8 m à 8 m de large selon le stade) — dans
+la vraie vue 3D, un mégaprojet de stade 0 ou 1 est plus petit qu'un
+arbre, et le détail du §44 (une silhouette propre par type, matière
+naturelle) ne se lit bien que dans `/dev/showroom`, pas dans le jeu
+réel.
+
+**Décision d'Adrien** : les mégaprojets doivent être à taille réelle —
+nettement plus grands, pour qu'un Aéroport ou un Grand stade aient
+vraiment l'air d'un aéroport ou d'un stade à côté des maisons et des
+immeubles, pas d'un objet miniature.
+
+**Contrainte à résoudre, signalée pour que Claude Code ne la découvre
+pas en cours de route** : aujourd'hui, un mégaprojet se pose au centre
+de la cour commune d'un bloc (`megaprojetsVille.ts`), exactement comme
+un monument — une cour fait au minimum 14,5 m de large. Un "vrai"
+aéroport ou un grand stade à taille réelle ne rentre pas dans un tel
+espace. Deux pistes possibles, au choix de Claude Code (ou à retrancher
+avec Adrien si aucune ne convient) :
+- Réserver aux mégaprojets des plus gros que le stade 2-3 un espace
+  plus grand qu'une simple cour de bloc (par exemple tout un bloc entier
+  plutôt que juste sa cour, ou plusieurs cases voisines réunies) —
+  cohérent avec le fait que ces mégaprojets se débloquent tard, quand
+  la ville est déjà grande.
+- Garder le principe "une case fixe qui ne bouge jamais" mais agrandir
+  nettement l'échelle de `rayonMegaprojet()`/`hauteurMegaprojet()`
+  au prix d'un dépassement visuel dans les rues/blocs voisins (un
+  mégaprojet peut légèrement empiéter, comme un bâtiment plus gros que
+  sa parcelle) plutôt que de rester strictement dans sa cour.
+
+**Ce qui ne change pas** : le principe "jamais bouger une fois posé"
+(§37/§41) reste la contrainte absolue ; seule la taille change, pas
+l'emplacement ni le mécanisme de déblocage.
+## 46. Mégaprojets qui apparaissent hors de la ville bâtie (retour d'Adrien, 05/10/2026)
+
+**Retour d'Adrien** : certains mégaprojets (catalogue « monument »
+depuis le §41) apparaissent en dehors de la ville, pas intégrés au
+bâti.
+
+**Confirmé en lisant le code.** `megaprojetsVille.ts` choisit la case
+d'un mégaprojet de stade `s` via `indiceCaseStade(s)` = le nombre de
+blocs ouverts à la POPULATION du stade `s` (`POPULATION_STADE`, de
+Bourg à Mégapole) + une marge. Ce choix datait d'avant le §41, quand
+un mégaprojet se débloquait justement à cette population : la case
+tombait alors, par construction, juste à la frontière du bâti du
+moment. Depuis le §41, le déblocage réel se fait par **l'influence**,
+pas la population — une ville peut très bien avoir une influence
+énorme (beaucoup de visites, de soutien) avec une population encore
+modeste. Dans ce cas, le mégaprojet se débloque, mais sa case
+(calculée pour une ville bien plus peuplée) est encore une friche loin
+du bâti actuel : il apparaît seul, seul au milieu de rien, visiblement
+« hors de la ville ». Les monuments n'ont pas ce problème : ils
+utilisent les cases les plus CENTRALES (`casesCentrales()`), qui sont
+construites parmi les premières quelle que soit la vitesse relative
+d'influence et de population.
+
+**À faire** : revoir le choix de case des mégaprojets dans
+`megaprojetsVille.ts` pour qu'il suive, comme les monuments, un
+critère qui reste cohérent avec le nouveau déblocage par influence —
+par exemple des cases choisies par PROXIMITÉ AU BÂTI RÉEL au moment du
+déblocage plutôt que par un stade de population figé, ou en
+intercalant les mégaprojets parmi les cases centrales comme les
+monuments (peut-être justement l'occasion de fusionner complètement
+les deux fonctions de placement, puisque le §45 demande par ailleurs
+de revoir l'espace qui leur est réservé pour la taille réelle — les
+deux chantiers se recoupent, à traiter ensemble si plus simple).
 ## 47. Classement hebdomadaire des pays + bonus au n°1 de chaque catégorie (décision d'Adrien, 05/10/2026)
 
 **Constat de départ, déjà consigné** (`DECISIONS.md` §10 point 27) :
@@ -2881,3 +2995,131 @@ les deux et pourra donner son avis sur une première proposition.
 catalogue, nouveaux effets permanents), pas un petit ajustement — à
 découper en plusieurs étapes si plus simple pour Claude Code, comme
 l'a été le système des 7 activités en son temps (Jalons 17 à 20).
+
+## 49. Expliquer les jauges (bonus/malus de chaque activité) dans la page Règles (demande d'Adrien, 05/10/2026)
+
+**Demande d'Adrien** : la page Règles doit expliquer les jauges — ce
+que fait chaque catégorie (bonus en point fort, malus en crise) — pas
+seulement dire qu'elles existent.
+
+**Contexte** : `src/lib/game/regles.ts`, section `activites`, a
+aujourd'hui 2 paragraphes qui présentent les jauges en général et ne
+citent qu'un seul exemple concret (« plus de chances de gagner un
+habitant en plus avec le Commerce »). Rien n'explique les 6 autres
+activités.
+
+**Correction au passage du tableau du §42** : il datait du 05/10/2026
+matin et deux cases « aucun malus/effet propre » ne sont plus vraies —
+la migration 0049 a donné un point fort au Résidentiel (jusqu'alors
+sans aucun effet) et la 0051 a donné un malus de crise à la Recherche
+(jusqu'alors la seule activité sans malus). Le Commerce, lui, avait
+déjà son malus de crise depuis la migration 0024 (perte du bonus de
+jumelage) — le §42 ne l'avait juste pas vu en listant les fonctions. Le
+tableau ci-dessous, relu directement dans le code à jour, remplace
+celui du §42 et clôt son point resté ouvert.
+
+**Tableau à jour (vérifié dans le code, 05/10/2026) :**
+
+| Activité | Point fort (bonus) | Crise (malus) |
+|---|---|---|
+| 🏠 Résidentiel | jusqu'à 25 % de chance d'un habitant de plus par visite (migration 0049) | la visite a moins de chances de rapporter son habitant (probabilité = jauge ÷ 60 %, migration 0024) |
+| 🏭 Industrie | protège contre la Grève, jusqu'à −50 % de son effet | aggrave la Grève, jusqu'à +50 % |
+| 🛒 Commerce | jusqu'à 25 % de chance d'un habitant de plus par visite | ne touche plus le bonus quotidien des jumelages (migration 0024) |
+| 🌳 Loisirs | protège contre la Propagande (−50 %) + réduit la perte d'une manifestation (−50 %) | aggrave la Propagande (+50 %) + aggrave la perte d'une manifestation (+50 %) |
+| 🏥 Services | protège contre la Contamination, jusqu'à −50 % de son effet | aggrave la Contamination, jusqu'à +50 % |
+| ⚡ Énergie | réduit le risque qu'une manifestation se déclenche, jusqu'à −50 % | pèse deux fois plus lourd que les autres activités en crise dans ce même risque |
+| 🔬 Recherche | jusqu'à 50 % de chance qu'une action d'influence reçue rapporte le double | aucune nouvelle technologie ne se débloque tant que la jauge reste sous 60 % — rien n'est perdu, les points patientent (migration 0051) |
+
+**À faire** : dans `src/lib/game/regles.ts`, section `activites`,
+ajouter les paragraphes suivants à la suite des deux déjà présents
+(`paragraphes.fr` et `paragraphes.en`, dans cet ordre — un paragraphe
+d'intro sur les manifestations, puis un par activité) :
+
+FR :
+```
+"Deux autres mécaniques utilisent ces mêmes jauges en coulisses : les attaques AntiVille (voir plus bas) et les manifestations, un événement spontané qui peut faire perdre des habitants à une ville où plusieurs activités sont en crise.",
+"🏠 Résidentiel — en crise, une visite a moins de chances de rapporter son habitant ; en point fort, elle a en plus une chance d'en rapporter un de plus.",
+"🏭 Industrie — protège la ville contre la Grève : en point fort, l'effet d'une Grève subie est réduit de moitié ; en crise, il est aggravé d'autant.",
+"🛒 Commerce — en point fort, chaque visite a une chance supplémentaire de rapporter un habitant de plus ; en crise, la ville ne touche plus le bonus quotidien de ses jumelages.",
+"🌳 Loisirs — protège contre la Propagande et limite la perte d'habitants d'une manifestation ; en crise, ces deux effets s'aggravent au lieu de s'atténuer.",
+"🏥 Services — protège la ville contre la Contamination : en point fort, l'effet d'une Contamination subie est réduit de moitié ; en crise, il est aggravé d'autant.",
+"⚡ Énergie — en point fort, réduit le risque qu'une manifestation éclate dans la ville ; en crise, elle pèse plus lourd que les autres activités dans ce même risque.",
+"🔬 Recherche — en point fort, une action d'influence reçue a une chance de rapporter le double ; en crise, aucune nouvelle technologie ne se débloque — rien n'est perdu, les points patientent jusqu'au retour à l'équilibre."
+```
+
+EN :
+```
+"Two other mechanics use these same gauges behind the scenes: AntiCity attacks (see below) and protests — a spontaneous event that can cost a city residents when several of its activities are in crisis.",
+"🏠 Residential — in crisis, a visit is less likely to bring its resident; in strength, it also has a chance of bringing one more.",
+"🏭 Industry — protects the city against Strike: in strength, the effect of a Strike suffered is cut in half; in crisis, it's just as much worse.",
+"🛒 Commerce — in strength, each visit has an extra chance of bringing one more resident; in crisis, the city no longer gets its daily twinning bonus.",
+"🌳 Leisure — protects against Propaganda and limits the residents lost to a protest; in crisis, both effects get worse instead of better.",
+"🏥 Services — protects the city against Contamination: in strength, the effect of a Contamination suffered is cut in half; in crisis, it's just as much worse.",
+"⚡ Energy — in strength, reduces the risk of a protest breaking out in the city; in crisis, it weighs more heavily than other activities in that same risk.",
+"🔬 Research — in strength, an influence action received has a chance of giving double; in crisis, no new technology unlocks — nothing is lost, points simply wait until balance returns."
+```
+
+**Remarque** : le mot utilisé ici est « manifestation » (FR) / « protest »
+(EN) — c'est déjà le terme que le jeu utilise en interne
+(`verifier_manifestation()`), mais il n'apparaît nulle part ailleurs
+dans la page Règles aujourd'hui ; si Claude Code préfère un autre mot
+plus parlant pour les joueurs, c'est à son appréciation, du moment que
+le même mot est utilisé de façon cohérente dans les 2 paragraphes qui
+le mentionnent (Loisirs et Énergie).
+
+## 50. Ajouter l'espagnol comme 3ᵉ langue du jeu (demande d'Adrien, 05/10/2026)
+
+**Demande d'Adrien** : rendre le jeu disponible en espagnol, en plus du
+français et de l'anglais actuels.
+
+**Contexte** : l'i18n du projet est centralisée et propre
+(`GUIDE-METHODE.md §9` : toute chaîne affichée passe par une clé, les
+deux langues sont remplies en même temps). Concrètement :
+- `src/lib/i18n/dictionaries.ts` : `export const locales = ["fr", "en"]`
+  et un objet `dictionaries` avec un bloc par langue (~540 clés
+  chacune aujourd'hui, `fr`/`en` en parité stricte).
+- `src/app/regles/page.tsx` + `src/lib/game/regles.ts` (voir §49) :
+  `SectionRegles.titre`/`paragraphes` sont typés `Record<Locale, ...>` —
+  TypeScript refusera de compiler tant que chaque section n'a pas sa
+  version espagnole, une fois `Locale` élargi. C'est une bonne chose :
+  aucun risque d'oublier une section.
+- `src/components/LangSwitcher.tsx` : la liste de langues affichées est
+  codée en dur (`["fr", "en"] as const`) plutôt que dérivée de
+  `locales` — à corriger en même temps, sinon l'espagnol sera
+  disponible dans les données mais invisible dans le sélecteur.
+- `src/lib/game/ordinal.ts` : logique spécifique par langue pour les
+  rangs ("1ᵉʳ"/"1st"...) — a une branche `fr` et un `default` qui est
+  en réalité la règle anglaise ; sans branche `es` dédiée, les rangs en
+  espagnol utiliseraient par erreur la règle anglaise ("1st", "2nd"...).
+  Convention espagnole usuelle pour un classement : `1.º`, `2.º`,
+  `3.º`… (indicateur ordinal masculin invariable) — à confirmer/ajuster
+  par Claude Code si une autre convention est plus naturelle.
+- `tests/unit/dictionaries.test.ts` : le test de parité compare
+  aujourd'hui explicitement `clesParLocale.en` à `clesParLocale.fr` — à
+  généraliser pour vérifier TOUTES les locales de `locales` entre elles
+  (pas seulement fr/en), sinon le test ne protégera pas l'espagnol
+  contre une clé manquante.
+- `src/lib/game/ligneLocale.ts` / `soleilVille.ts` : rien à toucher —
+  ils passent déjà par des clés du dictionnaire (`ciel.jour`, etc.),
+  l'espagnol sera pris en compte automatiquement une fois ces clés
+  traduites.
+
+**À faire** :
+1. Ajouter `"es"` à `locales` dans `dictionaries.ts`.
+2. Traduire les ~540 clés dans un nouveau bloc `es: { ... }` (parité
+   stricte avec `fr`/`en`, aucune clé orpheline, aucune valeur vide —
+   la règle du projet s'applique à l'espagnol comme aux deux autres).
+3. Ajouter la branche espagnole dans `ordinal.ts`.
+4. Faire lire `LangSwitcher.tsx` sur `locales` au lieu de la liste
+   codée en dur.
+5. Généraliser `tests/unit/dictionaries.test.ts` à toutes les locales.
+6. Vérifier que `npm run build`/les tests passent (TypeScript doit de
+   lui-même signaler toute section de `regles.ts` restée sans version
+   espagnole).
+
+**Remarque pour Adrien** : la traduction de ~540 chaînes par Claude
+Code sera automatique — correcte dans l'ensemble, mais une relecture
+par un locuteur espagnol natif (toi-même ou un ami testeur hispanophone)
+avant d'annoncer la langue comme "disponible" est recommandée, surtout
+pour les tournures idiomatiques (noms d'activités, messages d'erreur,
+textes courts de l'accueil).

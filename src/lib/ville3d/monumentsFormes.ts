@@ -167,6 +167,8 @@ export interface OptionsPlaque {
   /** Nombre de lignes d'inscription (1 à 3). */
   lignes: number;
   seed?: number;
+  /** Matière du fond (MAT.PLAIN par défaut ; MAT.BRONZE pour une plaque de bronze). */
+  mFond?: number;
 }
 
 const EP_PLAQUE = 0.12;
@@ -183,7 +185,7 @@ export function plaque(g: Geo, face: Face, centre: number, plan: number, y0: num
     const f = Math.min(h, demi * 2) * 0.09;
     boite(g, face, centre - demi - f, centre + demi + f, y0 - f, y0 + h + f, plan - 0.02, e, o.trait, o.mTrait, s);
   }
-  boite(g, face, centre - demi, centre + demi, y0, y0 + h, plan - 0.02, e * 1.5, o.fond, MAT.PLAIN, s);
+  boite(g, face, centre - demi, centre + demi, y0, y0 + h, plan - 0.02, e * 1.5, o.fond, o.mFond ?? MAT.PLAIN, s);
   const largeurs = [0.78, 0.58, 0.68];
   for (let i = 0; i < o.lignes; i++) {
     const yc = y0 + h * (o.lignes === 1 ? 0.5 : 0.78 - (0.56 * i) / (o.lignes - 1));
@@ -274,12 +276,12 @@ export function arche(
  * dallage que l'ancien socle (côté en `PLAIN`, dessus en `PAVING`). Renvoie la
  * hauteur du dessus et le rayon de la dernière marche.
  */
-export function marchesRondes(g: Geo, cx: number, y0: number, cz: number, r: number, n: number, e: number, c: Couleur, retrait: number) {
+export function marchesRondes(g: Geo, cx: number, y0: number, cz: number, r: number, n: number, e: number, c: Couleur, retrait: number, m: number = MAT.PLAIN, dessus: Couleur = COL.paving) {
   let y = y0,
     rayon = r;
   for (let i = 0; i < n; i++) {
     rayon = r * (1 - retrait * i);
-    cylinder(g, cx, y, cz, rayon, e, 16, c, MAT.PLAIN, MAT.PAVING, COL.paving);
+    cylinder(g, cx, y, cz, rayon, e, 24, c, m, MAT.PAVING, dessus);
     y += e;
   }
   return { haut: y, rayon };

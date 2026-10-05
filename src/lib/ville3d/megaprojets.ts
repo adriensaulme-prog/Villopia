@@ -27,19 +27,23 @@
  * A-INTEGRER §49 D (retour d'Adrien du 05/10/2026) : « le Stade et le Grand stade beaucoup plus
  * grands, sur plusieurs blocs réservés ». Un bloc ne suffisait pas à un stade (22 m de large pour
  * le Stade : plus petit qu'un immeuble) : le Stade occupe maintenant un carré de 2 × 2 blocs, rues
- * intérieures comprises (144 m de côté), et le Grand stade 3 × 3 blocs (224 m) — la taille de vrais
- * stades, pelouse de 63 × 38 m et de 90 × 55 m. Voir `tailleMegaprojet`, megaprojetsVille.ts (qui
- * réserve les blocs) et terrain.ts (les rues intérieures disparaissent).
+ * intérieures comprises (144 m de côté). Le Grand stade, jugé disproportionné (3 × 3, puis 3 × 2)
+ * puis inutile à côté du petit (« on peut remplacer par un parc d'attraction »), est devenu le Parc
+ * d'attractions, lui aussi sur 2 × 2 blocs (megaprojetsLoisirs.ts) ; son identifiant `grand_stade`
+ * n'a pas changé. Voir `tailleMegaprojet`, megaprojetsVille.ts (qui réserve les blocs) et terrain.ts
+ * (les rues intérieures disparaissent).
  */
 import type { RNG } from "./aleatoire";
 import { BS, COL, MAT, PERIOD, SW, T, hex } from "./constantes";
 import type { Geo } from "./geometrie";
 import type { TamponAO } from "./mobilier";
 import type { TypeMegaprojet } from "@/lib/game/megaprojets";
-import { aeroport, gareTgv, grandStade, marcheCouvert, parcSports, stade as stadeMega, zoneLogistique } from "./megaprojetsEquipements";
+import { aeroport, gareTgv, marcheCouvert, parcSports, zoneLogistique } from "./megaprojetsEquipements";
+import { stade as stadeMega } from "./megaprojetsLoisirs";
+import { parcAttractions } from "./megaprojetsParc";
 import { centraleNouvelleGeneration, centraleSolaire, centrale, parcEolien } from "./megaprojetsEnergie";
 import { centreRecherche, grandeEcole, hopital, opera, siegeInternational, technopole, tourEmblematique } from "./megaprojetsCivils";
-import { BASE, haut, plateforme, volume, zone, type Site } from "./megaprojetsFormes";
+import { BASE, STADE_HAUTEUR_MAX, eclairerPourtour, eclairerZone, haut, plateforme, volume, zone, type Site } from "./megaprojetsFormes";
 
 /**
  * Demi-côté de l'emprise carrée d'un mégaprojet, selon son stade (0 = ex-Bourg … 4 = ex-Mégapole).
@@ -55,13 +59,13 @@ const HAUTEURS_MEGAPROJET = [11, 17, 25, 40, 55] as const;
 /**
  * Mégaprojets qui occupent plusieurs blocs (A-INTEGRER §49 D) : un rectangle de `x` × `z` blocs, et
  * la hauteur H dont dispose le bâtiment. Tous les autres tiennent dans un seul bloc.
- * Retour d'Adrien du 05/10/2026 (« le Grand stade est trop grand, disproportionné ») : le Grand stade
- * est passé de 3 × 3 blocs à 3 × 2 (224 × 144 m, un tiers de surface en moins), plus long que large
- * comme un vrai stade ; il reste plus grand que le Stade (2 × 2).
+ * Le type accepte aussi des rectangles (3 × 2 blocs : le Grand stade l'a été avant de devenir le Parc
+ * d'attractions) : `Site.Rz` et `blocsDuSite` les gèrent.
  */
-const SITES_MULTI_BLOCS: Readonly<Partial<Record<TypeMegaprojet, { x: 2 | 3; z: 2 | 3; H: number }>>> = {
-  stade: { x: 2, z: 2, H: 36 },
-  grand_stade: { x: 3, z: 2, H: 48 },
+const SITES_MULTI_BLOCS: Readonly<Partial<Record<TypeMegaprojet, { x: 1 | 2 | 3; z: 1 | 2 | 3; H: number }>>> = {
+  // Règle de proportion (megaprojetsFormes.ts, 3ᵉ consigne du 05/10/2026) : le Stade sur 2 × 1 blocs, 25 m de haut ; le Parc d'attractions sur 2 × 2, 44 m.
+  stade: { x: 2, z: 1, H: STADE_HAUTEUR_MAX },
+  grand_stade: { x: 2, z: 2, H: 44 },
 };
 
 /** Pas d'un bloc à l'autre (bloc de 64 m + rue de 16 m) et rue qui les sépare. */
@@ -74,7 +78,7 @@ export const coteBlocs = (n: number) => n * PAS_BLOC - RUE;
 /** Marge entre le bord du carré de blocs et la plateforme du mégaprojet : le trottoir de 3 m du bloc et un mètre de jeu. */
 const MARGE_TROTTOIR = SW + 1;
 
-/** Nombre de blocs du site d'un mégaprojet, le long de x et de z (1 × 1 pour presque tous, 2 × 2 pour le Stade, 3 × 2 pour le Grand stade). */
+/** Nombre de blocs du site d'un mégaprojet, le long de x et de z (1 × 1 pour presque tous, 2 × 2 pour le Stade et le Parc d'attractions). */
 export function blocsMegaprojet(type: string): { nx: number; nz: number } {
   const multi = Object.prototype.hasOwnProperty.call(SITES_MULTI_BLOCS, type) ? SITES_MULTI_BLOCS[type as TypeMegaprojet] : undefined;
   return multi ? { nx: multi.x, nz: multi.z } : { nx: 1, nz: 1 };
@@ -92,7 +96,7 @@ export interface TailleMegaprojet {
   nz: number;
 }
 
-/** Emprise et hauteur d'un mégaprojet : celles de son stade, sauf le Stade et le Grand stade (plusieurs blocs). */
+/** Emprise et hauteur d'un mégaprojet : celles de son stade, sauf le Stade et le Parc d'attractions (plusieurs blocs). */
 export function tailleMegaprojet(type: string, stade: number): TailleMegaprojet {
   const multi = Object.prototype.hasOwnProperty.call(SITES_MULTI_BLOCS, type) ? SITES_MULTI_BLOCS[type as TypeMegaprojet] : undefined;
   if (multi) return { R: coteBlocs(multi.x) / 2 - MARGE_TROTTOIR, Rz: coteBlocs(multi.z) / 2 - MARGE_TROTTOIR, H: multi.H, nx: multi.x, nz: multi.z };
@@ -133,7 +137,7 @@ const SILHOUETTES: Record<TypeMegaprojet, (s: Site) => void> = {
   aeroport,
   centre_recherche: centreRecherche,
   centrale,
-  grand_stade: grandStade,
+  grand_stade: parcAttractions, // l'identifiant (et sa ligne en base) ne change pas : seul le dessin et le nom affiché ont changé
   centrale_nouvelle_generation: centraleNouvelleGeneration,
   siege_international: siegeInternational,
 };
@@ -156,13 +160,23 @@ export function buildMegaprojet(
    * bloc). S'il est plus petit que le rayon du stade, le mégaprojet est réduit d'autant EN TOUTES
    * DIMENSIONS (hauteur comprise) : mêmes proportions, jamais de dépassement sur la rue.
    */
-  rayonMax = Infinity
+  rayonMax = Infinity,
+  /** Halos de lumière au sol (la nuit) : generate() les passe pour sa carte de lueur. */
+  glow?: { x: number; z: number }[],
+  /** Niveau du quartier Loisirs de la ville (niveauLoisirs) : le Parc d'attractions s'étoffe avec lui. Absent = le plus riche. */
+  niveau?: number
 ) {
   const taille = tailleMegaprojet(type, stade);
   const R = Math.min(taille.R, rayonMax),
     Rz = (taille.Rz * R) / taille.R,
     H = (taille.H * R) / taille.R;
   const dessiner = Object.prototype.hasOwnProperty.call(SILHOUETTES, type) ? SILHOUETTES[type as TypeMegaprojet] : generique;
-  dessiner({ g, cx, cz, R, Rz, H, r, seed });
+  const site: Site = { g, cx, cz, R, Rz, H, r, seed, glow, niveau };
+  dessiner(site);
+  // Éclairage de nuit commun à tous les mégaprojets : des lampadaires tout autour de la plateforme et, pour ceux
+  // d'un bloc, des projecteurs au sol sous le bâtiment (un halo tous les ~9 m au centre) : ni la façade ni ses abords
+  // ne restent noirs. Le Stade et le Parc d'attractions (plusieurs blocs) éclairent leurs propres pelouses et allées.
+  eclairerPourtour(site, R > 40 ? 14 : 11);
+  if (taille.nx * taille.nz === 1) eclairerZone(site, zone(site, -0.7, -0.7, 0.7, 0.7), Math.max(8, R * 0.34));
   ao.push({ x0: cx - R, z0: cz - Rz, x1: cx + R, z1: cz + Rz, w: 1, h: H });
 }

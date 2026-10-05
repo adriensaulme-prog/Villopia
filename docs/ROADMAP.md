@@ -336,8 +336,8 @@ Cette liste vit dans `DECISIONS.md` §9 (ambitions long terme) et §10
 
 ---
 
-*Dernière mise à jour : 05/10/2026. **§49 (jauges expliquées dans Règles) et §50 (espagnol, 3ᵉ langue) faits** (aucune migration ; relecture
-par un locuteur natif à prévoir ; noms de pays encore en anglais en espagnol). **§49 fait** (retour d'Adrien du 05/10/2026 : Énergie écartée des mégaprojets, fond de `/pays` en paysage de campagne, monuments de 7 à
+*Dernière mise à jour : 05/10/2026. **Monuments plus beaux** (retour d'Adrien : « trop simplistes ») : or poli, bronze, marbre et pierre de taille en vraies matières, mise en lumière de nuit, place en jardin à la française, six sculptures refaites ; aucune migration. **3ᵉ consigne faite** (citée « §50 » dans le chat, sans § propre : le §50 de `A-INTEGRER.md` est l'espagnol) : Stade en 2 × 1 blocs sous une règle de proportion ; Parc d'attractions refait, seize dispositions et niveaux du quartier Loisirs ; seize monuments revus par lots ; aucune migration. **§49 (jauges expliquées dans Règles) et §50 (espagnol, 3ᵉ langue) faits** (aucune migration ; relecture
+par un locuteur natif à prévoir ; noms de pays encore en anglais en espagnol). **§46 et suite du §49 faits** (mégaprojets dans la ville, contre les monuments, avec leurs rues ; Grand stade remplacé par un Parc d'attractions ; Stade futuriste ; éclairage de nuit ; `/pays` plein écran sans fond 3D ; aucune migration). **§49 fait** (retour d'Adrien du 05/10/2026 : Énergie écartée des mégaprojets, fond de `/pays` en paysage de campagne, monuments de 7 à
 62 m sur une parcelle de façade, Stade en 2 × 2 blocs et Grand stade en 3 × 2 ; dix monuments redessinés en formes atypiques ; aucune migration ; texte du §49 absent de la copie
 locale, à resynchroniser). **§47 et §48 faits** (classement hebdomadaire des pays + développements nationaux votés et financés
 par les ressources, `/pays` refait en cinq onglets ; migrations `0052`, `0053`, `0054` à appliquer ; SQL

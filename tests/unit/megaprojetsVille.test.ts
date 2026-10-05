@@ -4,29 +4,23 @@ import { rngFrom } from "@/lib/ville3d/aleatoire";
 import { Geo } from "@/lib/ville3d/geometrie";
 import { buildMegaprojet, hauteurMegaprojet, rayonMegaprojet, tailleMegaprojet } from "@/lib/ville3d/megaprojets";
 import { rectCourBloc } from "@/lib/ville3d/terrain";
-import { BS, CITY_R_MIN, PLAFOND_RENDU_POPULATION, blockX0 } from "@/lib/ville3d/constantes";
-import { CEINTURE } from "@/lib/ville3d/emplacements";
-import { casesCentrales } from "@/lib/ville3d/cases";
-import { indiceCaseMegaprojet, indiceCaseStade, placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
-import {
-  CATALOGUE_MEGAPROJETS,
-  POPULATION_STADE,
-  PREMIER_PALIER_MEGAPROJET,
-  megaprojetDuPalier,
-  rangDansLeStade,
-} from "@/lib/game/megaprojets";
+import { BS, MAT, PLAFOND_RENDU_POPULATION, blockX0 } from "@/lib/ville3d/constantes";
+import { casesCentrales, casesTriees } from "@/lib/ville3d/cases";
+import { CEINTURE, distanceAuSecteurEnergie, distanceRectAuSecteurEnergie } from "@/lib/ville3d/emplacements";
+import { DISTANCE_MIN_ENERGIE, blocsDeLiaison, blocsDuSite, placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
+import { NB_BLOCS_MONUMENTS } from "@/lib/ville3d/monumentsVille";
+import { CATALOGUE_MEGAPROJETS, PREMIER_PALIER_MEGAPROJET, megaprojetDuPalier } from "@/lib/game/megaprojets";
 import type { VocationQuartier } from "@/lib/ville3d/quartiers";
 
 /**
- * A-INTEGRER §37 A, repris par le §41 : les mégaprojets viennent à la bordure
- * de la ville (la case juste hors de la ville quand elle atteint la population
- * de leur stade), dans la cour de cette case, et ne bougent plus jamais — même
- * quand la ville les rejoint. Depuis le §41 ils se débloquent par le record
- * d'influence : leur place ne dépend plus d'une population courante mais du
- * stade qu'ils avaient (megaprojets.ts), et des mégaprojets du même stade se
- * rangent sur des cases voisines.
+ * Place des mégaprojets. Historique : §37 A les posait « à la bordure de la ville », §41 selon le stade de
+ * population où ils se débloquaient ; le retour d'Adrien du 05/10/2026 (« les mégaprojets doivent être dans les
+ * villes, là ils sont loin des villes et pas toujours à côté d'une route ») les met DANS la ville : chacun prend
+ * la première case libre après les 16 blocs des monuments (megaprojetsVille.ts), avec ses rues, et ne bouge plus
+ * jamais — même quand la ville le rejoint.
  */
 const CLES = ["ville-a", "0b7c4f3e-demo", "accueil", "x1", "x2", "3f8a2c1e-7b4d-4e9a-b6c5-1d2e3f4a5b6c"];
+const GRAINES = Array.from({ length: 60 }, (_, i) => `graine-${i}`);
 /** Les 18 paliers du catalogue unifié qui sont des mégaprojets : 16 à 33. */
 const PALIERS = CATALOGUE_MEGAPROJETS.map((_, i) => PREMIER_PALIER_MEGAPROJET + i);
 const PREMIER = PREMIER_PALIER_MEGAPROJET;
@@ -47,44 +41,51 @@ function vocationsDe(cle: string, graine: number): Map<number, VocationQuartier>
 const normeMax = (p: { x: number; z: number }) => Math.max(Math.abs(p.x), Math.abs(p.z));
 const stadeDe = (palier: number) => megaprojetDuPalier(palier)!.stade;
 
-describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
-  it("la case d'un mégaprojet est libre quand la ville atteint la population de son stade, quelles que soient les vocations des blocs (zonage ou non)", () => {
-    for (const cle of CLES) {
-      const places = placesMegaprojets(cle, PALIERS);
-      for (let stade = 0; stade < POPULATION_STADE.length; stade++) {
-        const duStade = PALIERS.filter((p) => stadeDe(p) === stade);
-        for (const graine of [1, 2, 3]) {
-          for (const zonage of [0, undefined]) {
-            const { blocks } = planifierBlocs(cle, POPULATION_STADE[stade], vocationsDe(cle, graine), zonage);
-            for (const palier of duStade) {
-              const place = places.get(palier)!;
-              const occupee = blocks.some((b) => b.active && b.bi === place.bi && b.bj === place.bj);
-              expect(occupee, `${cle} palier ${palier} graine ${graine} zonage ${zonage}`).toBe(false);
-            }
-          }
+describe("mégaprojets dans la ville, contre les monuments (retour d'Adrien du 05/10/2026)", () => {
+  it("les mégaprojets sont DANS la ville : à cinq blocs du croisement central au plus, dans la ceinture d'Énergie, jamais perdus dans les champs", () => {
+    for (const cle of GRAINES) {
+      for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+        for (const b of p.blocs) {
+          expect(Math.abs(b.bi + 0.5), `${cle} palier ${palier}`).toBeLessThanOrEqual(5.5);
+          expect(Math.abs(b.bj + 0.5), `${cle} palier ${palier}`).toBeLessThanOrEqual(5.5);
         }
+        expect(normeMax({ x: p.rect[0], z: p.rect[1] }), `${cle} palier ${palier}`).toBeLessThan(CEINTURE);
+        expect(normeMax({ x: p.rect[2], z: p.rect[3] }), `${cle} palier ${palier}`).toBeLessThan(CEINTURE);
       }
     }
   });
 
-  it("le mégaprojet est à quelques cases de la ville quand elle atteint son stade, pas à 450 m", () => {
+  it("le premier mégaprojet est contre les monuments : la 17e case de la ville, ou la première libre à côté (moins de quatre blocs du centre)", () => {
+    for (const cle of GRAINES) {
+      const p = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
+      expect(Math.max(Math.abs(p.bi + 0.5), Math.abs(p.bj + 0.5)), cle).toBeLessThanOrEqual(3.5);
+    }
+  });
+
+  it("chacun prend la PREMIÈRE case libre à partir de la 17e : aucune case plus proche n'était libre (monuments, mégaprojets déjà posés) et assez loin de l'Énergie", () => {
     for (const cle of CLES) {
+      const cases = casesTriees(cle, 12);
       const places = placesMegaprojets(cle, PALIERS);
+      const reserves = new Set(casesCentrales(cle, NB_BLOCS_MONUMENTS).map((c) => c.bi + "," + c.bj));
       for (const palier of PALIERS) {
-        const brut = places.get(palier)!;
-        // Un site de plusieurs blocs (§49 D) part de sa case d'ancrage, la plus proche de la ville : c'est elle qu'on mesure.
-        const place = { ...brut, x: blockX0(brut.bi) + BS / 2, z: blockX0(brut.bj) + BS / 2 };
-        const { blocks } = planifierBlocs(cle, POPULATION_STADE[stadeDe(palier)], vocationsDe(cle, 7), 0);
-        const dmin = Math.min(
-          ...blocks.filter((b) => b.active).map((b) => Math.max(Math.abs(b.bi - place.bi), Math.abs(b.bj - place.bj)))
-        );
-        expect(dmin, `${cle} palier ${palier}`).toBeGreaterThanOrEqual(1);
-        // Le premier du stade est à une à trois cases ; chaque voisin de stade s'écarte d'une case de plus au plus,
-        // et deux de plus s'il a dû quitter le secteur d'Énergie (§49 C, tests/unit/megaprojetsEnergie.test.ts).
-        expect(dmin, `${cle} palier ${palier}`).toBeLessThanOrEqual(3 + rangDansLeStade(palier) + 2);
-        // Toujours en deçà de la ceinture d'Énergie (450 m) : avant le §49 C elle était dépassée de moins de 10 m par le dernier stade.
-        expect(normeMax(place), `${cle} palier ${palier}`).toBeLessThan(CEINTURE);
-        expect(normeMax(place)).toBeGreaterThanOrEqual(CITY_R_MIN - BS);
+        const p = places.get(palier)!;
+        const i = cases.findIndex((c) => c.bi === p.bi && c.bj === p.bj);
+        expect(i, `${cle} palier ${palier}`).toBeGreaterThanOrEqual(NB_BLOCS_MONUMENTS);
+        for (let j = NB_BLOCS_MONUMENTS; j < i; j++) {
+          const blocs = blocsDuSite(cases[j], p.nx, p.nz);
+          const occupee = blocs.some((b) => reserves.has(b.bi + "," + b.bj));
+          let proche: boolean;
+          if (p.nx * p.nz === 1) {
+            const [x0, z0, x1, z1] = rectCourBloc(cle, cases[j].bi, cases[j].bj)!;
+            proche = distanceAuSecteurEnergie((x0 + x1) / 2, (z0 + z1) / 2) < DISTANCE_MIN_ENERGIE;
+          } else {
+            const xs = blocs.map((b) => blockX0(b.bi)),
+              zs = blocs.map((b) => blockX0(b.bj));
+            proche = distanceRectAuSecteurEnergie(Math.min(...xs), Math.min(...zs), Math.max(...xs) + BS, Math.max(...zs) + BS) < DISTANCE_MIN_ENERGIE;
+          }
+          expect(occupee || proche, `${cle} palier ${palier} : la case ${j} était libre`).toBe(true);
+        }
+        for (const b of p.blocs) reserves.add(b.bi + "," + b.bj);
       }
     }
   });
@@ -123,22 +124,6 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
     }
   });
 
-  it("les indices de case croissent avec le palier : plus loin dans le catalogue = plus loin de la ville", () => {
-    let precedent = -1;
-    for (const palier of PALIERS) {
-      const i = indiceCaseMegaprojet(palier)!;
-      expect(i).toBeGreaterThan(precedent);
-      precedent = i;
-    }
-  });
-
-  it("les mégaprojets d'un même stade occupent des cases consécutives, à partir de la première case du stade", () => {
-    for (let stade = 0; stade < POPULATION_STADE.length; stade++) {
-      const duStade = PALIERS.filter((p) => stadeDe(p) === stade);
-      duStade.forEach((p, rang) => expect(indiceCaseMegaprojet(p)).toBe(indiceCaseStade(stade) + rang));
-    }
-  });
-
   it("la position ne dépend que de la ville et du palier : ni des autres paliers, ni de la population", () => {
     for (const cle of CLES) {
       const seul = placesMegaprojets(cle, [PREMIER + 3]).get(PREMIER + 3)!;
@@ -148,9 +133,81 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
   });
 
   it("un palier qui n'est pas un mégaprojet (monument, inconnu) n'a pas de place : ignoré", () => {
-    for (const palier of [0, 5, 15, 34, 99, -1]) expect(indiceCaseMegaprojet(palier)).toBeNull();
     expect(placesMegaprojets("ville-a", [0, 5, 15, 34, 99, -1]).size).toBe(0);
     expect([...placesMegaprojets("ville-a", [0, PREMIER, 99]).keys()]).toEqual([PREMIER]);
+  });
+
+  describe("les rues qui y mènent (« pas toujours à côté d'une route »)", () => {
+    it("blocsDeLiaison : l'escalier de blocs du croisement central jusqu'au bloc visé, un pas à la fois", () => {
+      for (const bloc of [
+        { bi: 4, bj: 2 },
+        { bi: -4, bj: 2 },
+        { bi: 3, bj: -3 },
+        { bi: -2, bj: -5 },
+        { bi: 0, bj: 3 },
+        { bi: -1, bj: -1 },
+        { bi: 0, bj: 0 },
+      ]) {
+        const chemin = blocsDeLiaison(bloc);
+        // Il part du bloc contre le croisement (0 ou −1 selon le signe) et finit sur le bloc visé.
+        expect(chemin[0]).toEqual({ bi: bloc.bi >= 0 ? 0 : -1, bj: bloc.bj >= 0 ? 0 : -1 });
+        expect(chemin.at(-1)).toEqual(bloc);
+        for (let k = 1; k < chemin.length; k++) {
+          const dx = Math.abs(chemin[k].bi - chemin[k - 1].bi),
+            dz = Math.abs(chemin[k].bj - chemin[k - 1].bj);
+          expect(dx + dz, JSON.stringify(bloc)).toBe(1);
+        }
+        const pas = Math.abs(bloc.bi >= 0 ? bloc.bi : -bloc.bi - 1) + Math.abs(bloc.bj >= 0 ? bloc.bj : -bloc.bj - 1);
+        expect(chemin).toHaveLength(pas + 1);
+        expect(new Set(chemin.map((b) => b.bi + "," + b.bj)).size).toBe(chemin.length);
+      }
+    });
+
+    it("dans la scène, un mégaprojet est relié au croisement central par des rues, même quand la ville est encore petite", () => {
+      const dernier = PALIERS.at(-1)!;
+      const def = megaprojetDuPalier(dernier)!;
+      const mega = [{ palier: dernier, type: def.type, activite: def.activite }];
+      // Chaussée dessinée autour d'un bloc : les rues qui le bordent (à moins d'une rue de ses angles).
+      const chaussee = (g: Geo, b: { bi: number; bj: number }) => {
+        const x0 = blockX0(b.bi) - 16,
+          z0 = blockX0(b.bj) - 16;
+        let n = 0;
+        for (let i = 0; i < g.n; i++) {
+          const x = g.V[i * 13],
+            z = g.V[i * 13 + 2];
+          if (g.V[i * 13 + 9] === MAT.ROAD && x > x0 && x < x0 + BS + 32 && z > z0 && z < z0 + BS + 32) n++;
+        }
+        return n;
+      };
+      let verifies = 0;
+      for (const cle of CLES) {
+        const place = placesMegaprojets(cle, [dernier]).get(dernier)!;
+        const sans = generate(cle, 3_000, undefined, 0, [], 0, [], "classique", 0).g;
+        const avec = generate(cle, 3_000, undefined, 0, mega, 0, [], "classique", 0).g;
+        const chemin = blocsDeLiaison(place);
+        // Les blocs du chemin que la petite ville n'atteignait pas (hors des deux grands axes) n'avaient aucune rue.
+        const loin = chemin.filter((b) => chaussee(sans, b) === 0);
+        for (const b of chemin) expect(chaussee(avec, b), `${cle} bloc ${b.bi},${b.bj}`).toBeGreaterThan(0);
+        for (const b of loin) {
+          expect(chaussee(avec, b), `${cle} bloc ${b.bi},${b.bj}`).toBeGreaterThan(chaussee(sans, b));
+          verifies++;
+        }
+      }
+      expect(verifies).toBeGreaterThan(0);
+    });
+
+    it("la ville, son brouillard, ses ombres et sa carte de lueur couvrent le site : le rayon de la ville le contient", () => {
+      for (const cle of ["ville-a", "accueil", "x1"]) {
+        const mega = PALIERS.map((palier) => {
+          const def = megaprojetDuPalier(palier)!;
+          return { palier, type: def.type, activite: def.activite };
+        });
+        const cityR = generate(cle, 3_000, undefined, 0, mega, 0, [], "classique", 0).stats.cityR!;
+        for (const [palier, p] of placesMegaprojets(cle, PALIERS)) {
+          expect(cityR, `${cle} palier ${palier}`).toBeGreaterThanOrEqual(Math.max(...p.rect.map(Math.abs)));
+        }
+      }
+    });
   });
 
   it("dans la scène, le mégaprojet reste exactement au même endroit quand la ville grandit puis l'englobe", () => {
@@ -273,7 +330,7 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       expect(avec.ao.filter(loin)).toEqual(sans.ao.filter(loin));
     });
 
-    it("le bloc réservé garde ses lampadaires et sa pelouse : la rue reste éclairée", () => {
+    it("le bloc réservé garde les lampadaires de sa rue, et le site ajoute les siens : la rue reste éclairée", () => {
       const cle = "ville-a";
       const vocations = vocationsDe(cle, 5);
       const place = placesMegaprojets(cle, [PREMIER]).get(PREMIER)!;
@@ -282,8 +339,9 @@ describe("mégaprojets à la bordure de la ville (§37 A, §41)", () => {
       const bx = blockX0(place.bi),
         bz = blockX0(place.bj);
       const lueurs = (glow: { x: number; z: number }[]) => glow.filter((l) => l.x > bx - 3 && l.x < bx + BS + 3 && l.z > bz - 3 && l.z < bz + BS + 3).length;
-      expect(lueurs(avec.glow)).toBe(lueurs(sans.glow));
-      expect(lueurs(avec.glow)).toBeGreaterThan(0);
+      // Le site ajoute son propre éclairage de nuit (lampadaires du pourtour, halos au sol) à ceux de la rue : jamais moins.
+      expect(lueurs(avec.glow)).toBeGreaterThanOrEqual(lueurs(sans.glow));
+      expect(lueurs(sans.glow)).toBeGreaterThan(0);
     });
   });
 

@@ -71,6 +71,8 @@ export interface Bloc {
 
 export interface Stats {
   maxFloors: number;
+  /** Stades de loisirs construits (le second lot d'un bloc Loisirs) : le niveau du quartier Loisirs en découle (niveauLoisirs). */
+  stadesLoisirs?: number;
   towers: number;
   active: number;
   center?: [number, number];
@@ -241,7 +243,7 @@ export interface OptionsBloc {
   siteMegaprojet?: boolean;
   /**
    * Côtés de ce bloc qui touchent un autre bloc du MÊME site de mégaprojet (A-INTEGRER §49 D : le Stade et
-   * le Grand stade s'étendent sur plusieurs blocs, rues intérieures comprises). Ni trottoir, ni lampadaire,
+   * le Parc d'attractions s'étendent sur plusieurs blocs, rues intérieures comprises). Ni trottoir, ni lampadaire,
    * ni arbre d'alignement, ni abribus sur ces côtés : ils seraient sous le bâtiment, ou le traverseraient.
    */
   cotesInternes?: ReadonlySet<Facade>;
@@ -421,8 +423,10 @@ export function buildBlock(
       const start = Math.max(APART_FROM, b.openAt + gap * (0.8 + 0.1 * (idx - 4)));
       ev.push(start);
       if (b.vocation === "loisirs") {
-        if (C >= start) buildStade(g, rect, lr_, ao, lotSeed);
-        else buildPark(g, rect, lr_, ao, true);
+        if (C >= start) {
+          buildStade(g, rect, lr_, ao, lotSeed);
+          stats.stadesLoisirs = (stats.stadesLoisirs ?? 0) + 1;
+        } else buildPark(g, rect, lr_, ao, true);
       } else if (build) {
         if (C >= start) {
           // Niveau 2 ("grand complexe") au-delà de QUARTIER_NIVEAU2_APRES
@@ -524,7 +528,7 @@ export interface ZoneSansArbre {
   z: number;
   r?: number;
   demi?: number;
-  /** Demi-côté le long de z d'une zone rectangulaire (le Grand stade, A-INTEGRER §49 D) ; absent = `demi`, la zone est carrée. */
+  /** Demi-côté le long de z d'une zone rectangulaire (un site de plusieurs blocs, A-INTEGRER §49 D) ; absent = `demi`, la zone est carrée. */
   demiZ?: number;
 }
 
@@ -688,14 +692,16 @@ export function buildMegaprojetsCampagne(
   key: string,
   ao: TamponAO[],
   megaprojets: MegaprojetConstruit[],
-  places: ReadonlyMap<number, { x: number; z: number; rayon?: number }>
+  places: ReadonlyMap<number, { x: number; z: number; rayon?: number }>,
+  glow?: { x: number; z: number }[],
+  niveauLoisirs?: number
 ) {
   for (const m of megaprojets) {
     const place = places.get(m.palier);
     if (!place) continue;
     const r = rngFrom(key + "|megaprojet|type|" + m.palier);
     const stade = megaprojetDuPalier(m.palier)?.stade ?? 0;
-    buildMegaprojet(g, place.x, place.z, m.type, stade, r, ao, Math.floor(r() * 900) + 50, place.rayon);
+    buildMegaprojet(g, place.x, place.z, m.type, stade, r, ao, Math.floor(r() * 900) + 50, place.rayon, glow, niveauLoisirs);
   }
 }
 
@@ -721,7 +727,7 @@ export function buildRoadsAndTraffic(g: Geo, activeBlocks: Bloc[], key: string, 
   }
   const list = [...tiles]
     .map((k) => k.split(",").map(Number))
-    // A-INTEGRER §49 D : les rues qui traversent un site de plusieurs blocs (le Stade, le Grand stade) disparaissent avec lui.
+    // A-INTEGRER §49 D : les rues qui traversent un site de plusieurs blocs (le Stade, le Parc d'attractions) disparaissent avec lui.
     .filter(([ti, tj]) => !sansRue.some((r) => ti * T > r[0] && ti * T < r[2] && tj * T > r[1] && tj * T < r[3]))
     .sort((p, q) => p[0] - q[0] || p[1] - q[1]);
   for (const [ti, tj] of list) {
@@ -792,11 +798,8 @@ export function buildDrones(g: Geo, key: string, cityR: number, n = 6) {
   }
 }
 
-/**
- * Routes de campagne : les deux axes centraux repartent du bord actuel de la ville vers l'horizon, bordés d'arbres.
- * `premierArbre` : distance du premier arbre d'alignement (190 m : hors de la ville ; le paysage sans ville en pose plus près).
- */
-export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: number, premierArbre = 190) {
+/** Routes de campagne : les deux axes centraux repartent du bord actuel de la ville vers l'horizon, bordés d'arbres. */
+export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: number) {
   const hw = DEMI_ROUTE_CAMPAGNE,
     far = 3800,
     y = 0.03,
@@ -807,7 +810,7 @@ export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: nu
   flat(g, E, -hw, far, hw, y, COL.road, MAT.ROAD);
   for (const sgn of [-1, 1]) {
     for (let i = 0; i < 68; i++) {
-      const d = premierArbre + i * 21;
+      const d = 190 + i * 21;
       if (d < E + 14) continue;
       const q = rngFrom(key + "|bord|" + sgn + "|" + i);
       const side = q() < 0.5 ? -1 : 1,
@@ -819,37 +822,4 @@ export function buildCountryRoads(g: Geo, key: string, ao: TamponAO[], cityR: nu
       if (q() < 0.12) car(g, sgn * (d + 6), q() < 0.5 ? -2.2 : 2.2, true, q);
     }
   }
-}
-
-/**
- * Paysage de campagne SANS ville (A-INTEGRER §49 E) : le fond de /pays. Cette page parle d'un pays,
- * pas d'une ville ; elle montrait jusque-là la ville de la dernière page visitée, tirée au hasard.
- * Même campagne que celle qui entoure les villes (forêts, route bordée d'arbres), mais jusqu'au
- * centre : un carrefour de campagne, des bosquets autour, aucun bloc, aucun bâtiment. Une graine
- * (le pays) donne toujours le même paysage ; tout vient d'un générateur par élément, comme le reste.
- */
-export function buildPaysage(g: Geo, key: string, ao: TamponAO[]) {
-  // Les grandes forêts des villes, sans l'emprise d'une ville au milieu.
-  buildCountryside(g, key, ao, 0);
-  // Des bosquets plus près, pour que le premier plan ne soit pas une prairie nue.
-  for (let k = 0; k < 64; k++) {
-    const r = rngFrom(key + "|paysage|bosquet|" + k);
-    const a = r() * Math.PI * 2,
-      d = rr(r, 45, 340);
-    const cx = Math.cos(a) * d,
-      cz = Math.sin(a) * d;
-    const n = 4 + Math.floor(r() * 9),
-      spread = rr(r, 7, 19);
-    const coni = r() < 0.4;
-    for (let i = 0; i < n; i++) {
-      const q = rngFrom(key + "|paysage|arbre|" + k + "|" + i);
-      const x = cx + rr(q, -spread, spread),
-        z = cz + rr(q, -spread, spread);
-      // Pas sur la route de campagne ni sur ses arbres d'alignement.
-      if (Math.abs(x) < 16 || Math.abs(z) < 16) continue;
-      if (coni && q() < 0.8) conifer(g, x, z, rr(q, 0.9, 1.25), q, ao);
-      else tree(g, x, z, 0, rr(q, 1.1, 1.6), q, ao);
-    }
-  }
-  buildCountryRoads(g, key, ao, 0, 30);
 }

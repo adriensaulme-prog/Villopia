@@ -112,11 +112,25 @@ describe("rang visuel : modeste, notable, prestigieux (§43)", () => {
     }
   });
 
-  it("le métal est mat (patine) chez les modestes, poli (MAT.PAINT) à partir des notables", () => {
-    const poli = (type: string, palier: number) => sommets(construire(type, palier).g).filter((v) => v.m === MAT.PAINT).length;
+  it("le métal est un bronze patiné (MAT.BRONZE) chez les modestes, un or poli (MAT.OR) à partir des notables", () => {
+    // Retour d'Adrien du 05/10/2026 (« trop simplistes et pas assez beaux ») : de vraies matières de métal (shaders.ts) au lieu
+    // d'une peinture jaune unie ; la signature or et bronze du §43 reste.
+    const compte = (type: string, palier: number, m: number) => sommets(construire(type, palier).g).filter((v) => v.m === m).length;
     for (const { type, palier } of PAIRES) {
-      if (rangMonument(palier) === 0) expect(poli(type, palier), type).toBe(0);
-      else expect(poli(type, palier), type).toBeGreaterThan(0);
+      if (rangMonument(palier) === 0) {
+        expect(compte(type, palier, MAT.OR), type).toBe(0);
+        expect(compte(type, palier, MAT.BRONZE), type).toBeGreaterThan(0);
+      } else expect(compte(type, palier, MAT.OR), type).toBeGreaterThan(0);
+      // Plus de « peinture » jaune unie sur un monument.
+      expect(compte(type, palier, MAT.PAINT), type).toBe(0);
+    }
+  });
+
+  it("la pierre est une vraie matière : pierre de taille chez les modestes, marbre veiné ensuite", () => {
+    const compte = (type: string, palier: number, m: number) => sommets(construire(type, palier).g).filter((v) => v.m === m).length;
+    for (const { type, palier } of PAIRES) {
+      if (rangMonument(palier) === 0) expect(compte(type, palier, MAT.PIERRE), type).toBeGreaterThan(0);
+      else expect(compte(type, palier, MAT.MARBRE), type).toBeGreaterThan(0);
     }
   });
 

@@ -16,7 +16,7 @@ import * as THREE from "three";
 import { bakeAO, dimensionsAO } from "./ao";
 import { CITY_R_MIN } from "./constantes";
 import { RAYON_BROUILLARD_MIN } from "./emplacements";
-import { generate, generatePaysage, type ResultatGeneration, type VocationsBlocs } from "./generer";
+import { generate, type ResultatGeneration, type VocationsBlocs } from "./generer";
 import type { MegaprojetConstruit, MonumentDebloque } from "./terrain";
 import { FS, SFS, SVS, VS } from "./shaders";
 import {
@@ -52,11 +52,6 @@ export interface ParametresVille {
   theme?: string;
   /** Zonage des quartiers (A-INTEGRER §25, 25b) : premier rang né avec le zonage (voir premierRangZone()), absent = emplacements historiques. */
   zonageDepuisRang?: number;
-  /**
-   * A-INTEGRER §49 E : paysage de campagne sans aucune ville (fond de /pays). `seed` est alors la graine
-   * du paysage (l'id du pays) ; population, vocations, mégaprojets, monuments et thème sont ignorés.
-   */
-  paysage?: boolean;
 }
 
 const L = (c: [number, number, number]): [number, number, number] => [
@@ -315,28 +310,25 @@ export function creerSceneVille(canvas: HTMLCanvasElement): ControleurSceneVille
 
   function reconstruire(params: ParametresVille) {
     pays = params.pays;
-    const res = params.paysage
-      ? generatePaysage(params.seed)
-      : generate(
-          params.seed,
-          params.populationMax,
-          params.vocations,
-          params.elanEnergie ?? 0,
-          params.megaprojets ?? [],
-          params.nbTechnologies ?? 0,
-          params.monuments ?? [],
-          params.theme ?? "classique",
-          params.zonageDepuisRang
-        );
+    const res = generate(
+      params.seed,
+      params.populationMax,
+      params.vocations,
+      params.elanEnergie ?? 0,
+      params.megaprojets ?? [],
+      params.nbTechnologies ?? 0,
+      params.monuments ?? [],
+      params.theme ?? "classique",
+      params.zonageDepuisRang
+    );
     stats = res.stats;
     cityR = res.stats.cityR;
     // Lisible par les tests e2e : seule trace DOM du thème réellement rendu (A-INTEGRER §38).
     canvas.dataset.theme = params.theme ?? "classique";
     // Nouvelle ville (et pas juste la même qui grandit) : on recadre, sinon
     // un zoom manuel réglé pour un hameau resterait sur une métropole.
-    const marque = (params.paysage ? "paysage|" : "") + params.seed;
-    if (marque !== seedActuelle) etatCamera.autoFrame = true;
-    seedActuelle = marque;
+    if (params.seed !== seedActuelle) etatCamera.autoFrame = true;
+    seedActuelle = params.seed;
 
     if (mesh) {
       scene.remove(mesh);

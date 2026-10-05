@@ -161,7 +161,7 @@ function seRecouvrent(a: readonly Point[], b: readonly Point[]): boolean {
 
 /**
  * Distance (m) du rectangle (x0, z0)-(x1, z1) au secteur d'Énergie (0 s'ils se touchent). Un mégaprojet
- * qui occupe plusieurs blocs (le Stade, le Grand stade) se tient à l'écart de l'Énergie par son BORD,
+ * qui occupe plusieurs blocs (le Stade, le Parc d'attractions) se tient à l'écart de l'Énergie par son BORD,
  * pas par son centre (megaprojetsVille.ts, A-INTEGRER §49 C et D).
  */
 export function distanceRectAuSecteurEnergie(x0: number, z0: number, x1: number, z1: number): number {

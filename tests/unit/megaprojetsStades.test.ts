@@ -6,16 +6,18 @@ import { distanceRectAuSecteurEnergie, emplacementCentrale, emplacementEnergie }
 import { DISTANCE_MIN_ENERGIE, blocsDuSite, placesMegaprojets } from "@/lib/ville3d/megaprojetsVille";
 import { NB_BLOCS_MONUMENTS } from "@/lib/ville3d/monumentsVille";
 import { blocsMegaprojet, coteBlocs, tailleMegaprojet } from "@/lib/ville3d/megaprojets";
-import { BASE } from "@/lib/ville3d/megaprojetsFormes";
+import { BASE, STADE_HAUTEUR_MAX } from "@/lib/ville3d/megaprojetsFormes";
 import { buildRoadsAndTraffic } from "@/lib/ville3d/terrain";
 import { Geo } from "@/lib/ville3d/geometrie";
 import { CATALOGUE_MEGAPROJETS, PREMIER_PALIER_MEGAPROJET } from "@/lib/game/megaprojets";
 
 /**
  * A-INTEGRER §49 D (retour d'Adrien du 05/10/2026) : « stade et grand stade beaucoup plus grands, sur
- * plusieurs blocs réservés ». Le Stade occupe un carré de 2 × 2 blocs, le Grand stade un rectangle de 3 × 2
- * (retour d'Adrien du 05/10/2026 : « le Grand stade est trop grand, disproportionné », il était en 3 × 3) ;
- * les rues qui les traversent disparaissent avec eux.
+ * plusieurs blocs réservés ». Le Grand stade, jugé disproportionné (3 × 3, puis 3 × 2) puis inutile à côté du petit
+ * (« il y a déjà le petit, on peut remplacer par un parc d'attraction »), est devenu le Parc d'attractions : même
+ * identifiant `grand_stade`, 2 × 2 blocs. Le Stade, lui, a été jugé trop grand à son tour (3ᵉ consigne, « le Stade est trop
+ * grand ») : il est passé de 2 × 2 à 2 × 1 blocs, 1,5 bloc de long au plus (règle de proportion,
+ * tests/unit/megaprojetsProportions.test.ts). Les rues qui traversent ces sites disparaissent avec eux.
  */
 const PALIERS = CATALOGUE_MEGAPROJETS.map((_, i) => PREMIER_PALIER_MEGAPROJET + i);
 const STADE = PREMIER_PALIER_MEGAPROJET + CATALOGUE_MEGAPROJETS.findIndex((m) => m.type === "stade");
@@ -24,24 +26,25 @@ const CLES = ["ville-a", "0b7c4f3e-demo", "accueil", "x1", "x2", "3f8a2c1e-7b4d-
 const GRAINES = Array.from({ length: 100 }, (_, i) => `graine-${i}`);
 const cleBloc = (b: { bi: number; bj: number }) => b.bi + "," + b.bj;
 
-describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
-  it("la taille : 2 × 2 blocs pour le Stade, 3 × 2 pour le Grand stade, rues intérieures comprises ; tous les autres mégaprojets gardent un bloc", () => {
+describe("le Stade (2 × 1 blocs) et le Parc d'attractions (2 × 2) occupent plusieurs blocs (§49 D, 3ᵉ consigne)", () => {
+  it("la taille : 2 × 1 blocs pour le Stade, 2 × 2 pour le Parc d'attractions, rues intérieures comprises ; tous les autres mégaprojets gardent un bloc", () => {
+    expect(coteBlocs(1)).toBe(64);
     expect(coteBlocs(2)).toBe(144);
     expect(coteBlocs(3)).toBe(224);
-    expect(blocsMegaprojet("stade")).toEqual({ nx: 2, nz: 2 });
-    expect(blocsMegaprojet("grand_stade")).toEqual({ nx: 3, nz: 2 });
+    expect(blocsMegaprojet("stade")).toEqual({ nx: 2, nz: 1 });
+    expect(blocsMegaprojet("grand_stade")).toEqual({ nx: 2, nz: 2 });
     for (const d of CATALOGUE_MEGAPROJETS) if (d.type !== "stade" && d.type !== "grand_stade") expect(blocsMegaprojet(d.type), d.type).toEqual({ nx: 1, nz: 1 });
-    // La plateforme laisse le trottoir (3 m) et un mètre de jeu : 68 m de demi-côté pour le Stade, 108 × 68 m pour le Grand stade.
-    expect(tailleMegaprojet("stade", 1)).toMatchObject({ R: 68, Rz: 68, nx: 2, nz: 2 });
-    expect(tailleMegaprojet("grand_stade", 4)).toMatchObject({ R: 108, Rz: 68, nx: 3, nz: 2, H: 48 });
-    // Beaucoup plus grands qu'avant (le Stade tenait dans 15 m de demi-côté, le Grand stade dans 24,75 m) ...
+    // La plateforme laisse le trottoir (3 m) et un mètre de jeu : 136 × 56 m pour le Stade, 136 × 136 m pour le Parc.
+    expect(tailleMegaprojet("stade", 1)).toMatchObject({ R: 68, Rz: 28, nx: 2, nz: 1, H: STADE_HAUTEUR_MAX });
+    expect(tailleMegaprojet("grand_stade", 4)).toMatchObject({ R: 68, Rz: 68, nx: 2, nz: 2, H: 44 });
+    // Beaucoup plus grands qu'avant le §49 (le Stade tenait dans 15 m de demi-côté, le Grand stade dans 24,75 m) ...
     expect(tailleMegaprojet("stade", 1).R).toBeGreaterThan(4 * 15);
-    expect(tailleMegaprojet("grand_stade", 4).R).toBeGreaterThan(4 * 24.75);
-    // ... mais le Grand stade n'est plus disproportionné : un tiers de surface de moins que le 3 × 3, et plus long que large.
-    const g = tailleMegaprojet("grand_stade", 4);
-    expect(g.R * g.Rz).toBeLessThan((108 * 108 * 2) / 3 + 1);
-    expect(g.R).toBeGreaterThan(g.Rz);
-    expect(g.R * g.Rz).toBeGreaterThan(tailleMegaprojet("stade", 1).R ** 2); // toujours plus grand que le Stade
+    expect(tailleMegaprojet("grand_stade", 4).R).toBeGreaterThan(2 * 24.75);
+    // ... mais jamais la démesure des 3 × 3 blocs, et le Stade est plus petit que le Parc.
+    expect(2 * tailleMegaprojet("grand_stade", 4).R).toBeLessThan(coteBlocs(3));
+    const st = tailleMegaprojet("stade", 1),
+      pa = tailleMegaprojet("grand_stade", 4);
+    expect(st.R * st.Rz).toBeLessThan(pa.R * pa.Rz / 2 + 1);
   });
 
   it("un rectangle de blocs qui part de la case d'ancrage vers l'extérieur de la ville, sans jamais chevaucher un axe central", () => {
@@ -54,6 +57,7 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
       { bi: -1, bj: -6 },
     ]) {
       for (const [nx, nz] of [
+        [2, 1],
         [2, 2],
         [3, 2],
       ] as const) {
@@ -71,12 +75,12 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     }
   });
 
-  it("les places : 4 blocs et 136 m pour le Stade, 6 blocs et 216 × 136 m pour le Grand stade, rect = rectangle de leurs blocs", () => {
+  it("les places : 2 blocs et 136 × 56 m pour le Stade, 4 blocs et 136 m de côté pour le Parc, rect = rectangle de leurs blocs", () => {
     for (const cle of CLES) {
       const places = placesMegaprojets(cle, PALIERS);
       for (const [palier, nx, nz, R, Rz] of [
-        [STADE, 2, 2, 68, 68],
-        [GRAND_STADE, 3, 2, 108, 68],
+        [STADE, 2, 1, 68, 28],
+        [GRAND_STADE, 2, 2, 68, 68],
       ] as const) {
         const p = places.get(palier)!;
         expect([p.nx, p.nz], cle).toEqual([nx, nz]);
@@ -108,7 +112,7 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     for (const cle of GRAINES) {
       const places = placesMegaprojets(cle, PALIERS);
       const tous = [...places.values()].flatMap((p) => p.blocs.map(cleBloc));
-      expect(tous, cle).toHaveLength(18 - 2 + 4 + 6);
+      expect(tous, cle).toHaveLength(18 - 2 + 2 + 4);
       expect(new Set(tous).size, cle).toBe(tous.length);
       const monuments = new Set(casesCentrales(cle, NB_BLOCS_MONUMENTS).map(cleBloc));
       for (const b of tous) expect(monuments.has(b), `${cle} ${b}`).toBe(false);
@@ -142,10 +146,10 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
     const dedans = (rect: [number, number, number, number], marge: number) => (x: number, z: number) =>
       x > rect[0] + marge && x < rect[2] - marge && z > rect[1] + marge && z < rect[3] - marge;
 
-    it("l'empreinte au sol est celle de la plateforme : 136 × 136 m pour le Stade, 216 × 136 m pour le Grand stade", () => {
+    it("l'empreinte au sol est celle de la plateforme : 136 × 56 m pour le Stade, 136 × 136 m pour le Parc d'attractions", () => {
       for (const [palier, R, Rz, H] of [
-        [STADE, 68, 68, 36],
-        [GRAND_STADE, 108, 68, 48],
+        [STADE, 68, 28, STADE_HAUTEUR_MAX],
+        [GRAND_STADE, 68, 68, 44],
       ] as const) {
         const p = placesMegaprojets("ville-a", [palier]).get(palier)!;
         const { ao } = ville(palier);
@@ -200,21 +204,21 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
       }
     });
 
-    it("les lampadaires des côtés intérieurs ont disparu, ceux du pourtour du site restent", () => {
-      const p = placesMegaprojets("ville-a", [STADE]).get(STADE)!;
-      const { glow } = ville(STADE);
-      const interieur = dedans(p.rect, 0);
-      expect(glow.filter((l) => interieur(l.x, l.z))).toHaveLength(0);
-      // Le pourtour garde les siens : des lueurs juste hors du carré, le long de ses quatre côtés.
-      const hors = glow.filter((l) => !interieur(l.x, l.z) && Math.max(p.rect[0] - l.x, l.x - p.rect[2], p.rect[1] - l.z, l.z - p.rect[3]) < 4);
-      expect(hors.length).toBeGreaterThanOrEqual(12);
+    it("les lampadaires des rues intérieures ont disparu : à l'intérieur du site, il ne reste que les lueurs du site lui-même, dans sa plateforme", () => {
+      for (const palier of [STADE, GRAND_STADE]) {
+        const p = placesMegaprojets("ville-a", [palier]).get(palier)!;
+        const { glow } = ville(palier);
+        const interieur = dedans(p.rect, 0);
+        const dansLaPlateforme = (l: { x: number; z: number }) => Math.abs(l.x - p.x) <= p.rayon + 1 && Math.abs(l.z - p.z) <= p.rayonZ + 1;
+        for (const l of glow.filter((l) => interieur(l.x, l.z))) expect(dansLaPlateforme(l), `palier ${palier} : lueur (${l.x.toFixed(1)}, ${l.z.toFixed(1)})`).toBe(true);
+        // Le site a son propre éclairage de nuit : un lampadaire tous les 14 m environ sur chacun de ses quatre côtés.
+        const surLePourtour = glow.filter((l) => dansLaPlateforme(l) && Math.max(Math.abs(l.x - p.x) - p.rayon, Math.abs(l.z - p.z) - p.rayonZ) > -2.5);
+        expect(surLePourtour.length, `palier ${palier}`).toBeGreaterThanOrEqual(16);
+      }
     });
 
-    it("la pelouse tracée a la taille d'un terrain : 63 × 38 m au Stade, 87 × 55 m au Grand stade", () => {
-      for (const [palier, longueur, largeur] of [
-        [STADE, 62, 37],
-        [GRAND_STADE, 86, 54],
-      ] as const) {
+    it("la pelouse tracée du Stade a la taille d'un terrain, plus petit depuis la 3ᵉ consigne (36 × 22 m)", () => {
+      for (const [palier, longueur, largeur] of [[STADE, 35, 21]] as const) {
         const { g } = ville(palier);
         let x0 = Infinity,
           x1 = -Infinity,
@@ -234,7 +238,20 @@ describe("le Stade et le Grand stade occupent plusieurs blocs (§49 D)", () => {
       }
     });
 
-    it("la génération reste déterministe avec les deux stades", () => {
+    it("le Parc d'attractions a sa pelouse et ses allées dallées, avec des attractions lumineuses ; le Stade a son esplanade : ce sont des sites, pas des cours vides", () => {
+      const matieres = (g: Geo) => {
+        const m = new Map<number, number>();
+        for (let i = 0; i < g.n; i++) m.set(g.V[i * 13 + 9], (m.get(g.V[i * 13 + 9]) ?? 0) + 1);
+        return m;
+      };
+      const parc = matieres(ville(GRAND_STADE).g);
+      expect(parc.get(MAT.LAWN) ?? 0, "pelouse du parc").toBeGreaterThan(100);
+      expect(parc.get(MAT.PAVING) ?? 0, "allées").toBeGreaterThan(50);
+      expect(parc.get(MAT.BEACON) ?? 0, "ampoules des attractions").toBeGreaterThan(500);
+      expect(matieres(ville(STADE).g).get(MAT.PAVING) ?? 0, "esplanade du stade").toBeGreaterThan(50);
+    });
+
+    it("la génération reste déterministe avec les deux sites", () => {
       const deux = [...stade(STADE), ...stade(GRAND_STADE)];
       const a = generate("ville-a", 40_000, undefined, 0, deux);
       const b = generate("ville-a", 40_000, undefined, 0, deux);

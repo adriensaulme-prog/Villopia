@@ -5,7 +5,7 @@ import { placesMegaprojets } from "../../src/lib/ville3d/megaprojetsVille";
 
 /**
  * « Voir où il est » pour les mégaprojets débloqués (suite de
- * docs/A-INTEGRER.md §25, place à la bordure de la ville depuis le §37) ; le
+ * docs/A-INTEGRER.md §25, place dans la ville, contre les monuments, depuis le §46) ; le
  * bouton d'Énergie, d'abord prévu au §25 puis conservé au §37, a été retiré à
  * la demande d'Adrien (05/10/2026) : la jauge Énergie n'en a plus. Client
  * service_role recréé ici pour la même raison que les specs des jalons
