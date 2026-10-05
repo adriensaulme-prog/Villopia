@@ -12,9 +12,17 @@ journal existant, puis ce fichier peut être supprimé.*
 > encore fait ; §6 fait aux Jalons 8 et 8bis (`DECISIONS.md` §4, journaux
 > des deux jalons, et §10 points 23-25 pour les questions encore
 > ouvertes) ;
-> **§8 (noms uniques) pas fait** malgré la demande "à faire dans le
-> Jalon 8" — le contenu réel du jalon a suivi `docs/CLASSEMENTS.md`
-> plutôt que ce §8, voir `DECISIONS.md` §10 point 26 ; **§9 (service
+> **§8 (noms uniques) fait le 02/10/2026, complété le 05/10/2026** —
+> oublié au Jalon 8 (le contenu du jalon avait suivi `docs/CLASSEMENTS.md`,
+> `DECISIONS.md` §10 point 26), puis codé en migration `0035` (**appliquée
+> sur la base de dev**, vérifié le 05/10/2026) : colonnes générées
+> normalisées + index uniques, `nom_disponible()`, codes `P0027`/`P0028`,
+> rattrapage des doublons (`/ville/noms`). Complément du 05/10 : garde de
+> schéma avec tests de sabotage et contrôle de `villes-de-test.json`.
+> Deux écarts assumés, à contester si besoin : pas d'extension `unaccent`
+> (translittération explicite, voir §8 plus bas) ; règles de format
+> appliquées dans l'application, pas dans `creer_ville()`. Détail :
+> `DECISIONS.md` §4 « Noms uniques » ; **§9 (service
 > worker) fait le 25/09/2026** — correctif d'Adrien conservé, test de
 > non-régression ajouté, geste de dépannage documenté dans
 > `GUIDE-METHODE.md` §9 (voir `DECISIONS.md` §4, "Correction hors-jalon") ;
@@ -412,6 +420,34 @@ cosmétiques. Pas de variantes gratuites par pays. À inscrire dans
 bâtiments », « Les thèmes », puis « La boutique » après le MVP).
 
 ## 8. Noms uniques : pseudos et villes (demande d'Adrien, 24/09/2026)
+
+> **État (05/10/2026, Claude Code) : fait.** Codé le 02/10/2026
+> (migration `0035`, appliquée sur la base de dev), complété le
+> 05/10/2026. Point par point :
+> - colonne générée normalisée + index unique, portée mondiale : **fait**
+>   (`users.pseudo_normalise`, `cities.nom_normalise`) — **écart assumé** :
+>   pas d'extension `unaccent` (non `IMMUTABLE`, donc inutilisable dans
+>   une colonne générée indexée ; son schéma varie selon le projet
+>   Supabase). `nom_normalise()` translittère explicitement les lettres
+>   latines accentuées, parité SQL/TypeScript vérifiée par test ;
+> - vérification « ✓ disponible / ✗ déjà pris » pendant la saisie, et
+>   erreurs dédiées **P0027** (pseudo) / **P0028** (nom de ville) : **fait** ;
+> - doublons existants (le plus ancien garde le nom, le plus récent passe
+>   par `/ville/noms` à sa prochaine page de jeu) : **fait** — aucun
+>   doublon en base de dev au 05/10/2026 ;
+> - `villes-de-test.json` : **fait** — 24 villes et 24 pseudos distincts
+>   après normalisation, aucun nom réservé ni interdit, aucune collision
+>   avec un vrai joueur (test unitaire sur le JSON + contrôle en base) ;
+> - noms réservés, pseudo de 3 à 20 caractères : **fait**, mais appliqué
+>   dans l'application (`src/lib/game/nomsUniques.ts`), pas dans
+>   `creer_ville()` que les specs et scripts appellent directement ;
+> - tests : casse, accents, tiret/espace, création simultanée : **fait**
+>   (e2e) ; **test rouge par sabotage** : fait **sur le schéma**
+>   (`tests/unit/nomsUniquesSchema.test.ts` — index retiré, supprimé plus
+>   tard, commenté, vidé, colonne générée remplacée → le garde passe au
+>   rouge ; vérifié aussi en retirant l'index du vrai fichier `0035`),
+>   **pas sur une vraie base** : aucun accès SQL depuis Claude Code. Geste
+>   manuel pour Adrien dans `docs/recette-noms-uniques.md`.
 
 **Règle ferme d'Adrien : deux joueurs ne peuvent pas avoir le même
 pseudo, et deux villes ne peuvent pas avoir le même nom.** Constat :

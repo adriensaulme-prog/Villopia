@@ -3507,10 +3507,37 @@ exécutés à 98 verts sur 99 (le dernier, un test à correspondance par
 sous-chaîne, corrigé depuis).
 
 **Testé.** `tests/unit/nomsUniques.test.ts` (9 tests) ;
-`tests/e2e/noms-uniques.spec.ts` (7 tests : parité SQL/TypeScript,
+`tests/e2e/noms-uniques.spec.ts` (8 tests : parité SQL/TypeScript,
 collisions casse/accent/tiret/espace, création simultanée, disponibilité,
-renommage, seed sans collision). Pas encore lancés : migration `0035`
-pas encore appliquée au moment de l'écriture.
+renommage, absence de doublon en base, rattrapage `/ville/noms`).
+
+**Complément du 05/10/2026** (relecture du §8 point par point, demandée
+par Adrien alors que l'encadré d'état de `A-INTEGRER.md` disait encore
+« pas fait » : le code existait déjà, seul le statut était périmé).
+Vérifié : migration `0035` **appliquée** sur la base de dev (colonnes
+`pseudo_normalise` / `nom_normalise` présentes, aucun doublon en attente,
+24 villes et 24 pseudos de test distincts, aucun vrai joueur en collision) ;
+e2e 8/8 verts, suite unitaire 223 verts, typecheck et lint propres.
+Deux manques réels comblés :
+- **Test rouge par sabotage** (jamais fait en octobre faute d'accès
+  `psql`) : `tests/unit/nomsUniquesSchema.test.ts` lit les migrations et
+  garantit que les deux index uniques et leurs colonnes générées existent
+  et ne sont ni supprimés plus tard, ni commentés, ni vidés par un
+  prédicat (`where false`). Dix sabotages du texte SQL passent le garde au
+  rouge ; vérifié en plus en retirant les deux index du vrai fichier `0035`
+  (9 échecs, fichier restauré à l'identique). **Limite assumée** : c'est un
+  sabotage du schéma écrit, pas d'une vraie base — aucun outil SQL
+  (`psql`, CLI Supabase, client Postgres) n'est disponible pour retirer
+  l'index d'une base réelle. Une base Postgres en mémoire (PGlite) le
+  permettrait mais serait une nouvelle dépendance de développement :
+  **pas ajoutée sans décision d'Adrien** ; geste manuel décrit dans
+  `docs/recette-noms-uniques.md`.
+- **`villes-de-test.json`** : contrôle sans base (noms et pseudos
+  distincts après normalisation, ni réservés ni interdits, détecteur
+  lui-même testé par sabotage) ; le test e2e « sans collision » ne
+  vérifiait en réalité que les villes, pas les pseudos — corrigé.
+Les deux écarts avec la lettre du §8 (pas d'`unaccent`, règles de format
+côté application) restent inchangés.
 
 ---
 
@@ -4840,7 +4867,8 @@ Liste vivante des points signalés, avec qui doit trancher. À jour au
     question 4 — la question 3 est tranchée, l'absence de classement des
     attaquants) : d'autres classements annexes en tête ?
 26. **Noms uniques (pseudos et villes)** — **[Codé le 02/10/2026,
-    migration `0035`, voir §4 ; en attente d'application par Adrien.]**
+    migration `0035` appliquée (vérifié le 05/10/2026), voir §4. Reste
+    un test rouge sur une VRAIE base, impossible sans accès SQL.]**
     Ancien texte : pas encore faits.
     `docs/A-INTEGRER.md` §8 demandait cette règle **dans le Jalon 8**
     ("qui touche déjà l'écran de création"), mais le contenu réel de ce

@@ -8,11 +8,13 @@ import { normaliserNom } from "../../src/lib/game/nomsUniques";
  * que les specs des jalons précédents ("server-only" hors du pipeline
  * Next.js).
  *
- * Pas de vérification rouge « retirer l'index fait échouer le test »
- * demandée par le §8 : pas d'accès psql direct pour retirer l'index.
- * Les assertions sur les collisions (casse, accents, tirets, création
- * simultanée) échouent de toute façon si l'index disparaît, puisque
- * c'est lui seul qui les refuse.
+ * « Test rouge par sabotage » demandé par le §8 : on n'a pas d'accès psql
+ * pour retirer l'index d'une vraie base. Il est donc fait sur le schéma
+ * (tests/unit/nomsUniquesSchema.test.ts : index retiré, supprimé plus
+ * tard, commenté, vidé, colonne générée remplacée → le garde passe au
+ * rouge). Ici, les assertions de collision (casse, accents, tirets,
+ * création simultanée) échouent aussi d'elles-mêmes si l'index disparaît
+ * d'une base réelle, puisque c'est lui seul qui les refuse.
  */
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -154,10 +156,15 @@ test.describe("Noms uniques — pseudos et villes", () => {
     expect(ville).toEqual({ nom: `${libre}-v`, nom_a_changer: false });
   });
 
-  test("les villes de test du seed n'entrent pas en collision entre elles ni avec leurs propres pseudos", async () => {
-    const { data: villes } = await supabaseAdmin.from("cities").select("nom, nom_normalise, nom_a_changer").eq("is_test", true);
-    const normalises = (villes ?? []).filter((v) => !v.nom_a_changer).map((v) => v.nom_normalise);
-    expect(new Set(normalises).size).toBe(normalises.length);
+  test("aucun doublon actif en base, villes et pseudos de test compris (vrais joueurs inclus)", async () => {
+    // Le contrôle du JSON lui-même (sans base) est dans tests/unit/nomsUniquesSchema.test.ts ;
+    // ici on vérifie l'état réel de la base de dev, villes de test chargées ou non.
+    const { data: villes } = await supabaseAdmin.from("cities").select("nom_normalise").eq("nom_a_changer", false);
+    const { data: joueurs } = await supabaseAdmin.from("users").select("pseudo_normalise").eq("pseudo_a_changer", false);
+    const nomsVilles = (villes ?? []).map((v) => v.nom_normalise);
+    const pseudos = (joueurs ?? []).map((j) => j.pseudo_normalise);
+    expect(new Set(nomsVilles).size, "doublon parmi les noms de ville").toBe(nomsVilles.length);
+    expect(new Set(pseudos).size, "doublon parmi les pseudos").toBe(pseudos.length);
   });
 
   test("un joueur dont le nom est en doublon est envoyé sur /ville/noms, change de nom et retrouve sa ville", async ({ page }) => {
