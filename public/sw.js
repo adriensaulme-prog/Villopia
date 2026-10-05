@@ -17,7 +17,7 @@
 //   jamais mis en cache, toujours le réseau — ce sont les données de
 //   jeu elles-mêmes, jamais servies périmées.
 
-const CACHE_NAME = "jeu-miniville-shell-v2";
+const CACHE_NAME = "villopia-shell-v2";
 const SHELL_URLS = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {

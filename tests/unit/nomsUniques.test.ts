@@ -29,7 +29,7 @@ describe("validerPseudo", () => {
   });
 
   it("refuse les noms réservés quelle que soit la casse, l'accent ou la ponctuation", () => {
-    for (const n of ["admin", "Admin", "MODÉRATEUR", "Système", "jeu_miniville", "jeu-miniville"]) {
+    for (const n of ["admin", "Admin", "MODÉRATEUR", "Système", "jeu_miniville", "jeu-miniville", "Villopia", "VILLO-PIA"]) {
       expect(validerPseudo(n), n).toBe("nomReserve");
     }
   });

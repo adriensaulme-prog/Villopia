@@ -15,8 +15,7 @@ export const dictionaries = {
   fr: {
     "panneau.reduire": "Réduire le panneau",
     "panneau.agrandir": "Agrandir le panneau",
-    "accueil.titre": "jeu_miniville",
-    "accueil.nomProvisoire": "(nom provisoire)",
+    "accueil.titre": "Villopia",
     "accueil.description":
       "Développe ta ville, fais vivre ton pays, pèse sur les décisions internationales.",
     "accueil.creerCompte": "Créer un compte",
@@ -103,7 +102,7 @@ export const dictionaries = {
     "partage.partagerMaVille": "Partager ma ville",
     "partage.lienCopie": "Lien copié ✓",
     "partage.copierManuel": "Copie ce lien :",
-    "partage.descriptionMeta": "Une ville de jeu_miniville : jeu social où les villes grandissent grâce aux visites des autres joueurs.",
+    "partage.descriptionMeta": "Une ville de Villopia : jeu social où les villes grandissent grâce aux visites des autres joueurs.",
     "partage.villePublique": "Ville du jeu",
     "partage.maire": "Maire :",
     "partage.evenement": "Événement partagé",
@@ -488,8 +487,7 @@ export const dictionaries = {
   en: {
     "panneau.reduire": "Collapse panel",
     "panneau.agrandir": "Expand panel",
-    "accueil.titre": "jeu_miniville",
-    "accueil.nomProvisoire": "(working title)",
+    "accueil.titre": "Villopia",
     "accueil.description":
       "Grow your city, bring your country to life, and weigh in on international decisions.",
     "accueil.creerCompte": "Create an account",
@@ -576,7 +574,7 @@ export const dictionaries = {
     "partage.partagerMaVille": "Share my city",
     "partage.lienCopie": "Link copied ✓",
     "partage.copierManuel": "Copy this link:",
-    "partage.descriptionMeta": "A city from jeu_miniville: a social game where cities grow thanks to other players' visits.",
+    "partage.descriptionMeta": "A city from Villopia: a social game where cities grow thanks to other players' visits.",
     "partage.villePublique": "City of the game",
     "partage.maire": "Mayor:",
     "partage.evenement": "Shared event",

@@ -1,4 +1,4 @@
-# Mise en ligne de jeu_miniville — guide pas à pas
+# Mise en ligne de Villopia — guide pas à pas
 
 Document de préparation (02/10/2026). **Rien n'a été déployé ni payé** : ce
 guide dit ce qui est prêt côté code, ce que tu dois faire toi-même (comptes
@@ -101,8 +101,11 @@ ou un champ préfixé `NEXT_PUBLIC_`.
 
 ## 6. Limites connues, à ne pas oublier
 
-- Le nom affiché est « jeu_miniville (nom provisoire) » (manifeste, titre) ;
-  un vrai nom est à choisir avant le Play Store.
+- Le nom du jeu est **Villopia** (manifeste, titre de page, accueil) depuis le
+  05/10/2026. Avant le Play Store, **vérifier sa disponibilité** (nom sur le
+  store, marque déposée, nom de domaine) : ce n'est pas encore fait. L'ancien
+  nom de travail « jeu_miniville » ne subsiste que dans le nom du dossier local
+  et dans une clé de stockage interne du guide de démarrage.
 - Pas d'image d'aperçu quand un lien est partagé dans une messagerie.
 - Pas de notification poussée du navigateur (chantier à part).
 - Le lien de confirmation d'e-mail ramène sur l'adresse du site (« Site URL »

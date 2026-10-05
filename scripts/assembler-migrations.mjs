@@ -28,6 +28,6 @@ fichiers.forEach((f, i) => {
 const morceaux = fichiers.map(
   (f) => `-- =====================================================================\n-- ${f}\n-- =====================================================================\n\n${readFileSync(join(dossier, f), "utf-8").trim()}\n`
 );
-const entete = `-- jeu_miniville : schéma complet (${fichiers.length} migrations, ${fichiers[0]} -> ${fichiers.at(-1)}).\n-- Généré par scripts/assembler-migrations.mjs — à coller en une fois dans l'éditeur SQL d'un projet Supabase NEUF,\n-- puis exécuter : notify pgrst, 'reload schema';\n\n`;
+const entete = `-- Villopia : schéma complet (${fichiers.length} migrations, ${fichiers[0]} -> ${fichiers.at(-1)}).\n-- Généré par scripts/assembler-migrations.mjs — à coller en une fois dans l'éditeur SQL d'un projet Supabase NEUF,\n-- puis exécuter : notify pgrst, 'reload schema';\n\n`;
 writeFileSync(sortie, entete + morceaux.join("\n"), "utf-8");
 console.log(`${fichiers.length} migrations assemblées -> ${sortie}`);

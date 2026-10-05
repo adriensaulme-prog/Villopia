@@ -16,7 +16,7 @@ export default async function Home() {
     <main className="screen nobar" aria-label={traduire(locale, "accueil.titre")}>
       <SincroniserScene seed="accueil" populationMax={1200} pays={PAYS_PAR_DEFAUT} />
       <div className="center-card hero">
-        <span className="eyebrow">jeu_miniville</span>
+        <span className="eyebrow">Villopia</span>
         <h1 className="display">{traduire(locale, "accueil.titre")}</h1>
         <p className="lead">{traduire(locale, "accueil.description")}</p>
         {user ? (

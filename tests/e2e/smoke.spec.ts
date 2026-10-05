@@ -9,7 +9,7 @@ import { expect, test } from "@playwright/test";
 test("la page d'accueil se charge et affiche le titre", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "jeu_miniville"
+    "Villopia"
   );
 });
 

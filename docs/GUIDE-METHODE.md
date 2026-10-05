@@ -1,4 +1,4 @@
-# Guide de méthode — projet "jeu_miniville" (nom de travail)
+# Guide de méthode — projet "Villopia"
 
 > Ce fichier décrit **la démarche et le mode de fonctionnement** du projet,
 > pas le jeu lui-même : le jeu, lui, se raconte dans `DECISIONS.md`, et le
@@ -13,8 +13,9 @@
 
 ## 1. Le projet en deux minutes
 
-**Nom de travail : jeu_miniville** (à définir définitivement — voir §10 de
-`DECISIONS.md`). Jeu social multijoueur de stratégie légère, inspiré de
+**Nom : Villopia** (choisi par Adrien le 05/10/2026 ; l'ancien nom de travail
+était « jeu_miniville » — voir `DECISIONS.md` §4 et §10 point 1). Jeu social
+multijoueur de stratégie légère, inspiré de
 l'esprit MiniVille / AntiVille. Chaque joueur possède une ville qui évolue
 grâce aux interactions avec les autres joueurs, participe à la vie de son
 pays, et prend chaque semaine des décisions diplomatiques à l'échelle

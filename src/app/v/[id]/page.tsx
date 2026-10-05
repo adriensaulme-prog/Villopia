@@ -58,13 +58,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const locale = await getLocale();
   const charge = await chargerVille(id, locale);
-  if (!charge) return { title: "jeu_miniville" };
+  if (!charge) return { title: "Villopia" };
   const nom = charge.ville.nom as string;
   const description = traduire(locale, "partage.descriptionMeta");
   return {
-    title: `${nom} — jeu_miniville`,
+    title: `${nom} — Villopia`,
     description,
-    openGraph: { title: `${nom} — jeu_miniville`, description, type: "website", siteName: "jeu_miniville" },
+    openGraph: { title: `${nom} — Villopia`, description, type: "website", siteName: "Villopia" },
   };
 }
 
@@ -237,7 +237,7 @@ export default async function VillePubliquePage({ params, searchParams }: Props)
           <BoutonPartager
             locale={locale}
             chemin={cheminPartage(ville.id)}
-            titre={`${ville.nom} — jeu_miniville`}
+            titre={`${ville.nom} — Villopia`}
             libelle={traduire(locale, "partage.partagerVille")}
             className="btn small"
           />

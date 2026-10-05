@@ -1,4 +1,4 @@
-# CLAUDE.md — jeu_miniville
+# CLAUDE.md — Villopia
 
 Consignes lues automatiquement par Claude Code au début de chaque session.
 

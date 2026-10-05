@@ -1,4 +1,4 @@
-# DECISIONS.md — jeu_miniville (nom de travail)
+# DECISIONS.md — Villopia
 
 Source de vérité du projet. Journal honnête : on y consigne ce qui a
 marché, ce qui n'a pas marché, et pourquoi. Voir `GUIDE-METHODE.md` pour la
@@ -103,7 +103,7 @@ avancées.
   PC, sans passer par un store.
 - **Tests** : Vitest (unitaire), Playwright (bout-en-bout).
 - **Code source** : GitHub, dépôt privé —
-  `github.com/adriensaulme-prog/Jeu-miniville`.
+  `github.com/adriensaulme-prog/Villopia`.
 - **Langue par défaut** : français, anglais en parallèle dès le premier
   texte.
 
@@ -4572,6 +4572,53 @@ classement actuel par défaut. `guide.test.ts` mis à jour. Capture vérifiée.
 
 ---
 
+### Nouveau nom du jeu : Villopia — 05/10/2026
+
+**Décision d'Adrien** (05/10/2026) : le jeu s'appelle **Villopia**. Le dépôt
+GitHub a déjà déménagé vers `adriensaulme-prog/Villopia` (remote local mis à
+jour). Résout le point ouvert §10 n°1. L'ancien nom, « jeu_miniville », n'était
+qu'un nom de travail.
+
+**Changé, côté joueur** : manifeste de l'appli installée (nom et nom court — le
+nom court « MiniVille » désignait en réalité le jeu qui a inspiré celui-ci, pas
+le nôtre), titre de page, accueil, barre de navigation, titres et aperçus de
+partage (page publique d'une ville, partage depuis Ma ville), textes fr/en
+(`accueil.titre`, `partage.descriptionMeta`). Le marqueur « (nom provisoire) »
+est retiré, et la clé `accueil.nomProvisoire`, inutilisée, supprimée.
+`villopia` rejoint les **noms réservés** (§8 : « le nom du jeu » ; les anciens
+restent réservés, ils protègent encore de l'usurpation). Test de fumée mis à
+jour.
+
+**Changé, côté technique (sans effet de bord)** : nom du paquet npm, cache du
+service worker (`villopia-shell-v2` : l'ancien cache est supprimé à
+l'activation, le shell se reconstruit au prochain chargement), noms des
+événements internes et clé de session du panneau, domaine des e-mails des
+comptes de test (`@test.villopia.local` : ne concerne que les prochains
+chargements de villes de test, les anciens comptes de test sont supprimés par
+`is_test`, pas par leur adresse).
+
+**Volontairement laissé** :
+- la clé `localStorage` **`jeu-miniville-guide`** : la renommer ferait
+  réapparaître le guide de démarrage chez ceux qui l'ont déjà terminé ;
+  commentée dans `GuideDecouverte.tsx` ;
+- le nom du **dossier local** `jeu_miniville` : le renommer casse chemins,
+  sessions et historique de l'outil ; à faire par Adrien, hors session, s'il
+  le souhaite ;
+- les mentions de **« MiniVille »** qui désignent le jeu d'inspiration
+  (Motion Twin, 2007) : §8, `GUIDE-METHODE.md` §1, `A-INTEGRER.md` ;
+- les anciennes entrées de ce journal, qui citent « jeu_miniville » : c'est
+  l'histoire.
+
+**Pas fait, à décider par Adrien** : les icônes de l'appli sont de simples
+barres sans texte (rien à changer, mais rien non plus ne porte le nom). Le
+**nom de domaine** reste à choisir : c'est une dépense, donc validation
+préalable (règle permanente, §1 point 1), et `docs/AUTHENTIFICATION.md` (e-mails
+de confirmation depuis une adresse à soi) en dépend. La **disponibilité du
+nom** (Play Store, marque déposée, domaine) n'est pas vérifiée : je ne peux
+pas le faire sérieusement d'ici.
+
+---
+
 ## §5. i18n
 
 Toute chaîne affichée passe par une clé (`ville.nom`, `jeu.connexion_jour`,
@@ -4722,9 +4769,11 @@ périmètre MVP** :
 Liste vivante des points signalés, avec qui doit trancher. À jour au
 23/09/2026 :
 
-1. **Nom définitif du jeu.** "jeu_miniville" est un nom de travail choisi par
-   Claude pour nommer le dépôt et les dossiers, pas une proposition de nom
-   final. → **À trancher par Adrien**, sans urgence.
+1. ~~**Nom définitif du jeu.**~~ **Tranché le 05/10/2026 par Adrien : le jeu
+   s'appelle Villopia** (voir §4, « Nouveau nom du jeu »). "jeu_miniville"
+   n'était qu'un nom de travail choisi par Claude pour nommer le dépôt et les
+   dossiers. Restent à faire par Adrien : le nom de domaine (dépense, à
+   valider) et la vérification de disponibilité du nom avant le Play Store.
 2. **Seuils exacts d'évolution visuelle des villes** (Hameau → ... →
    Métropole). Le cahier des charges dit explicitement "seuils à équilibrer
    pendant les tests". → **À trancher par Adrien après les premiers

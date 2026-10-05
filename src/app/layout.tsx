@@ -20,7 +20,7 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "jeu_miniville (nom provisoire)",
+  title: "Villopia",
   description:
     "Jeu social multijoueur de stratégie légère : développe ta ville, fais vivre ton pays, pèse sur le monde.",
   manifest: "/manifest.json",

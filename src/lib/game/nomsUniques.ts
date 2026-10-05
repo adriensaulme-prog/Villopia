@@ -30,7 +30,7 @@ export const PSEUDO_MAX = 20;
 export const VILLE_MAX = 40;
 
 /** Noms réservés (comparés après normalisation) : le jeu lui-même, l'administration. */
-const NOMS_RESERVES = ["admin", "administrateur", "moderateur", "modo", "systeme", "system", "jeuminiville", "miniville"];
+const NOMS_RESERVES = ["admin", "administrateur", "moderateur", "modo", "systeme", "system", "jeuminiville", "miniville", "villopia"];
 
 /** Courte liste de mots injurieux (proposition du §8) — volontairement minimale, à étoffer au besoin. */
 const MOTS_INTERDITS = ["connard", "salope", "pute", "merde", "nazi", "hitler", "fuck", "shit", "nigger", "negre"];

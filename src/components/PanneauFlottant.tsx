@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 import { EVENEMENT_REDUIRE_PANNEAU } from "./BoutonVoirOu";
 
-const CLE_SESSION = "jeu-miniville-panneau-reduit";
+const CLE_SESSION = "villopia-panneau-reduit";
 
 /**
  * Panneau flottant (`.dock-float`) avec une poignée pour le réduire sur

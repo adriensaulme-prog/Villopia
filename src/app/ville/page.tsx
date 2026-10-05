@@ -380,7 +380,7 @@ export default async function VillePage() {
           <BoutonPartager
             locale={locale}
             chemin={cheminPartage(ville.id)}
-            titre={`${ville.nom} — jeu_miniville`}
+            titre={`${ville.nom} — Villopia`}
             libelle={traduire(locale, "partage.partagerMaVille")}
           />
         </div>

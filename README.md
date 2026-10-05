@@ -1,4 +1,4 @@
-# jeu_miniville (nom provisoire)
+# Villopia
 
 Jeu social multijoueur de stratégie légère — développe ta ville, fais
 vivre ton pays, pèse sur les décisions internationales.

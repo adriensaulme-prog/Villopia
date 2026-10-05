@@ -1,4 +1,4 @@
-# ROADMAP.md — jeu_miniville (nom de travail)
+# ROADMAP.md — Villopia
 
 Jalons **à venir**, découpés à partir du MVP du cahier des charges
 (`DECISIONS.md` §2). Un jalon terminé migre vers le journal

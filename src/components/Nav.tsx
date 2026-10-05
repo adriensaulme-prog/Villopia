@@ -27,7 +27,7 @@ export async function Nav() {
       <header className="topbar">
         <Link href="/" className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          jeu_miniville
+          Villopia
         </Link>
         {user ? <NavTabs locale={locale} className="tabs" tabClassName="tab" /> : null}
         <div className="who">

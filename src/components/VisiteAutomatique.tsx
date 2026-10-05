@@ -6,7 +6,7 @@ import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 import { visiterVille } from "@/app/villes/actions";
 
 /** Émis par le panneau AntiVille dès que le joueur le touche : suspend la visite automatique (A-INTEGRER §34). */
-export const EVENEMENT_INTENTION_HOSTILE = "jeu-miniville:intention-hostile";
+export const EVENEMENT_INTENTION_HOSTILE = "villopia:intention-hostile";
 
 const DELAI_AVANT_VISITE_MS = 2500;
 const DELAI_AVANT_REFRESH_MS = 1200;

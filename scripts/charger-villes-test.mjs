@@ -37,7 +37,7 @@ const cheminSeed = path.join(
 );
 
 function domainePourAuth(id) {
-  return `${id}@test.jeu-miniville.local`;
+  return `${id}@test.villopia.local`;
 }
 
 function niveauPourPopulation(population) {

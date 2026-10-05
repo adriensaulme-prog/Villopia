@@ -6,10 +6,15 @@ import { useEffect, useState } from "react";
 import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 import { ETAPES_GUIDE, pageDuGuide } from "@/lib/game/guide";
 
-/** Clé localStorage : numéro d'étape en cours ("0".."n-1"), ou "fini". Absente = jamais vu. */
+/**
+ * Clé localStorage : numéro d'étape en cours ("0".."n-1"), ou "fini". Absente = jamais vu.
+ * Garde volontairement l'ancien préfixe « jeu-miniville » (nom de travail) : la renommer
+ * ferait réapparaître le guide chez ceux qui l'ont déjà terminé (et playwright.config.ts
+ * écrit cette clé en dur).
+ */
 export const CLE_GUIDE = "jeu-miniville-guide";
 /** Événement émis par « Revoir le guide » (page des règles) pour relancer sans recharger. */
-export const EVENEMENT_RELANCER_GUIDE = "jeu-miniville:relancer-guide";
+export const EVENEMENT_RELANCER_GUIDE = "villopia:relancer-guide";
 
 function lire(): string | null {
   try {

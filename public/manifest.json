@@ -1,6 +1,6 @@
 {
-  "name": "jeu_miniville (nom provisoire)",
-  "short_name": "MiniVille",
+  "name": "Villopia",
+  "short_name": "Villopia",
   "description": "Jeu social multijoueur : développe ta ville, fais vivre ton pays, pèse sur le monde.",
   "start_url": "/",
   "display": "standalone",

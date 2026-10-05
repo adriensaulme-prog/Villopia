@@ -3,7 +3,7 @@
 import { useSceneVille } from "./SceneVilleFond";
 
 /** Événement écouté par PanneauFlottant : sur mobile, replie le panneau pour dégager la vue 3D. */
-export const EVENEMENT_REDUIRE_PANNEAU = "jeu-miniville:reduire-panneau";
+export const EVENEMENT_REDUIRE_PANNEAU = "villopia:reduire-panneau";
 
 /**
  * « Voir où il est » (docs/A-INTEGRER.md §25) : demande à la scène 3D

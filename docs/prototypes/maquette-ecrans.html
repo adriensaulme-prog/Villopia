@@ -256,7 +256,7 @@
 </div>
 
 <header class="topbar">
-  <div class="brand"><span class="brand-mark" aria-hidden="true"></span>jeu_miniville <small>nom provisoire</small></div>
+  <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Villopia</div>
   <nav class="tabs" id="tabs" aria-label="Navigation principale">
     <button class="tab" type="button" data-go="ville">Ma ville</button>
     <button class="tab" type="button" data-go="villes">Villes</button>
@@ -2094,7 +2094,7 @@
   function renderVille() {
     const rank = allRanked().filter((c) => c.p === player.p).findIndex((c) => c.isMe) + 1;
     const pres = presidents().has(player.id);
-    const link = 'jeu-miniville.app/v/' + slug(player.v);
+    const link = 'villopia.app/v/' + slug(player.v);
     $('dockVille').innerHTML =
       '<div class="head-row"><span class="eyebrow">Ma ville</span>' + (pres ? '<span class="badge pres">Président</span>' : '<span class="badge">' + rank + '<sup>e</sup> de ' + esc(COUNTRY_NAMES[player.p]) + '</span>') + '</div>' +
       '<div class="sign"><span>' + esc(player.v) + '</span></div>' +
