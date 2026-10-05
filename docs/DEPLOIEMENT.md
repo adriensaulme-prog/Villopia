@@ -73,7 +73,7 @@ ou un champ préfixé `NEXT_PUBLIC_`.
 2. **Supabase → Authentication → URL Configuration** : « Site URL » = l'adresse
    publique du jeu ; ajouter la même adresse dans « Redirect URLs ». Sans ça,
    le lien dans l'e-mail de confirmation pointe vers `localhost`.
-3. **Vercel** : importer le dépôt GitHub (`adriensaulme-prog/Jeu-miniville`),
+3. **Vercel** : importer le dépôt GitHub (`adriensaulme-prog/Villopia`),
    framework « Next.js » détecté automatiquement, saisir les 3 variables
    (§3), déployer. Choisir la région des fonctions proche de celle de
    Supabase.
