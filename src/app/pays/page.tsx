@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { exigerRegionChoisie } from "@/lib/supabase/gardes";
 import { SelecteurPays } from "./SelecteurPays";
 import { SansScene } from "@/components/SansScene";
+import { Drapeau } from "@/components/Drapeau";
 import { SousOnglets } from "./composants";
 import { OngletSemaine } from "./onglets/Semaine";
 import { OngletClassement } from "./onglets/Classement";
@@ -148,7 +149,8 @@ export default async function PaysPage({
         <div className="head-row">
           <span className="eyebrow">{traduire(locale, "pays.eyebrow")}</span>
         </div>
-        <h1 className="sign">
+        <h1 className="sign sign-drapeau">
+          <Drapeau code={countryId} hauteur={30} />
           <span>{nomPaysAffiche}</span>
         </h1>
         <p className="note">

@@ -630,6 +630,25 @@ body {
 .sign.small span {
   font-size: 20px;
 }
+/* Drapeau d'un pays (public/drapeaux, flag-icons) : un liseré fin pour que les drapeaux blancs se détachent du fond. */
+.drapeau {
+  display: inline-block;
+  flex: none;
+  vertical-align: -2px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+/* Panneau du pays : le drapeau à gauche du nom, centrés ensemble. */
+.sign.sign-drapeau {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.sign.sign-drapeau span {
+  width: auto;
+  min-width: 0;
+}
 .sign-sub {
   font-size: 13px;
   color: var(--muted);

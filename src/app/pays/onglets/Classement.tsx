@@ -1,4 +1,5 @@
 import { traduire } from "@/lib/i18n/dictionaries";
+import { Drapeau } from "@/components/Drapeau";
 import { CATEGORIES_RESSOURCE } from "@/lib/game/developpements";
 import { estPremier, type LigneClassementPays } from "@/lib/game/classementPays";
 import { LABEL_CATEGORIE, type Categorie, type ContextePays } from "../types";
@@ -64,10 +65,13 @@ export async function OngletClassement({ ctx }: { ctx: ContextePays }) {
                 <p className="ligne-meta">
                   {nf.format(l.total)} · {l.nbPays > 0 ? (
                     leaderEstCePays ? (
-                      <b>{traduire(locale, "pays.classement.enTete")} {nomDe(countryId)}</b>
+                      <b>
+                        {traduire(locale, "pays.classement.enTete")} <Drapeau code={countryId} hauteur={13} /> {nomDe(countryId)}
+                      </b>
                     ) : (
                       <>
-                        {traduire(locale, "pays.classement.enTete")} <b>{nomDe(l.premierCountryId)}</b> (
+                        {traduire(locale, "pays.classement.enTete")} <Drapeau code={l.premierCountryId} hauteur={13} />{" "}
+                        <b>{nomDe(l.premierCountryId)}</b> (
                         {nf.format(l.premierTotal ?? 0)})
                       </>
                     )

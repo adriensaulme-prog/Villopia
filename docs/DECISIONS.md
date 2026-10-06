@@ -47,7 +47,10 @@ un jalon" :
    soit prête (Three.js ne doit jamais faire partie du paquet initial du
    layout — voir §4, Jalon 7, correction post-recette, pour le cas où ça
    n'a pas été respecté et comment c'est corrigé). Pas de nouvelle
-   dépendance npm sans peser son poids et l'inscrire ici.
+   dépendance npm sans peser son poids et l'inscrire ici. Images
+   autorisées par Adrien : les drapeaux des pays (06/10/2026,
+   `public/drapeaux`, flag-icons sous licence MIT, un seul fichier
+   téléchargé par page, voir §4 « Drapeaux des pays »).
 7. **Aucun outil de triche ou de démonstration dans le jeu jouable**
    (règle ferme d'Adrien, `docs/A-INTEGRER.md` §1) : pas de curseur
    "Habitants", de bouton "Voir grandir", de curseur d'heure ni de
@@ -6064,6 +6067,28 @@ la place se règle sur le gabarit du monument (`generate()` lui passe le côté 
   66 000 sommets en tout (49 000 avant ; le plus riche, l'arc de triomphe, 7 400), chaque place 2 000. Aucune dépendance, image, modèle 3D
   ni migration, aucune marque.
 - Revue visuelle dans la vraie scène : les seize monuments à deux distances, de jour, et de nuit pour la mise en lumière.
+
+---
+
+### Drapeaux des pays dans l'onglet Pays (décision d'Adrien du 06/10/2026)
+
+**Demande d'Adrien.** « Dans l'onglet Pays, ce serait bien d'avoir le drapeau du pays qui s'affiche » — et pas en 3D, « trop
+volumineux ». Trois options lui ont été présentées (émoji : 0 Ko mais rien sur un ordinateur Windows ; un fichier SVG par pays ;
+drapeaux dessinés par le code, approximatifs pour les armoiries) ; **il a choisi le fichier SVG par pays** et validé l'ajout de ces
+images et le téléchargement du paquet.
+
+- **Source** : `flag-icons` 7.5.0 (licence MIT, https://github.com/lipis/flag-icons), format 4 × 3, fichiers copiés tels quels dans
+  `public/drapeaux/<code>.svg` pour les **250 pays du jeu** (`0002_jalon1_seed_pays.sql`), avec la licence
+  (`public/drapeaux/LICENCE.txt`). **Pas de dépendance npm** : le paquet a seulement servi de source.
+- **Poids** : 2 Mo dans le dépôt pour les 250, mais **seul le drapeau affiché est téléchargé** — la moitié font moins de 1 Ko, les plus
+  détaillés (armoiries de la Serbie, de la Bolivie, du Mexique, de l'Espagne) de 80 à 180 Ko avant compression — puis gardé en cache par
+  le service worker. Rien dans le paquet de code ni dans le premier chargement.
+- **Affichage** (`src/components/Drapeau.tsx`) : dans le panneau du pays en tête de `/pays`, à gauche du nom ; dans l'onglet
+  « Classement », devant le pays en tête de chaque catégorie. Décoratif (le nom est toujours écrit), liseré fin pour les drapeaux
+  blancs. Vérifié dans le navigateur, sur ordinateur et sur téléphone (France, Espagne, Centrafrique).
+- **Tests** : `drapeaux.test.ts` (4) — un drapeau SVG 4 × 3 pour chacun des 250 pays, rien d'autre dans le dossier, la licence présente,
+  la moitié sous 1 Ko et aucun au-dessus de 200 Ko, le composant ignore un code invalide.
+- **Non fait** : le sélecteur de pays est une liste native (`<select>`), qui ne peut pas montrer d'image dans ses options.
 
 ---
 
