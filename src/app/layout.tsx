@@ -27,7 +27,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  // Fond du jeu (--bg), clair et sombre : la barre du navigateur se fond dans la page.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e9eef2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f151b" },
+  ],
 };
 
 export default async function RootLayout({

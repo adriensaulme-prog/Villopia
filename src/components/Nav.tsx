@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server-session";
 import { deconnexion } from "@/lib/supabase/auth-actions";
 import { LangSwitcher } from "./LangSwitcher";
 import { NavTabs } from "./NavTabs";
+import { LogoVillopia } from "./LogoVillopia";
 import { GuideDecouverte } from "./GuideDecouverte";
 import { estNouveauJoueur } from "@/lib/game/guide";
 
@@ -26,7 +27,7 @@ export async function Nav() {
     <>
       <header className="topbar">
         <Link href="/" className="brand">
-          <span className="brand-mark" aria-hidden="true" />
+          <LogoVillopia className="brand-mark" />
           Villopia
         </Link>
         {user ? <NavTabs locale={locale} className="tabs" tabClassName="tab" /> : null}

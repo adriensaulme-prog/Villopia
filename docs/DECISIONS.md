@@ -6090,6 +6090,26 @@ images et le téléchargement du paquet.
   la moitié sous 1 Ko et aucun au-dessus de 200 Ko, le composant ignore un code invalide.
 - **Non fait** : le sélecteur de pays est une liste native (`<select>`), qui ne peut pas montrer d'image dans ses options.
 
+### Logo de l'application (décision d'Adrien du 07/10/2026)
+
+**Demande d'Adrien.** « Propose-moi un logo pour l'application. » Trois pistes, puis dix modèles, puis huit mélanges de ses favoris
+(panneau, globe, bloc 3D) lui ont été montrés ; il a aimé « avoir différentes tailles de bâtiments » et **a choisi le modèle 6, « la
+tour qui sort »** : le panneau blanc bordé de rouge (déjà la marque de la barre du haut), une skyline de hauteurs variées (vert, jaune,
+bleu, encre, maison verte) et une grande tour bleue qui dépasse du cadre, sur une tuile gris clair (`--bg`). Fenêtres blanches sur chaque bâtiment, ajoutées à la
+demande d'Adrien pour qu'on ne lise pas un graphique à barres. Pas de vraie marque.
+
+- **Source unique** : `public/icons/logo.svg` (≈ 1 Ko). Le même dessin sans la tuile est dans `src/components/LogoVillopia.tsx`,
+  affiché dans la barre du haut à la place de l'ancien rectangle `.brand-mark`.
+- **Icônes dérivées** (générées avec `sharp`, déjà présent dans `node_modules` comme dépendance de Next, **aucune dépendance
+  ajoutée**) : `icon-192.png` et `icon-512.png` (tuile arrondie, usage `any`), `icon-maskable-512.png` (plein cadre, dessin réduit à
+  80 % pour la zone sûre Android), `src/app/apple-icon.png` (180 px, iOS) et `src/app/icon.svg` (favicon, servi par Next). Total
+  ≈ 15 Ko, rien dans le paquet de code. Elles remplacent l'ancienne icône (graphique à barres bleu, sans lien avec le jeu).
+- **Couleur de thème** : `#2563eb` (bleu, hérité du jalon 0) remplacé par le fond du jeu, `#e9eef2` en clair et `#0f151b` en sombre
+  (`layout.tsx`), et `#e9eef2` dans `manifest.json` (`theme_color`, `background_color`).
+- **Vérifié** dans le navigateur (barre du haut en clair et en sombre, favicon, icône Apple, manifeste) ; tests Vitest au vert.
+- **Pour régénérer les PNG** après une retouche du SVG : rendre `logo.svg` avec `sharp` aux tailles ci-dessus (script ponctuel, non
+  conservé dans le dépôt).
+
 ---
 
 ## §5. i18n
