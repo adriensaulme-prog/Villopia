@@ -6110,6 +6110,21 @@ demande d'Adrien pour qu'on ne lise pas un graphique à barres. Pas de vraie mar
 - **Pour régénérer les PNG** après une retouche du SVG : rendre `logo.svg` avec `sharp` aux tailles ci-dessus (script ponctuel, non
   conservé dans le dépôt).
 
+### Inscription sans confirmation d'email (A-INTEGRER §52) — 07/10/2026
+
+**Constat d'Adrien.** « Confirm email » est désactivé dans Supabase, mais l'écran affiché après l'inscription restait « Compte créé.
+Vérifie ta boîte mail… ». Bug du formulaire, pas de la configuration : `InscriptionForm.tsx` affichait ce message dès que `signUp()`
+ne renvoyait pas d'erreur, sans regarder si une session avait été ouverte.
+
+- **Correction** (celle proposée au §52, appliquée telle quelle) : si `signUp()` renvoie une session (confirmation désactivée),
+  le joueur part vers `/ville`, qui le mène à la création de ville, comme après une connexion ; sans session (confirmation
+  exigée), le message de confirmation reste affiché. Le formulaire est donc correct dans les deux réglages, y compris si Adrien
+  réactive la confirmation une fois le SMTP branché. Aucune migration, aucune nouvelle clé de traduction.
+- **Test** : `tests/e2e/inscription-sans-confirmation.spec.ts` (2 cas). L'appel `/auth/v1/signup` est intercepté et sa réponse
+  simulée (avec ou sans session) : **aucun compte n'est créé** dans Supabase et le test ne dépend pas du réglage du projet.
+  Contre-épreuve faite : avec l'ancien formulaire, le cas « session ouverte » échoue. Tests Vitest au vert (545).
+- **Non fait** : le §51 (mot de passe oublié), qui reste à faire.
+
 ---
 
 ## §5. i18n

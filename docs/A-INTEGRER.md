@@ -432,6 +432,12 @@ journal existant, puis ce fichier peut être supprimé.*
 > l'espagnol par un locuteur natif, noms de pays en anglais en espagnol (option : migration `nom_es`). Détail : `DECISIONS.md`
 > §4 « Règles : les jauges expliquées et l'espagnol ».
 
+> **§52 (le message « Vérifie ta boîte mail » s'affiche même quand la confirmation d'email est désactivée) — fait le
+> 07/10/2026.** Correction proposée appliquée telle quelle dans `InscriptionForm.tsx` : si `signUp()` renvoie une session,
+> on part vers `/ville` (qui mène à la création de ville) ; sinon, message de confirmation comme avant. Test e2e
+> `inscription-sans-confirmation.spec.ts` (2 cas, réponse Supabase simulée, aucun compte créé), contre-épreuve faite.
+> Détail : `DECISIONS.md` §4 « Inscription sans confirmation d'email ».
+
 Fichiers déposés avec cette note :
 - `docs/prototypes/maquette-ecrans.html` — **nouveau** : maquette
   cliquable de toutes les pages du jeu (données fictives).
@@ -3123,3 +3129,83 @@ par un locuteur espagnol natif (toi-même ou un ami testeur hispanophone)
 avant d'annoncer la langue comme "disponible" est recommandée, surtout
 pour les tournures idiomatiques (noms d'activités, messages d'erreur,
 textes courts de l'accueil).
+
+## 51. Aucune récupération de mot de passe oublié (constat, 07/10/2026)
+
+**Constat** : en préparant les premiers tests avec des amis, on
+remarque qu'il n'existe aucun chemin pour un joueur qui oublie son mot
+de passe. `src/app/connexion/ConnexionForm.tsx` n'a qu'un champ email +
+mot de passe et un message d'erreur générique
+(`connexion.erreur` : « Adresse e-mail ou mot de passe incorrect. ») —
+aucun lien « mot de passe oublié », aucune page de réinitialisation,
+aucune clé de dictionnaire pour ça (`grep -i "oubli\|password"` sur
+`dictionaries.ts` ne remonte que les libellés des champs existants).
+Supabase propose nativement `resetPasswordForEmail()` (envoie un email
+avec un lien de réinitialisation) mais rien dans le code ne l'appelle.
+
+**Pourquoi c'est pertinent maintenant** : jusqu'ici le jeu n'avait
+qu'Adrien et quelques tests, mais avec de vrais amis qui vont créer des
+comptes, quelqu'un oubliera son mot de passe tôt ou tard — et il n'y
+aura aujourd'hui rien à lui proposer d'autre que de contacter Adrien
+directement.
+
+**En attendant (pas de code à écrire pour ça)** : si un ami est
+bloqué, Adrien peut le dépanner à la main depuis Supabase →
+Authentication → Users → trouver le compte → menu "..." → il existe
+une action pour envoyer un lien de réinitialisation ou forcer un
+nouveau mot de passe. Ça marche dès maintenant, sans attendre de
+développement, mais ce n'est pas praticable à grande échelle.
+
+**À faire** (pas urgent avant ce week-end de test, mais à prévoir
+vite après) :
+- Ajouter un lien « mot de passe oublié ? » sur `ConnexionForm.tsx`,
+  menant à un petit formulaire email → appelle
+  `supabase.auth.resetPasswordForEmail(email)`.
+- Une page qui reçoit le lien de retour (Supabase redirige vers une
+  URL du site avec un token) et permet de saisir un nouveau mot de
+  passe.
+- Deux nouvelles clés de dictionnaire minimum (`connexion.motDePasseOublie`,
+  et le texte de la nouvelle page), en fr/en/es (voir §50 : toute
+  nouvelle clé doit être traduite dans les 3 langues dès sa création).
+
+**Dépendance avec le SMTP (§ discuté en direct avec Adrien, pas encore
+numéroté comme section séparée)** : cet email de réinitialisation passe
+par le même système que l'email de confirmation d'inscription — tant
+que le SMTP personnalisé (Brevo) n'est pas branché, il reste soumis au
+même plafond de 2 emails/heure et affiche "Supabase" comme expéditeur
+plutôt que "Villopia".
+\n
+
+## 52. Le message « Vérifie ta boîte mail » s'affiche même quand la confirmation d'email est désactivée (constat, 07/10/2026)
+
+**Constat.** Adrien a désactivé « Confirm email » dans Supabase (Authentication → Sign In / Providers → Supabase Auth →
+User Signups), ce qui devrait permettre à un nouveau compte de se connecter immédiatement après l'inscription, sans email
+à confirmer. Mais l'écran affiché après l'inscription reste « Compte créé. Vérifie ta boîte mail pour confirmer ton
+adresse, puis connecte-toi. » Adrien a d'abord soupçonné un problème de configuration côté Supabase, mais le toggle est
+bien désactivé et sauvegardé (vérifié par capture d'écran) — c'est en réalité un bug du code front.
+
+**Cause.** `src/app/inscription/InscriptionForm.tsx` appelle `supabase.auth.signUp({ email, password })` puis, dès que
+`error` est `null`, affiche systématiquement le message `inscription.confirmationEnvoyee` (`setSucces(true)`, lignes
+19-35) — sans jamais regarder si une session a réellement été ouverte. Or la réponse de `signUp()` contient `data.session`
+: quand « Confirm email » est désactivé côté Supabase, `data.session` est non nul (l'utilisateur est déjà connecté) ;
+quand c'est activé, `data.session` reste `null` tant que l'email n'est pas confirmé. Le code actuel ignore complètement
+cette distinction et traite toujours le cas « confirmation requise ».
+
+**Correction proposée.** Dans `InscriptionForm.tsx`, récupérer `data` en plus de `error` :
+
+```ts
+const { data, error } = await supabase.auth.signUp({ email, password: motDePasse });
+```
+
+Puis, après le `if (error) { ... return; }`, distinguer les deux cas :
+- si `data.session` existe → rediriger directement vers le jeu (`router.push("/ville")` ou équivalent, via `useRouter` de
+  `next/navigation`), sans jamais afficher le message de confirmation ;
+- si `data.session` est `null` → conserver le comportement actuel (`setSucces(true)`, affichage de
+  `inscription.confirmationEnvoyee`).
+
+Ça rend le formulaire correct dans les deux configurations (confirmation d'email activée ou non), au lieu de dépendre
+d'un comportement qui ne correspond qu'à un seul des deux réglages possibles de Supabase — utile aussi bien pour la phase
+de test actuelle (confirmation désactivée) que plus tard si Adrien la réactive une fois le SMTP Brevo en place.
+
+**Fichiers concernés** : `src/app/inscription/InscriptionForm.tsx` uniquement. Aucune migration, aucune nouvelle clé de
+traduction nécessaire.

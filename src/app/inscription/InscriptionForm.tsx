@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { traduire, type Locale } from "@/lib/i18n/dictionaries";
 
 export function InscriptionForm({ locale }: { locale: Locale }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function InscriptionForm({ locale }: { locale: Locale }) {
     setErreur(null);
     setEnCours(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: motDePasse,
     });
@@ -25,6 +27,15 @@ export function InscriptionForm({ locale }: { locale: Locale }) {
 
     if (error) {
       setErreur(error.message);
+      return;
+    }
+
+    // A-INTEGRER §52 : sans confirmation d'email (réglage Supabase "Confirm email" désactivé),
+    // signUp() ouvre déjà la session : on entre directement dans le jeu (/ville mène à la
+    // création de ville). Sinon, la session reste nulle tant que l'adresse n'est pas confirmée.
+    if (data.session) {
+      router.push("/ville");
+      router.refresh();
       return;
     }
 
